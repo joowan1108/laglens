@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LagLens</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="lib/d3.v7.9.0.min.js"></script>
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">
+    <span class="logo">LagLens</span>
+    <span class="subtitle">what a robot actually executes when its policy thinks too slowly</span>
+  </div>
+  <div class="pickers">
+    <label class="chip ref" title="Reference schedule (shift-click a matrix cell or a flip-matrix column)">
+      <span class="dot"></span>R&nbsp;<select id="refSel"></select>
+    </label>
+    <button id="swapBtn" class="icon" title="Swap reference and candidate">⇄</button>
+    <label class="chip cand" title="Candidate schedule (click a matrix cell or a flip-matrix column)">
+      <span class="dot"></span>C&nbsp;<select id="candSel"></select>
+    </label>
+  </div>
+  <div class="actions">
+    <button id="helpBtn">? Guide</button>
+    <button id="resetBtn">↺ Reset</button>
+  </div>
+</header>
+
+<main id="app">
+  <section class="panel" id="pA">
+    <div class="ph"><span class="pl">A</span> Schedule Matrix <span class="task">T1 compare trends</span></div>
+    <div class="controls" id="matrixControls"></div>
+    <div class="body" id="matrix"></div>
+  </section>
+
+  <section class="panel" id="pB">
+    <div class="ph"><span class="pl">B</span> Paired Flip Matrix <span class="task">T2 locate flips</span></div>
+    <div class="controls" id="flipControls"></div>
+    <div class="body" id="flip"></div>
+  </section>
+
+  <section class="panel" id="pC">
+    <div class="ph"><span class="pl">C</span> Workspace Replay <span class="task">T3 identify where</span> <span id="seedLabel" class="seedlabel"></span></div>
+    <div class="body" id="workspace"></div>
+    <div class="player" id="player"></div>
+  </section>
+
+  <section class="panel" id="pD">
+    <div class="ph"><span class="pl">D</span> Chunk Provenance Timeline <span class="task">T3 identify when</span></div>
+    <div class="body" id="timeline"></div>
+  </section>
+
+  <section class="panel" id="pE">
+    <div class="ph"><span class="pl">E</span> Paired Trade-off Scatter <span class="task">T4 discover correlation</span></div>
+    <div class="controls" id="scatterControls"></div>
+    <div class="body" id="scatter"></div>
+  </section>
+</main>
+
+<div id="tooltip" class="tooltip" hidden></div>
+
+<div id="guide" class="guide" hidden>
+  <div class="guide-card">
+    <h2>How to read LagLens</h2>
+    <p>One pretrained Diffusion Policy pushed a T-block to a goal from the <b>same 50 initial states</b> under
+      <b>46 execution schedules</b> (strategy × inference latency <i>d</i> × execution horizon <i>h</i>; 1 step = 100 ms) plus one <b>noise replicate</b> of Sync d=0 h=8 that shows how many outcomes flip by chance alone.
+      Every predicted action chunk was logged, so you can see which plan every executed action came from.</p>
+    <ol>
+      <li><b>A</b>: pick a <span class="tR">reference R</span> (shift-click) and a <span class="tC">candidate C</span> (click). Colour = the chosen metric; switch to <i>Δ vs R</i> to see the change.</li>
+      <li><b>B</b>: each row is one initial state. <span class="tLoss">vermillion</span> = C fails where R succeeds, <span class="tGain">blue</span> = C rescues it. Click a row to open that episode.</li>
+      <li><b>C</b>: R and C replayed side by side. The <b>fan</b> is the chunk being executed: solid = actually executed, dashed = thrown away, dotted grey = the next chunk still being computed, grey dashed = the previous chunk's unused tail.</li>
+      <li><b>D</b>: each bar is a chunk's executed span, the thin line before it is the wait for inference, and vermillion ticks are <b>seams</b> (how far the new plan jumped away from the old plan). Brush to focus a time window; hover a bar to see its fan in C.</li>
+      <li><b>E</b>: every seed under R (black) and C (orange), linked by a grey segment. Brush to filter B.</li>
+    </ol>
+    <p class="muted">Keyboard: ←/→ step, space play/pause, Esc clear brush.</p>
+    <button id="guideClose">Start exploring</button>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+PASS  guide shown on first visit
+PASS  guide closes
+rendered marks: {'#matrix g.cell': 60, '#flip rect.c': 650, '#workspace g.wp': 2, '#timeline .bars rect': 65, '#scatter circle.pt': 100}
+PASS  all five views rendered
+PASS  A click sets candidate
+PASS  A shift-click sets reference
+PASS  A metric change
+PASS  A delta mode
+PASS  A tooltip
+PASS  B sort flip
+PASS  B sort seed
+PASS  B sort robust
+PASS  B cell click selects seed
+PASS  C play advances time
+PASS  C keyboard stepping
+PASS  C fan tooltip
+PASS  D chunk hover links to C
+PASS  D brush sets window
+PASS  C draws brushed window path
+PASS  Esc clears window
+PASS  E axis change
+PASS  E brush selects seeds
+PASS  B rows dimmed by E brush (link)
+PASS  swap R/C
+PASS  candidate picker
+PASS  reset
+PASS  survives resize
+console errors/warnings: 0
+RESULT: PASS

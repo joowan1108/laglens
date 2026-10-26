@@ -1,0 +1,14 @@
+`/mnt/c/Users/joowa/Desktop/InfoVis`의 `Term_Project_2026 (2) (1).pdf` 요구사항을 하나도 빠짐없이 만족하는 InfoVis 개인 프로젝트를 주제 선정부터 최종 제출물까지 완성하라. 상세 지침은 같은 폴더의 `GOAL_PROMPT.md`에 있으니 시작 전에 PDF와 함께 끝까지 읽고 따를 것(충돌 시 PDF 우선).
+
+주제: VLA 또는 asynchronous inference + open/closed-loop 실행(action chunking, execution horizon, latency, temporal ensembling, RTC 등). Theme은 VIS + AI. IEEE VIS 논문 수준의 effectiveness, novelty, usability가 목표이며, Tableau/Excel로 재현 가능한 generic 대시보드는 금지(범위를 좁히고 맞춤 idiom/interaction 설계, 예: latency/horizon을 바꾸면 기록된 chunk로 counterfactual replay).
+
+제약: 시각화는 d3.js v7(버전 고정)만 사용, 다른 차트 라이브러리 금지. 데이터 ≥100 items, ≥6 attributes, generic 공개 데이터 지양, 데이터 조작/날조 금지(직접 rollout 로그 생성 우선, 불가하면 이유 기록 후 공개 로그 재가공). Interactive linked view ≥3. 슬라이드는 영어. AI/외부 자료 사용은 `docs/ai_disclosure.md`, `docs/references.md`에 계속 기록하고 report에 반영. Proposal 마감 2026-10-28 23:55 KST이므로 proposal 최우선. 주제 최종 선택, 데이터 방식 변경, 외부 배포(push) 직전에만 나에게 확인받고 나머지는 스스로 진행. Channel/mark는 expressiveness와 effectiveness 순위로 정당화하고 colorblind-safe 색 사용.
+
+완료 조건(모두 충족 시에만 달성):
+1. `docs/topic_selection.md`: 최신 연구 조사 기반 후보 3개 점수 비교와 선택 근거.
+2. `data/`가 ≥100 items, ≥6 attributes임을 `scripts/`로 검증한 출력 존재, 전처리 재실행 가능.
+3. `slides.pdf`: 영어, ≤7페이지(스크립트로 확인), theme, data abstraction(타입, levels/range, keys vs values), personas 2명(사진, 직업·나이·위치, goals, pain points, 차이), tasks ≥3(action+target, why, outcome), idioms ≥3(근거, interaction, channel 정당화 표), sketch.
+4. `src/`: d3.js만 사용(금지 라이브러리 grep 0), ≥3 interactive linked views, 로컬 정적 서버에서 headless 브라우저로 콘솔 에러 0과 주요 interaction 동작 확인, `README.md`에 실행 방법.
+5. `report.pdf`: ≤5페이지, 인터페이스 이름, theme, live demo 링크, 1–7단계, 스크린샷, 실제 도구 조작으로 얻은 case study findings ≥3, AI disclosure.
+6. `image.png`, `proposal_submission.zip`(루트에 slides.pdf), `final_submission.zip`(루트에 report.pdf, src/, image.png) 생성.
+7. `docs/requirements_check.md`에서 PDF 요구사항을 항목별로 대조해 미충족 0.

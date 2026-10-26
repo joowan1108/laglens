@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LagLens — Proposal</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  :root { --ink:#1d1d1f; --muted:#5a5a60; --line:#d6d6db; --accent:#E69F00; --ref:#222; --blue:#0072B2; --verm:#D55E00; --green:#009E73; --bg2:#f6f6f8; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:#fff; color:var(--ink); font-family: "Ubuntu Sans", "Ubuntu", "DejaVu Sans", sans-serif; }
+  .slide { width:1280px; height:720px; padding:34px 48px 30px; position:relative; overflow:hidden; page-break-after: always; break-after: page; }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  h1 { font-size:30px; margin:0 0 4px; letter-spacing:-0.3px; }
+  h2 { font-size:15px; margin:0 0 14px; color:var(--muted); font-weight:normal; }
+  .kicker { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--accent); font-weight:bold; margin-bottom:4px; }
+  .foot { position:absolute; bottom:14px; left:48px; right:48px; font-size:10px; color:var(--muted); display:flex; justify-content:space-between; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { border-bottom:1px solid var(--line); padding:4px 6px; text-align:left; vertical-align:top; }
+  th { background:var(--bg2); font-size:11px; }
+  .cols { display:flex; gap:28px; }
+  .card { border:1px solid var(--line); border-radius:8px; padding:12px 14px; background:#fff; }
+  .tag { display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:9px; background:var(--bg2); border:1px solid var(--line); margin-right:4px; }
+  .k { font-weight:bold; }
+  ul { margin:4px 0 0 18px; padding:0; } li { margin:3px 0; font-size:14.5px; line-height:1.4; }
+  .small li { font-size:13.5px; }
+  .muted { color:var(--muted); }
+  .big { font-size:15px; line-height:1.45; }
+  .keyb { font-size:9px; background:#1d1d1f; color:#fff; border-radius:3px; padding:0 4px; margin-left:4px; vertical-align:1px; }
+  code { font-family: "DejaVu Sans Mono", monospace; font-size:0.92em; background:var(--bg2); padding:0 3px; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- 1. Title / theme / problem -->
+<section class="slide">
+  <div class="kicker">Theme: VIS + AI · Information Visualization Term Project Proposal</div>
+  <h1>LagLens: Seeing What a Robot Actually Executes When Its Policy Thinks Too Slowly</h1>
+  <h2>A visual analytics tool for <b>action-chunk execution under inference latency</b> (sync vs. asynchronous inference, open-loop execution horizon)</h2>
+  <div class="cols" style="margin-top:6px">
+    <div style="flex:1.05">
+      <div class="big">
+        Modern robot policies (Diffusion Policy, ACT, π0, SmolVLA) predict a <b>chunk</b> of future actions and execute part of it <b>open-loop</b>.
+        Inference takes time <i>d</i>, so the robot either <b>waits</b> (sync) or keeps executing the old chunk and switches when the new one arrives (<b>async</b>).
+      </div>
+      <ul style="margin-top:10px">
+        <li><b>Stale actions</b>: under async inference an action executed at time τ was planned from the observation at τ−d (VLASH, 2025).</li>
+        <li><b>Seams</b>: where chunk <i>k+1</i> replaces chunk <i>k</i>, the plans can disagree → jumps, mode switches (BID 2025; SEAM 2026).</li>
+        <li><b>Tuning by hand</b>: strategy, latency budget and execution horizon are chosen from <i>aggregate</i> success-vs-delay curves (RTC 2025; LeRobot async docs).</li>
+        <li><b>Gap</b>: today's views are debug plots and tables. We found <b>no visual analytics work</b> on chunk execution or async inference (IEEE VIS / EuroVis / CHI search).</li>
+      </ul>
+      <div class="card" style="margin-top:12px; background:#fffaf0; border-color:#f0d9a8">
+        <b>Our idea: paired counterfactual replay.</b> We run one pretrained policy from the <b>same 50 initial states</b> under <b>46 execution schedules</b>
+        and log every predicted chunk. Analysts can then ask: <i>“Which episodes flip from success to failure when I go async with 400 ms latency, and is it the stale actions or the seams that cause it?”</i>
+      </div>
+    </div>
+    <div style="flex:0.95">
+      <svg viewBox="0 0 650 360" width="580" height="322" font-size="12" font-family="Ubuntu Sans, Ubuntu, DejaVu Sans">
+        <text x="0" y="14" font-weight="bold">Three execution strategies (latency d = 2 steps, horizon h = 4)</text>
+        <g transform="translate(0,34)">
+          <text x="0" y="12" font-weight="bold">Sync</text>
+          <g transform="translate(110,0)">
+            <line x1="0" y1="8" x2="40" y2="8" stroke="#999" stroke-dasharray="3 2"/><text x="2" y="30" font-size="10" fill="#999">wait d</text>
+            <rect x="40" y="2" width="80" height="12" fill="#222"/>
+            <line x1="120" y1="8" x2="160" y2="8" stroke="#999" stroke-dasharray="3 2"/>
+            <rect x="160" y="2" width="80" height="12" fill="#555"/>
+            <line x1="240" y1="8" x2="280" y2="8" stroke="#999" stroke-dasharray="3 2"/>
+            <rect x="280" y="2" width="80" height="12" fill="#222"/>
+            <text x="365" y="12" font-size="10" fill="#555">robot idles while waiting</text>
+          </g>
+        </g>
+        <g transform="translate(0,94)">
+          <text x="0" y="12" font-weight="bold">Naive async</text>
+          <g transform="translate(110,0)">
+            <rect x="40" y="2" width="80" height="12" fill="#E69F00"/>
+            <rect x="120" y="2" width="80" height="12" fill="#c98a00"/>
+            <rect x="200" y="2" width="80" height="12" fill="#E69F00"/>
+            <rect x="280" y="2" width="80" height="12" fill="#c98a00"/>
+            <path d="M80,-6 L120,-6" stroke="#555" marker-end="url(#a1)"/><text x="66" y="-10" font-size="10">obs → available</text>
+            <line x1="120" y1="-2" x2="120" y2="18" stroke="#D55E00" stroke-width="3"/><line x1="200" y1="-2" x2="200" y2="18" stroke="#D55E00" stroke-width="3"/><line x1="280" y1="-2" x2="280" y2="18" stroke="#D55E00" stroke-width="3"/>
+            <text x="365" y="12" font-size="10" fill="#555">no idling, but stale + seams</text>
+          </g>
+        </g>
+        <g transform="translate(0,150)">
+          <text x="0" y="12" font-weight="bold">Inpaint async</text>
+          <g transform="translate(110,0)">
+            <rect x="40" y="2" width="80" height="12" fill="#56B4E9"/>
+            <rect x="120" y="2" width="80" height="12" fill="#3a9ad1"/>
+            <rect x="200" y="2" width="80" height="12" fill="#56B4E9"/>
+            <rect x="280" y="2" width="80" height="12" fill="#3a9ad1"/>
+            <line x1="120" y1="2" x2="120" y2="14" stroke="#D55E00" stroke-width="1"/><line x1="200" y1="2" x2="200" y2="14" stroke="#D55E00" stroke-width="1"/>
+            <text x="365" y="12" font-size="10" fill="#555">committed actions frozen,</text>
+            <text x="365" y="24" font-size="10" fill="#555">old plan soft-blended (RTC-like)</text>
+          </g>
+        </g>
+        <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="#555"/></marker></defs>
+        <line x1="110" y1="200" x2="480" y2="200" stroke="#333"/><text x="420" y="216" font-size="10">time (10 Hz steps)</text>
+        <g transform="translate(0,236)">
+          <rect x="0" y="0" width="560" height="110" rx="8" fill="#f6f6f8"/>
+          <text x="12" y="22" font-weight="bold">What a success-rate table tells you</text>
+          <text x="12" y="42" font-size="12">“naive async, d = 4: 62 % vs. sync d = 0: 72 % success (h = 8)”</text>
+          <text x="12" y="70" font-weight="bold">What it hides (LagLens)</text>
+          <text x="12" y="90" font-size="12">which of the 50 initial states flipped, when in the episode, and</text>
+          <text x="12" y="104" font-size="12">whether stale actions, seams or idling caused it</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="foot"><span>LagLens · Proposal · Information Visualization 2026 (SKKU) · <b>AI disclosure</b>: data pipeline, slide text/sketch and code drafted with Claude Code (Anthropic), directed and reviewed by the student</span><span>1 / 7</span></div>
+</section>
+
+<!-- 2. What: data abstraction -->
+<section class="slide">
+  <div class="kicker">1 · What — Data Abstraction</div>
+  <h1>Self-generated rollout logs of a pretrained diffusion policy</h1>
+  <h2>Pretrained <code>lerobot/diffusion_pusht</code> run in the PushT simulator on CPU (DDIM 10 steps).
+    Same 50 initial states × (46 schedules + 1 noise replicate) = <b>2,350 episodes</b>. Every predicted chunk (16 future 2-D actions) and every executed action is logged.</h2>
+  <div class="cols">
+    <div style="flex:1.45">
+      <table>
+        <tr><th>Attribute (episode table, 2,350 items × 19 attributes)</th><th>Type</th><th>Order / range / levels</th><th>Meaning</th></tr>
+        <tr><td class="k">strategy <span class="keyb">KEY</span></td><td>nominal</td><td>sync · naive · inpaint</td><td>how a new chunk replaces the old one</td></tr>
+        <tr><td class="k">latency d <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>0 &lt; 1 &lt; 2 &lt; 4 &lt; 6 steps (0–600 ms)</td><td>inference delay; d = 0 only for sync</td></tr>
+        <tr><td class="k">horizon h <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>2 &lt; 4 &lt; 6 &lt; 8</td><td>actions executed open-loop per chunk</td></tr>
+        <tr><td class="k">replicate <span class="keyb">KEY</span></td><td>nominal (binary)</td><td>0 · 1</td><td>1 = sync d0 h8 re-run with new sampling noise (noise floor)</td></tr>
+        <tr><td class="k">seed <span class="keyb">KEY</span></td><td>nominal (ID)</td><td>1000–1049 (50 levels)</td><td>initial state of block &amp; agent (paired)</td></tr>
+        <tr><td>success</td><td>nominal (binary)</td><td>0 = fail, 1 = success</td><td>coverage &gt; 95 % within 300 steps</td></tr>
+        <tr><td>coverage_final</td><td>quant. ratio, ↑ better</td><td>0.00–0.99</td><td>overlap of T-block with goal</td></tr>
+        <tr><td>steps_to_success</td><td>quant. ratio, ↓ better</td><td>68–300 (missing if failed)</td><td>time to finish</td></tr>
+        <tr><td>seam_gap_mean / max</td><td>quant. ratio (px), ↓</td><td>2.3–222.2 / 6–305</td><td>plan disagreement at chunk hand-over</td></tr>
+        <tr><td>staleness_mean</td><td>quant. ratio (steps), ↓</td><td>0.5–9.5</td><td>age of obs. behind executed actions</td></tr>
+        <tr><td>idle_frac</td><td>quant. ratio, ↓</td><td>0.00–0.75</td><td>share of steps with nothing to execute</td></tr>
+        <tr><td>jerk_mean · path_len · n_inferences</td><td>quant. ratio</td><td>1.2–221.3 · 205–12828 px · 8–150</td><td>smoothness · effort · cost</td></tr>
+      </table>
+    </div>
+    <div style="flex:1">
+      <div class="card">
+        <b>Dataset type</b>: multidimensional <b>table</b> of episodes, each linked to two <b>temporal</b> tables and to a <b>spatial</b> field (512 × 512 px workspace).
+        <ul class="small">
+          <li><b>Step table</b> (598,117 items) · keys: schedule, seed, t (ordinal, 10 Hz) · values: agent x, y; block x, y (interval, px); block θ (cyclic, rad); action x, y (interval, px); chunk id (ordinal); index j 0–15 (ordinal); age (ratio, steps); held (binary); coverage (ratio 0–1).</li>
+          <li><b>Chunk table</b> (119,373 items) · keys: schedule, seed, chunk id · values: t_obs, t_avail (ordinal time), executed window, 16 predicted (x, y) actions.</li>
+          <li><b>Size</b>: 215 KB episode CSV + 112 MB step/chunk JSON (lazy-loaded per schedule).</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <b>Keys vs. values</b>: keys = (strategy, latency, horizon, replicate) → <i>schedule</i>; × seed → episode; × t → step; × chunk id → chunk. Everything else is a value.
+        <div class="muted" style="font-size:11px;margin-top:6px">Novel data: no public dataset logs per-inference chunks (survey, Oct 2026). Generated by us; scripts in <code>scripts/</code>. 1 step = 100 ms.</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Model: Chi et al., Diffusion Policy (2023), checkpoint by Hugging Face LeRobot · PushT env: gym-pusht</span><span>2 / 7</span></div>
+</section>
+
+<!-- 3. Who: personas -->
+<section class="slide">
+  <div class="kicker">2 · Who — Personas</div>
+  <h1>Two people who must decide how a policy is executed</h1>
+  <div class="cols" style="margin-top:14px">
+    <div class="card" style="flex:1; display:flex; gap:14px">
+      <img src="assets/persona_primary.jpg" style="width:150px;height:150px;border-radius:8px;object-fit:cover">
+      <div>
+        <div class="kicker" style="color:var(--ref)">Primary persona</div>
+        <div style="font-size:20px;font-weight:bold">Mara Jensen</div>
+        <div class="muted">28 · 4th-year PhD student, robot learning lab · Copenhagen, Denmark</div>
+        <ul class="small">
+          <li><b>Context</b>: trains diffusion / flow policies; deploys them on a real arm while the GPU server sits across the building (60–250 ms Wi-Fi latency).</li>
+          <li><b>Goals</b>: pick an execution strategy and horizon that keep success high at the latency she actually has; explain <i>why</i> in a paper.</li>
+          <li><b>Needs</b>: per-episode evidence of what failed, aligned with what the policy planned at that moment.</li>
+          <li><b>Pain points</b>: only success-rate tables and video; cannot tell stale actions from seam jumps; re-running real robot trials is costly; matplotlib debug plots show one episode at a time.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card" style="flex:1; display:flex; gap:14px">
+      <img src="assets/persona_secondary.jpg" style="width:150px;height:150px;border-radius:8px;object-fit:cover">
+      <div>
+        <div class="kicker" style="color:var(--accent)">Secondary persona</div>
+        <div style="font-size:20px;font-weight:bold">Arjun Mehta</div>
+        <div class="muted">37 · ML platform engineer, warehouse-robotics start-up · Seoul (Pangyo), Korea</div>
+        <ul class="small">
+          <li><b>Context</b>: owns the policy-serving stack (async robot client ↔ GPU server); does not train models.</li>
+          <li><b>Goals</b>: set a latency budget (SLO) per robot and a safe default strategy; know when to fall back to sync.</li>
+          <li><b>Needs</b>: an overview of how success degrades with latency for each strategy, with confidence that it is not a few lucky seeds.</li>
+          <li><b>Pain points</b>: research papers report curves on other robots; no shared vocabulary with researchers about “why it jitters”.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <table style="margin-top:18px; font-size:14px">
+    <tr><th>Difference</th><th>Mara (primary)</th><th>Arjun (secondary)</th></tr>
+    <tr><td>Expertise</td><td>Policy internals (diffusion, chunking)</td><td>Systems, networking, latency</td></tr>
+    <tr><td>Granularity of questions</td><td>Single episodes, single chunk hand-overs</td><td>Schedules and aggregate trends</td></tr>
+    <tr><td>Main view used</td><td>Workspace replay + chunk timeline (T3, T4)</td><td>Schedule matrix + flip matrix (T1, T2)</td></tr>
+    <tr><td>Decision made</td><td>Which strategy / horizon to propose and why</td><td>Latency budget and fallback rule</td></tr>
+  </table>
+  <div class="foot"><span>Portraits: StyleGAN-generated, public domain (Wikimedia Commons “Woman 1.jpg”, “Man 2.jpg”); the people do not exist. Personas are fictional.</span><span>3 / 7</span></div>
+</section>
+
+<!-- 4. Why: tasks -->
+<section class="slide">
+  <div class="kicker">3 · Why — Task Abstraction (action + target, Munzner)</div>
+  <h1>Four tasks, from schedules down to a single seam</h1>
+  <table style="margin-top:10px; font-size:15px">
+    <tr><th style="width:38px">#</th><th style="width:250px">Action + target</th><th>Concrete question (Mara)</th><th style="width:250px">Why</th><th style="width:260px">Expected outcome</th></tr>
+    <tr><td class="k">T1</td><td><b>Compare</b> → <b>trends</b> of success / seam gap / staleness across schedules</td>
+      <td>“How fast does success fall with latency for each strategy, and which horizon is most robust?”</td>
+      <td>Choose a candidate schedule for the latency the lab actually has.</td>
+      <td>A shortlist of robust schedules and a latency budget per strategy.</td></tr>
+    <tr><td class="k">T2</td><td><b>Locate</b> → <b>outliers</b>: initial states whose outcome <b>flips</b> between a reference and a candidate schedule</td>
+      <td>“Going from sync d=0 to naive async d=4, <i>which</i> seeds start failing, and which are rescued?”</td>
+      <td>Aggregate rates hide which situations break; paired seeds isolate the schedule's effect.</td>
+      <td>A small set of fragile seeds to inspect (and to add to a regression test set).</td></tr>
+    <tr><td class="k">T3</td><td><b>Identify</b> → <b>features</b> in time &amp; space: where stale actions, seams and idling occur in a flipped episode</td>
+      <td>“At which step does the candidate diverge from the reference, and was the executed action stale, a seam jump, or a wait?”</td>
+      <td>Diagnose the mechanism of failure, not just its rate.</td>
+      <td>A causal hypothesis, e.g. “a 30 px seam right at block contact makes the push slip.”</td></tr>
+    <tr><td class="k">T4</td><td><b>Discover</b> → <b>correlation</b> between seam gaps (plan inconsistency) and task outcome (coverage) over paired episodes</td>
+      <td>“When a seed moves from R to C, do larger seams go with lower coverage? Does inpainting shrink the seams?”</td>
+      <td>Recent work claims failed episodes show larger chunk-boundary artifacts (Wang 2026); check it on our policy.</td>
+      <td>Evidence for or against a strategy (direction and size of shift per seed).</td></tr>
+  </table>
+  <div class="card" style="margin-top:16px; font-size:15px">
+    <b>Arjun</b> mainly needs <b>T1</b> (latency budget) and <b>T2</b> (is the drop driven by a few seeds?). <b>Mara</b> chains T1 → T2 → T3 → T4 in one session: overview first, then drill down to a single chunk hand-over (details on demand).
+  </div>
+  <div class="foot"><span>Task vocabulary: Munzner, Visualization Analysis &amp; Design (2014), Ch. 3</span><span>4 / 7</span></div>
+</section>
+
+<!-- 5. How: idioms -->
+<section class="slide">
+  <div class="kicker">4 · How — Vis Idiom Design (5 linked views)</div>
+  <h1>Overview of schedules → paired outcomes → one episode in space &amp; time</h1>
+  <table style="margin-top:8px; font-size:14px">
+    <tr><th style="width:180px">View</th><th style="width:70px">Task</th><th>Idiom &amp; why</th><th style="width:330px">Interaction</th></tr>
+    <tr><td class="k">A · Schedule Matrix</td><td>T1</td><td>Small-multiple heatmaps, one panel per strategy (spatial region for the nominal key), latency × horizon grid (ordered keys on position). Fill = chosen metric (sequential viridis). 46 cells fit in one glance; a line chart would need 12 overlapping lines.</td><td>Click = set candidate C, shift-click = set reference R; radio buttons <b>change</b> the metric; tooltip with all aggregates.</td></tr>
+    <tr><td class="k">B · Paired Flip Matrix</td><td>T2</td><td>Matrix (seeds × schedules), cells coloured by <b>outcome relative to R</b>: gain / loss / both succeed / both fail. Paired design makes flips pre-attentive; rows sorted by robustness. A <b>noise-replicate</b> column shows how many flips happen by chance. 50 × 47 = 2,350 cells.</td><td>Click column = set C; click row = select seed (→ C, D); sort rows (robustness / seed); hover row = <b>link</b> highlight in E.</td></tr>
+    <tr><td class="k">C · Workspace Replay</td><td>T3</td><td>Juxtaposed R | C maps of the 512 px workspace at identical scale: goal T, block pose at time t, executed path, and the <b>chunk fan</b> (16 planned points; executed solid, discarded dashed). Spatial data needs its own geometry; juxtaposition avoids overplotting two paths.</td><td>Scrubber + play (<b>change</b> t); hover fan point → tooltip (planned at step, staleness); brushed window from D filters the drawn path.</td></tr>
+    <tr><td class="k">D · Chunk Provenance Timeline</td><td>T3</td><td>Gantt-style lanes (R, C) on a shared time axis: thin line = waiting (t_obs → t_avail), bar = executed span, hatch = idle, tick height = seam gap; coverage curves underneath. Shows <i>which observation every executed action came from</i>.</td><td><b>Brush</b> time → zoom path in C; hover chunk → highlight its fan in C; click → move cursor; tooltip with seam gap.</td></tr>
+    <tr><td class="k">E · Paired Trade-off Scatter</td><td>T4</td><td>Scatter of episodes (x = mean seam gap, y = final coverage; axes switchable), filled = success, hollow = failure; a segment links the same seed under R and C (paired “slope” in 2-D, blue/vermillion when the outcome flips) so the shift per seed is visible.</td><td><b>Brush</b> → filter rows in B; click point → select seed; <b>change</b> x/y attributes; hover → tooltip.</td></tr>
+  </table>
+  <div class="card" style="margin-top:12px; font-size:14px">
+    <b>Why this is not a Tableau dashboard</b>: the views are driven by a <b>reference/candidate pair</b> of schedules and by chunk <b>provenance</b> (each executed action is linked to the observation and the chunk it came from). The fan, the seam ticks and the paired flip colouring are computed from the logged predictions, and selections propagate across all five views.
+  </div>
+  <div class="foot"><span>Interactions: select, change, brush, link, filter, sort, tooltip, play (details on demand)</span><span>5 / 7</span></div>
+</section>
+
+<!-- 6. How: marks & channels -->
+<section class="slide">
+  <div class="kicker">4 · How — Marks &amp; Channels (expressiveness · effectiveness)</div>
+  <h1>The most important attribute gets the most effective channel</h1>
+  <div class="cols" style="margin-top:6px">
+    <div style="flex:1.5">
+      <table style="font-size:13px">
+        <tr><th>Attribute (type)</th><th>View</th><th>Mark</th><th>Channel</th><th>Justification</th></tr>
+        <tr><td>latency d, horizon h (ordinal)</td><td>A</td><td>area (cell)</td><td>position (x, y)</td><td>ordered keys → ordered spatial position</td></tr>
+        <tr><td>strategy (nominal, 3)</td><td>A</td><td>—</td><td>spatial region (panel)</td><td>top channel for categorical</td></tr>
+        <tr><td>success rate, seam gap… (ratio)</td><td>A</td><td>area</td><td>colour luminance (viridis)</td><td>position already used by keys; uniform, CVD-safe ramp + value label</td></tr>
+        <tr><td>outcome vs R (nominal, 4)</td><td>B</td><td>area</td><td>hue + luminance</td><td>4 levels, blue/vermillion gain/loss; greys for “no change”</td></tr>
+        <tr><td>seed, schedule (keys)</td><td>B</td><td>—</td><td>position (row, col)</td><td>aligned for scanning and sorting</td></tr>
+        <tr><td>agent / block position (interval)</td><td>C</td><td>line, point, polygon</td><td>position (x, y)</td><td>spatial data on true geometry</td></tr>
+        <tr><td>chunk index j (ordinal)</td><td>C</td><td>point</td><td>luminance ramp along fan</td><td>order of planned future steps</td></tr>
+        <tr><td>executed vs discarded (binary)</td><td>C, D</td><td>line</td><td>line style (solid / dashed)</td><td>separable from hue</td></tr>
+        <tr><td>t_obs, t_avail, exec window (time)</td><td>D</td><td>line, bar</td><td>position on common time axis + length</td><td>most accurate for time spans</td></tr>
+        <tr><td>seam gap (ratio, px)</td><td>D</td><td>tick (line)</td><td>length (height)</td><td>magnitude → length</td></tr>
+        <tr><td>coverage (ratio)</td><td>D</td><td>line</td><td>position (y)</td><td>common scale, compare R vs C</td></tr>
+        <tr><td>seam gap, coverage (ratio)</td><td>E</td><td>point</td><td>position (x, y)</td><td>correlation task → 2-D position</td></tr>
+        <tr><td>success (binary)</td><td>B, C, E</td><td>point</td><td>fill (filled / hollow)</td><td>keeps hue free for R vs C</td></tr>
+        <tr><td>R vs C identity (nominal, 2)</td><td>all</td><td>all</td><td>hue: near-black vs orange</td><td>consistent across views, CVD-safe</td></tr>
+      </table>
+    </div>
+    <div style="flex:0.75">
+      <div class="card">
+        <b>Colour</b> (Okabe–Ito, colour-blind safe)
+        <div style="margin-top:8px; font-size:14px; line-height:2">
+          <span style="display:inline-block;width:14px;height:14px;background:#222;vertical-align:middle"></span> Reference R &nbsp;
+          <span style="display:inline-block;width:14px;height:14px;background:#E69F00;vertical-align:middle"></span> Candidate C<br>
+          <span style="display:inline-block;width:14px;height:14px;background:#0072B2;vertical-align:middle"></span> gain vs R &nbsp;
+          <span style="display:inline-block;width:14px;height:14px;background:#D55E00;vertical-align:middle"></span> loss vs R / seam<br>
+          <span style="display:inline-block;width:14px;height:14px;background:#009E73;vertical-align:middle"></span> goal pose &nbsp;
+          <span style="display:inline-block;width:80px;height:14px;background:linear-gradient(90deg,#440154,#31688e,#35b779,#fde725);vertical-align:middle"></span> metric ramp
+        </div>
+      </div>
+      <div class="card" style="margin-top:10px; font-size:14px">
+        <b>Ranking used</b> (Munzner, Ch. 5):<br>
+        quantitative: position on common scale &gt; length &gt; angle / area &gt; luminance / saturation<br>
+        categorical: spatial region &gt; hue &gt; shape<br><br>
+        <b>Scalability</b>: A 46 cells · B 2,350 cells · E ≤ 100 points · C/D one episode (≤ 300 steps, ≤ 150 chunks) → all rendered as SVG at interactive rates.
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Okabe &amp; Ito (2008) palette · viridis (van der Walt &amp; Smith 2015)</span><span>6 / 7</span></div>
+</section>
+
+<!-- 7. Sketch -->
+<section class="slide">
+  <div class="kicker">5 · Sketch (mid-fidelity wireframe) — magenta = interaction &amp; linking</div>
+  <img src="assets/sketch.svg" style="width:1100px; height:auto; display:block; margin:4px auto 0; border:1px solid var(--line)">
+  <div class="foot"><span>Flow: A (pick R and C) → B (find flipped seeds) → C + D (inspect where/why) → E (is the shift systematic?). Implemented with d3.js v7 only.</span><span>7 / 7</span></div>
+</section>
+
+</body>
+</html>

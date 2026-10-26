@@ -1,0 +1,11 @@
+# course handout (not ours to redistribute)
+Term_Project_2026*.pdf
+# raw simulator logs (149 MB; regenerate with scripts/run_grid.sh)
+data/runs/
+data/*.log
+raw/
+# submission bundles and build previews
+*.zip
+slides/preview_*.png
+report/preview_*.png
+__pycache__/

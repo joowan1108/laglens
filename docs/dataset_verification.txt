@@ -1,0 +1,22 @@
+episodes.csv: 2350 items x 19 attributes, 215 KB
+  schedule           distinct=47
+  strategy           levels=['inpaint', 'naive', 'sync']
+  latency            levels=[0, 1, 2, 4, 6]  (missing 0)
+  horizon            levels=[2, 4, 6, 8]  (missing 0)
+  replicate          levels=[0, 1]  (missing 0)
+  seed               range=[1000, 1049]  distinct=50  (missing 0)
+  success            levels=[0, 1]  (missing 0)
+  steps_to_success   range=[68, 300]  distinct=220  (missing 1421)
+  coverage_final     range=[0, 0.9948]  distinct=1358  (missing 0)
+  coverage_max       range=[0, 0.9948]  distinct=1255  (missing 0)
+  n_inferences       range=[8, 150]  distinct=98  (missing 0)
+  n_seams            range=[7, 149]  distinct=98  (missing 0)
+  seam_gap_mean      range=[2.31, 222.24]  distinct=1178  (missing 0)
+  seam_gap_max       range=[5.84, 305.34]  distinct=1900  (missing 0)
+  inner_step_mean    range=[2.25, 16.12]  distinct=746  (missing 0)
+  staleness_mean     range=[0.493, 9.5]  distinct=291  (missing 0)
+  idle_frac          range=[0, 0.7533]  distinct=413  (missing 0)
+  jerk_mean          range=[1.22, 221.3]  distinct=819  (missing 0)
+  path_len           range=[205, 12827.8]  distinct=2249  (missing 0)
+step records: 598117   chunk records: 119373 (16 predicted 2-D actions each)   detail files: 111.8 MB
+REQUIREMENT >=100 items and >=6 attributes: PASS
