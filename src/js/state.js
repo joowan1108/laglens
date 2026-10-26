@@ -12,8 +12,7 @@ export const DEFAULTS = {
   hoverSeed: null,
   hoverChunk: null,        // {which: "ref"|"cand", id}
   sort: "robust",          // flip-matrix row order
-  sx: "seam_gap_mean",     // scatter axes
-  sy: "coverage_final",
+  sx: "seam_gap_max",      // attribute compared in the paired seed-shift view (E)
 };
 
 export const state = { ...DEFAULTS };

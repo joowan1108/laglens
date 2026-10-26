@@ -39,6 +39,7 @@ data and images are listed in `docs/references.md`.
 | 2026-10-26 | Deployment | With the student's approval, AI created the public repo github.com/joowan1108/laglens and a GitHub Actions workflow deploying `src/` to https://joowan1108.github.io/laglens/ (course PDF and raw logs excluded) |
 | 2026-10-26 | Case study + report | AI operated the interface through URL-reproducible states (`scripts/case_study_shots.py`), wrote the case study from the values shown, and built `report.pdf` (`scripts/build_report.py`) |
 | 2026-10-26 | Design change | After seeing that staleness is almost fully determined by the schedule, AI changed the default axes of view E to seam gap × coverage and re-targeted T4 accordingly |
+| 2026-10-27 | View E redesign | The student found the paired scatter hard to read; AI replaced it with a grouped dumbbell plot (one row per seed, log axis, group medians), updated sketch, slides, report Finding 4 and tests |
 
 ## Known AI-related limitations
 * Some numbers in the slides/report are inserted automatically from the data files by `scripts/build_slides.py` / the report build to avoid transcription errors.

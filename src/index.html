@@ -53,7 +53,7 @@
   </section>
 
   <section class="panel" id="pE">
-    <div class="ph"><span class="pl">E</span> Paired Trade-off Scatter <span class="task">T4 discover correlation</span></div>
+    <div class="ph"><span class="pl">E</span> Paired Seed Shifts <span class="task">T4 discover correlation</span></div>
     <div class="controls" id="scatterControls"></div>
     <div class="body" id="scatter"></div>
   </section>
@@ -72,7 +72,7 @@
       <li><b>B</b>: each row is one initial state. <span class="tLoss">vermillion</span> = C fails where R succeeds, <span class="tGain">blue</span> = C rescues it. Click a row to open that episode.</li>
       <li><b>C</b>: R and C replayed side by side. The <b>fan</b> is the chunk being executed: solid = actually executed, dashed = thrown away, dotted grey = the next chunk still being computed, grey dashed = the previous chunk's unused tail.</li>
       <li><b>D</b>: each bar is a chunk's executed span, the thin line before it is the wait for inference, and vermillion ticks are <b>seams</b> (how far the new plan jumped away from the old plan). Brush to focus a time window; hover a bar to see its fan in C.</li>
-      <li><b>E</b>: every seed under R (black) and C (orange), linked by a grey segment. Brush to filter B.</li>
+      <li><b>E</b>: one row per initial state, grouped by how its outcome changed from R to C. The black dot is the value under R, the orange dot under C (default: largest seam gap). If the orange dots of the “C fails” group sit to the right, the failures came with bigger seams. Click a group title or brush rows to filter B.</li>
     </ol>
     <p class="muted">Keyboard: ←/→ step, space play/pause, Esc clear brush.</p>
     <button id="guideClose">Start exploring</button>

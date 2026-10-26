@@ -30,7 +30,7 @@ SHOTS = [
     ("fig_f1_matrix_seam.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=seam_gap_mean&mode=abs", ["#pA"], None),
     ("fig_f2_noise.png", "ref=sync_d0_h8&cand=sync_d0_h8_r1&sort=flip", ["#pB"], None),
     ("fig_f3_replay.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140", ["#pC", "#pD"], None),
-    ("fig_f4_scatter.png", "ref=naive_d4_h4&cand=inpaint_d4_h4&sx=seam_gap_max&sy=coverage_final&seed=1035", ["#pE"], None),
+    ("fig_f4_scatter.png", "ref=naive_d4_h4&cand=inpaint_d4_h4&sx=seam_gap_max&seed=1035", ["#pE"], None),
 ]
 
 log = {}

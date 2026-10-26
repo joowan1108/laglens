@@ -30,7 +30,7 @@ We found no visual analytics work on chunk execution or asynchronous inference.
 | T4 | Discover → correlation (seam gap ↔ outcome) | test the boundary-artifact claim | evidence for or against a strategy |
 
 ## 4 How: idioms
-A Schedule Matrix (small-multiple heatmaps; spatial region, position, luminance) · B Paired Flip Matrix (seeds × schedules, outcome relative to R, noise column) · C Workspace Replay (juxtaposed maps with the chunk fan) · D Chunk Provenance Timeline (Gantt lanes, seam ticks, coverage) · E Paired Trade-off Scatter (linked R→C pairs).
+A Schedule Matrix (small-multiple heatmaps; spatial region, position, luminance) · B Paired Flip Matrix (seeds × schedules, outcome relative to R, noise column) · C Workspace Replay (juxtaposed maps with the chunk fan) · D Chunk Provenance Timeline (Gantt lanes, seam ticks, coverage) · E Paired Seed Shifts (grouped dumbbell plot of R→C per seed).
 Interactions: select R/C, change metric / mode / axes, sort, brush and link, filter, tooltip, play and scrub.
 The channel-justification table and the colour scheme (Okabe–Ito, viridis) are on slides 5–6.
 

@@ -233,7 +233,7 @@
     <tr><td class="k">B · Paired Flip Matrix</td><td>T2</td><td>Matrix (seeds × schedules), cells coloured by <b>outcome relative to R</b>: gain / loss / both succeed / both fail. Paired design makes flips pre-attentive; rows sorted by robustness. A <b>noise-replicate</b> column shows how many flips happen by chance. 50 × 47 = 2,350 cells.</td><td>Click column = set C; click row = select seed (→ C, D); sort rows (robustness / seed); hover row = <b>link</b> highlight in E.</td></tr>
     <tr><td class="k">C · Workspace Replay</td><td>T3</td><td>Juxtaposed R | C maps of the 512 px workspace at identical scale: goal T, block pose at time t, executed path, and the <b>chunk fan</b> (16 planned points; executed solid, discarded dashed). Spatial data needs its own geometry; juxtaposition avoids overplotting two paths.</td><td>Scrubber + play (<b>change</b> t); hover fan point → tooltip (planned at step, staleness); brushed window from D filters the drawn path.</td></tr>
     <tr><td class="k">D · Chunk Provenance Timeline</td><td>T3</td><td>Gantt-style lanes (R, C) on a shared time axis: thin line = waiting (t_obs → t_avail), bar = executed span, hatch = idle, tick height = seam gap; coverage curves underneath. Shows <i>which observation every executed action came from</i>.</td><td><b>Brush</b> time → zoom path in C; hover chunk → highlight its fan in C; click → move cursor; tooltip with seam gap.</td></tr>
-    <tr><td class="k">E · Paired Trade-off Scatter</td><td>T4</td><td>Scatter of episodes (x = mean seam gap, y = final coverage; axes switchable), filled = success, hollow = failure; a segment links the same seed under R and C (paired “slope” in 2-D, blue/vermillion when the outcome flips) so the shift per seed is visible.</td><td><b>Brush</b> → filter rows in B; click point → select seed; <b>change</b> x/y attributes; hover → tooltip.</td></tr>
+    <tr><td class="k">E · Paired Seed Shifts</td><td>T4</td><td>Dumbbell plot: one row per seed, ● R value → ● C value of one attribute (default max seam gap, log axis). Rows are grouped by the outcome change R→C (loss / gain / both ✓ / both ✗), so a correlation reads as “do the dumbbells of the failing group point right?”, without crossing lines. ▲ marks group medians.</td><td><b>Brush</b> rows or click a group → filter B; <b>change</b> attribute; click row → open episode; hover → link.</td></tr>
   </table>
   <div class="card" style="margin-top:12px; font-size:14px">
     <b>Why this is not a Tableau dashboard</b>: the views are driven by a <b>reference/candidate pair</b> of schedules and by chunk <b>provenance</b> (each executed action is linked to the observation and the chunk it came from). The fan, the seam ticks and the paired flip colouring are computed from the logged predictions, and selections propagate across all five views.
@@ -260,8 +260,9 @@
         <tr><td>t_obs, t_avail, exec window (time)</td><td>D</td><td>line, bar</td><td>position on common time axis + length</td><td>most accurate for time spans</td></tr>
         <tr><td>seam gap (ratio, px)</td><td>D</td><td>tick (line)</td><td>length (height)</td><td>magnitude → length</td></tr>
         <tr><td>coverage (ratio)</td><td>D</td><td>line</td><td>position (y)</td><td>common scale, compare R vs C</td></tr>
-        <tr><td>seam gap, coverage (ratio)</td><td>E</td><td>point</td><td>position (x, y)</td><td>correlation task → 2-D position</td></tr>
-        <tr><td>success (binary)</td><td>B, C, E</td><td>point</td><td>fill (filled / hollow)</td><td>keeps hue free for R vs C</td></tr>
+        <tr><td>seam gap etc. (ratio)</td><td>E</td><td>point + line</td><td>position x (log)</td><td>R→C shift as aligned length; log for long tails</td></tr>
+        <tr><td>outcome change (nominal, 4)</td><td>E</td><td>row group</td><td>spatial region</td><td>best categorical channel; no overplotting</td></tr>
+        <tr><td>success (binary)</td><td>C, D</td><td>text</td><td>✓ / ✗ label</td><td>keeps hue free for R vs C</td></tr>
         <tr><td>R vs C identity (nominal, 2)</td><td>all</td><td>all</td><td>hue: near-black vs orange</td><td>consistent across views, CVD-safe</td></tr>
       </table>
     </div>
@@ -281,7 +282,7 @@
         <b>Ranking used</b> (Munzner, Ch. 5):<br>
         quantitative: position on common scale &gt; length &gt; angle / area &gt; luminance / saturation<br>
         categorical: spatial region &gt; hue &gt; shape<br><br>
-        <b>Scalability</b>: A 46 cells · B 2,350 cells · E ≤ 100 points · C/D one episode (≤ 300 steps, ≤ 150 chunks) → all rendered as SVG at interactive rates.
+        <b>Scalability</b>: A 46 cells · B 2,350 cells · E 50 rows · C/D one episode (≤ 300 steps, ≤ 150 chunks) → all rendered as SVG at interactive rates.
       </div>
     </div>
   </div>

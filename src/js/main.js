@@ -55,7 +55,7 @@ function initKeys() {
 function applyParams() {
   const p = new URLSearchParams(location.search);
   const patch = {};
-  for (const k of ["ref", "cand", "metric", "mode", "sort", "sx", "sy"]) if (p.has(k)) patch[k] = p.get(k);
+  for (const k of ["ref", "cand", "metric", "mode", "sort", "sx"]) if (p.has(k)) patch[k] = p.get(k);
   for (const k of ["seed", "t"]) if (p.has(k)) patch[k] = +p.get(k);
   if (p.has("win")) patch.win = p.get("win").split(",").map(Number);
   for (const k of ["ref", "cand"]) if (patch[k] && !DATA.schedById.has(patch[k])) delete patch[k];

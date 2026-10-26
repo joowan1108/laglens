@@ -35,7 +35,7 @@ with sync_playwright() as p:
     ok("guide shown on first visit", pg.is_visible("#guide"))
     pg.click("#guideClose")
     ok("guide closes", not pg.is_visible("#guide"))
-    n = {sel: pg.locator(sel).count() for sel in ["#matrix g.cell", "#flip rect.c", "#workspace g.wp", "#timeline .bars rect", "#scatter circle.pt"]}
+    n = {sel: pg.locator(sel).count() for sel in ["#matrix g.cell", "#flip rect.c", "#workspace g.wp", "#timeline .bars rect", "#scatter circle.pc"]}
     log.append(f"rendered marks: {n}")
     ok("all five views rendered", all(v > 0 for v in n.values()))
 
@@ -88,7 +88,7 @@ with sync_playwright() as p:
     # brush a small region around an existing point, starting the drag on empty background
     start = pg.evaluate("""(()=>{
       const ov=document.querySelector('#scatter .brush .overlay');
-      for (const c of document.querySelectorAll('#scatter circle.pt')) {
+      for (const c of document.querySelectorAll('#scatter circle.pc')) {
         const b=c.getBoundingClientRect(), x=b.x+b.width/2, y=b.y+b.height/2;
         for (const [dx,dy] of [[-14,-14],[14,14],[-14,14],[14,-14],[-20,0],[20,0],[0,20],[0,-20]])
           if (document.elementFromPoint(x+dx,y+dy)===ov) return [x+dx,y+dy,x-dx,y-dy];
