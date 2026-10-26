@@ -1,0 +1,38 @@
+# LagLens — Proposal (text version of `slides.pdf`)
+
+**Theme:** VIS + AI. **Interface:** LagLens, a visual analytics tool for action-chunk execution under inference latency.
+The rendered, submitted version is `slides.pdf` (7 pages, built from `slides/slides.template.html` by `scripts/build_slides.py`; all numbers are filled in from the data).
+
+## Problem
+Chunked robot policies (Diffusion Policy, ACT, π0, SmolVLA) execute part of each predicted chunk open-loop. Inference takes time *d*, so the robot either waits (sync) or keeps executing the old chunk (async).
+This causes **stale actions**, **seams** (plan disagreement when chunk *k*+1 replaces chunk *k*), and forces practitioners to **tune strategy / latency budget / execution horizon by hand** from aggregate success curves.
+We found no visual analytics work on chunk execution or asynchronous inference.
+**Idea:** paired counterfactual replay. One pretrained policy, the same 50 initial states, 46 execution schedules plus a noise replicate, and every predicted chunk logged.
+
+## 1 What: data abstraction
+* Self-generated with `lerobot/diffusion_pusht` in the PushT simulator (CPU, DDIM 10 steps): 2,350 episodes × 19 attributes; 598,117 steps; 119,373 chunks (16 predicted 2-D actions each). See `docs/dataset_verification.txt`.
+* Dataset type: a table of episodes linked to temporal step and chunk tables and to a 512 × 512 px spatial field.
+* **Keys:** strategy (nominal: sync / naive / inpaint), latency *d* (ordinal: 0 < 1 < 2 < 4 < 6 steps), horizon *h* (ordinal: 2 < 4 < 6 < 8), replicate (binary), seed (nominal, 1000–1049), t, chunk id.
+* **Values:** success (binary), coverage_final (ratio, 0–0.99), steps_to_success (ratio, 68–300), seam_gap_mean / max (ratio, px), staleness_mean (ratio, steps), idle_frac (ratio), jerk_mean, path_len, n_inferences, n_seams, inner_step_mean. Per step: agent / block position (interval, px), block angle (cyclic), action, chunk id, index *j*, age, held, coverage.
+
+## 2 Who: personas
+* **Primary: Mara Jensen.** 28, PhD student in a robot-learning lab in Copenhagen. Deploys diffusion policies on a real arm with a remote GPU server (60–250 ms). Needs per-episode evidence of *why* schedules fail. Pain points: only success tables and videos; cannot separate stale actions from seam jumps.
+* **Secondary: Arjun Mehta.** 37, ML platform engineer at a robotics start-up in Seoul. Owns the async serving stack and sets latency budgets. Needs aggregate trends and to know whether drops are real.
+* Differences: policy vs. systems expertise; episode-level (T3, T4) vs. aggregate (T1, T2) questions.
+* Portraits: public-domain StyleGAN images (Wikimedia Commons).
+
+## 3 Why: tasks (action → target)
+| # | Action → target | Why | Expected outcome |
+|---|---|---|---|
+| T1 | Compare → trends across schedules | pick a schedule for the latency at hand | robust region, latency budget |
+| T2 | Locate → outliers (paired flips R→C) | aggregates hide which situations break | fragile seeds, flips vs. chance |
+| T3 | Identify → features in time and space | diagnose the failure mechanism | causal hypothesis tied to chunks |
+| T4 | Discover → correlation (seam gap ↔ outcome) | test the boundary-artifact claim | evidence for or against a strategy |
+
+## 4 How: idioms
+A Schedule Matrix (small-multiple heatmaps; spatial region, position, luminance) · B Paired Flip Matrix (seeds × schedules, outcome relative to R, noise column) · C Workspace Replay (juxtaposed maps with the chunk fan) · D Chunk Provenance Timeline (Gantt lanes, seam ticks, coverage) · E Paired Trade-off Scatter (linked R→C pairs).
+Interactions: select R/C, change metric / mode / axes, sort, brush and link, filter, tooltip, play and scrub.
+The channel-justification table and the colour scheme (Okabe–Ito, viridis) are on slides 5–6.
+
+## 5 Sketch
+`slides/assets/sketch.svg` (slide 7): a mid-fidelity wireframe with interactions and linking in magenta.

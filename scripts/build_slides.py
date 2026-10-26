@@ -15,7 +15,7 @@ def rng(rows, k, fmt="{:g}"):
     return f"{fmt.format(min(v))}–{fmt.format(max(v))}"
 
 
-def main():
+def tokens():
     rows = list(csv.DictReader(open(D / "episodes.csv")))
     sched = {s["schedule"]: s for s in json.load(open(D / "schedules.json"))}
     n_steps = n_chunks = 0
@@ -38,6 +38,11 @@ def main():
         "CSV_KB": f"{os.path.getsize(D / 'episodes.csv')/1024:.0f}", "DETAIL_MB": f"{size/1e6:.0f}",
         "SR_NAIVE_D4_H8": pct("naive_d4_h8"), "SR_SYNC_D0_H8": pct("sync_d0_h8"),
     }
+    return tok
+
+
+def main():
+    tok = tokens()
     html = (ROOT / "slides" / "slides.template.html").read_text()
     for k, v in tok.items():
         html = html.replace("{{" + k + "}}", str(v))

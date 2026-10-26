@@ -85,10 +85,16 @@ with sync_playwright() as p:
     pg.select_option("#scatterControls select >> nth=0", "jerk_mean")
     ok("E axis change", S("sx") == "jerk_mean")
     box = pg.locator("#scatter svg").bounding_box()
-    # brush a region around one existing point so that the test does not depend on the data layout
-    cx, cy = pg.evaluate("(()=>{const c=document.querySelectorAll('#scatter circle.pt')[1];return [+c.getAttribute('cx'),+c.getAttribute('cy')]})()")
-    pg.mouse.move(box["x"] + cx - 12, box["y"] + cy - 12); pg.mouse.down()
-    pg.mouse.move(box["x"] + cx + 12, box["y"] + cy + 12, steps=6); pg.mouse.up()
+    # brush a small region around an existing point, starting the drag on empty background
+    start = pg.evaluate("""(()=>{
+      const ov=document.querySelector('#scatter .brush .overlay');
+      for (const c of document.querySelectorAll('#scatter circle.pt')) {
+        const b=c.getBoundingClientRect(), x=b.x+b.width/2, y=b.y+b.height/2;
+        for (const [dx,dy] of [[-14,-14],[14,14],[-14,14],[14,-14],[-20,0],[20,0],[0,20],[0,-20]])
+          if (document.elementFromPoint(x+dx,y+dy)===ov) return [x+dx,y+dy,x-dx,y-dy];
+      } return null;})()""")
+    pg.mouse.move(start[0], start[1]); pg.mouse.down()
+    pg.mouse.move(start[2], start[3], steps=6); pg.mouse.up()
     br = pg.evaluate("window.LagLens.state.brushed ? window.LagLens.state.brushed.size : 0")
     ok("E brush selects seeds", br > 0)
     dimmed = pg.evaluate("[...document.querySelectorAll('#flip rect.c')].filter(r=>+r.getAttribute('opacity')<0.5).length")

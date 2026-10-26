@@ -1,6 +1,6 @@
 PASS  guide shown on first visit
 PASS  guide closes
-rendered marks: {'#matrix g.cell': 60, '#flip rect.c': 650, '#workspace g.wp': 2, '#timeline .bars rect': 65, '#scatter circle.pt': 100}
+rendered marks: {'#matrix g.cell': 60, '#flip rect.c': 2350, '#workspace g.wp': 2, '#timeline .bars rect': 65, '#scatter circle.pt': 100}
 PASS  all five views rendered
 PASS  A click sets candidate
 PASS  A shift-click sets reference
