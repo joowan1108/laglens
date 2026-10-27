@@ -40,6 +40,7 @@ data and images are listed in `docs/references.md`.
 | 2026-10-26 | Case study + report | AI operated the interface through URL-reproducible states (`scripts/case_study_shots.py`), wrote the case study from the values shown, and built `report.pdf` (`scripts/build_report.py`) |
 | 2026-10-26 | Design change | After seeing that staleness is almost fully determined by the schedule, AI changed the default axes of view E to seam gap × coverage and re-targeted T4 accordingly |
 | 2026-10-27 | View E redesign | The student found the paired scatter hard to read; AI replaced it with a grouped dumbbell plot (one row per seed, log axis, group medians), updated sketch, slides, report Finding 4 and tests |
+| 2026-10-27 | Interface redesign (5 → 4 views) | The student found the interface cluttered and asked for professional channel/mark choices grounded in VIS papers and focused on sync vs. async. AI rewrote A as latency-response line charts with 95 % intervals, merged the flip matrix and the dumbbell plot into one Paired Seed Table with cross-filtering of A, simplified C, added think/act tracks to D, reduced the hue budget, ran a CVD check, and wrote `docs/design_rationale.md`. It also rebuilt the sketch (`scripts/build_sketch.py`), slides 1/3/5/6/7, report §4/§6, figures and tests. The data are unchanged |
 
 ## Known AI-related limitations
 * Some numbers in the slides/report are inserted automatically from the data files by `scripts/build_slides.py` / the report build to avoid transcription errors.

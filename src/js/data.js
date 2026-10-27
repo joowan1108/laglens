@@ -87,3 +87,45 @@ export function activeChunk(e, t) {
 export function pendingChunk(e, t) {
   return e.chunks.find((c) => c.t_obs <= t && t < c.t_avail) || null;
 }
+
+// ---- statistics for schedule-level aggregates (A) --------------------------------------------
+const Z = 1.96;
+function wilson(k, n) {
+  if (!n) return [null, null];
+  const p = k / n, den = 1 + (Z * Z) / n;
+  const c = (p + (Z * Z) / (2 * n)) / den, hw = (Z * Math.sqrt((p * (1 - p)) / n + (Z * Z) / (4 * n * n))) / den;
+  return [c - hw, c + hw];
+}
+function meanCI(vals) {
+  const n = vals.length;
+  if (!n) return { v: null, lo: null, hi: null, n };
+  const v = d3.mean(vals);
+  const hw = n > 1 ? (Z * d3.deviation(vals)) / Math.sqrt(n) : 0;
+  return { v, lo: v - hw, hi: v + hw, n };
+}
+
+// Aggregate of one metric for one schedule over a set of seeds (all seeds by default), with a
+// 95 % interval. With `ref`, the value is the paired difference schedule − ref over the same seeds,
+// which is the right comparison for our paired design (same initial states under both schedules).
+export function aggregate(id, metric, seeds, ref) {
+  const key = METRIC_EP[metric];
+  const S = seeds ? [...seeds] : DATA.seeds;
+  const A = DATA.ep.get(id);
+  if (!A) return null;
+  if (ref) {
+    const B = DATA.ep.get(ref);
+    const diffs = S.map((s) => [A.get(s)?.[key], B.get(s)?.[key]]).filter(([a, b]) => a !== null && a !== undefined && b !== null && b !== undefined).map(([a, b]) => a - b);
+    return meanCI(diffs);
+  }
+  const vals = S.map((s) => A.get(s)?.[key]).filter((v) => v !== null && v !== undefined);
+  if (metric === "success_rate") {
+    const k = d3.sum(vals), n = vals.length;
+    const [lo, hi] = wilson(k, n);
+    return { v: n ? k / n : null, lo, hi, n };
+  }
+  return meanCI(vals);
+}
+const METRIC_EP = {
+  success_rate: "success", coverage_mean: "coverage_final", idle_frac_mean: "idle_frac",
+  staleness_mean: "staleness_mean", seam_gap_mean: "seam_gap_mean", jerk_mean: "jerk_mean",
+};

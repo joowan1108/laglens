@@ -1,18 +1,18 @@
 // Single shared selection state. Views call update({...}); every view listens to "change"
 // and re-renders only what depends on the changed keys.
 export const DEFAULTS = {
-  ref: "sync_d0_h8",       // reference schedule R
-  cand: "naive_d4_h8",     // candidate schedule C
-  metric: "success_rate",  // colour metric of the schedule matrix
-  mode: "abs",             // "abs" | "delta" (matrix colour relative to R)
+  ref: "sync_d4_h4",       // reference schedule R (opens on: same 400 ms latency, wait vs. act-while-thinking)
+  cand: "inpaint_d4_h4",   // candidate schedule C
+  metric: "success_rate",  // y metric of the latency-response curves (A)
+  mode: "abs",             // "abs" | "delta" (paired difference to R)
   seed: null,              // selected initial state
   t: 0,                    // replay time step
   win: null,               // brushed time window [t0, t1] in the timeline
-  brushed: null,           // Set of seeds brushed in the scatter
+  brushed: null,           // Set of seeds selected in B (cross-filters A)
   hoverSeed: null,
   hoverChunk: null,        // {which: "ref"|"cand", id}
-  sort: "robust",          // flip-matrix row order
-  sx: "seam_gap_max",      // attribute compared in the paired seed-shift view (E)
+  sort: "flip",            // seed-table row order: "flip" (grouped by R→C change) | "robust" | "seed"
+  sx: "seam_gap_max",      // attribute of the paired R→C shift in the seed table (B)
 };
 
 export const state = { ...DEFAULTS };

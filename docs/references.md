@@ -38,6 +38,8 @@ No other charting library is used anywhere in `src/`.
 13. A. Lugmayr et al. *RePaint: Inpainting using Denoising Diffusion Probabilistic Models*. CVPR 2022 (the hard-prefix clamping used by our `inpaint` strategy).
 14. J. Song, C. Meng, S. Ermon. *Denoising Diffusion Implicit Models* (DDIM). ICLR 2021.
 15. T. Munzner. *Visualization Analysis and Design*. CRC Press, 2014 (data/task abstraction, channel rankings).
-16. M. Okabe, K. Ito. *Color Universal Design* (Okabe–Ito palette), 2008. Viridis colormap: S. van der Walt, N. Smith, 2015.
+16. M. Okabe, K. Ito. *Color Universal Design* (Okabe–Ito palette), 2008.
 17. Related VIS work checked for novelty: J. Wang et al. *DQNViz* (IEEE VAST 2018 / TVCG 2019); T. Jaunet, R. Vuillemot, C. Wolf. *DRLViz* (EuroVis 2020, CGF 39(3)); *PolicyExplainer* (arXiv:2104.02818).
 18. Hugging Face LeRobot documentation: asynchronous inference (https://huggingface.co/docs/lerobot/main/async) and real-time chunking (https://huggingface.co/docs/lerobot/en/rtc).
+
+19. Visualization design literature used for the redesign (channels, comparison, uncertainty, composite views, cross-filtering, timelines, CVD): see the 20 entries in `docs/design_rationale.md` (Cleveland & McGill 1984; Heer & Bostock CHI 2010; Gleicher et al. 2011; Gleicher TVCG 2018; Ondov et al. TVCG 2019; Correll & Gleicher TVCG 2014; Rao & Card CHI 1994; Wang Baldonado et al. AVI 2000; Javed & Elmqvist PacificVis 2012; Weaver TVCG 2010; Machado et al. TVCG 2009; Szafir TVCG 2018; Heer & Shneiderman CACM 2012; Shneiderman 1996; Brehmer et al. TVCG 2017; Plaisant et al. CHI 1996; Bertin; Tufte; Wilson 1927).

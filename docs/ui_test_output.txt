@@ -1,16 +1,25 @@
 PASS  guide shown on first visit
 PASS  guide closes
-rendered marks: {'#matrix g.cell': 60, '#flip rect.c': 2350, '#workspace g.wp': 2, '#timeline .bars rect': 65, '#scatter circle.pc': 50}
-PASS  all five views rendered
+rendered marks: {'#response g.pm': 47, '#seedtable rect.c': 2350, '#seedtable g.db': 50, '#workspace g.wp': 2, '#timeline .bars rect': 99, '#timeline .think rect': 99}
+PASS  all four views rendered (A curves, B matrix + dumbbells, C boards, D tracks)
 PASS  A click sets candidate
 PASS  A shift-click sets reference
 PASS  A metric change
-PASS  A delta mode
+PASS  A delta mode (paired differences)
 PASS  A tooltip
+PASS  A legend hover highlights one strategy
 PASS  B sort flip
-PASS  B sort seed
 PASS  B sort robust
+PASS  B sort seed
+PASS  B groups rows by R→C change
+PASS  B column header click sets candidate
 PASS  B cell click selects seed
+PASS  B shift attribute change
+PASS  B brush selects seeds
+PASS  A recomputes on the selected seeds (cross-filter)
+PASS  B rows outside the selection are dimmed
+PASS  Esc clears seed selection
+PASS  B band header click selects its seeds
 PASS  C play advances time
 PASS  C keyboard stepping
 PASS  C fan tooltip
@@ -18,12 +27,10 @@ PASS  D chunk hover links to C
 PASS  D brush sets window
 PASS  C draws brushed window path
 PASS  Esc clears window
-PASS  E axis change
-PASS  E brush selects seeds
-PASS  B rows dimmed by E brush (link)
 PASS  swap R/C
 PASS  candidate picker
 PASS  reset
 PASS  survives resize
+PASS  URL state restores R, C, seed, t and selection
 console errors/warnings: 0
 RESULT: PASS

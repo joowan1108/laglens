@@ -35,31 +35,57 @@ with sync_playwright() as p:
     ok("guide shown on first visit", pg.is_visible("#guide"))
     pg.click("#guideClose")
     ok("guide closes", not pg.is_visible("#guide"))
-    n = {sel: pg.locator(sel).count() for sel in ["#matrix g.cell", "#flip rect.c", "#workspace g.wp", "#timeline .bars rect", "#scatter circle.pc"]}
+    n = {sel: pg.locator(sel).count() for sel in ["#response g.pm", "#seedtable rect.c", "#seedtable g.db", "#workspace g.wp", "#timeline .bars rect", "#timeline .think rect"]}
     log.append(f"rendered marks: {n}")
-    ok("all five views rendered", all(v > 0 for v in n.values()))
+    ok("all four views rendered (A curves, B matrix + dumbbells, C boards, D tracks)", all(v > 0 for v in n.values()))
 
-    # A: click = candidate, shift-click = reference, metric + delta mode
-    cells = pg.locator("#matrix g.cell")
+    # A: click = candidate, shift-click = reference, metric + delta mode, tooltip, legend hover
+    idx_of = lambda sid: pg.evaluate(f"[...document.querySelectorAll('#response g.pm')].findIndex(g=>d3.select(g).datum().id==={sid!r})")
     target = pg.evaluate("window.LagLens.DATA.schedules.filter(s=>!s.replicate).map(s=>s.schedule).find(s=>s!==window.LagLens.state.cand && s!==window.LagLens.state.ref && s!=='sync_d1_h8')")
-    idx = pg.evaluate(f"[...document.querySelectorAll('#matrix g.cell')].findIndex(g=>d3.select(g).datum().id==={target!r})")
-    cells.nth(idx).click()
+    marks = pg.locator("#response g.pm")
+    marks.nth(idx_of(target)).locator("circle.hit").click(force=True)
     ok("A click sets candidate", S("cand") == target)
-    sync = pg.evaluate("[...document.querySelectorAll('#matrix g.cell')].findIndex(g=>d3.select(g).datum().id==='sync_d1_h8')")
-    cells.nth(sync).click(modifiers=["Shift"])
+    marks.nth(idx_of("sync_d1_h8")).locator("circle.hit").click(modifiers=["Shift"], force=True)
     ok("A shift-click sets reference", S("ref") == "sync_d1_h8")
-    pg.select_option("#matrixControls select", "seam_gap_mean")
+    pg.select_option("#responseControls select", "seam_gap_mean")
     ok("A metric change", S("metric") == "seam_gap_mean")
-    pg.click("#matrixControls button:has-text('Δ vs R')")
-    ok("A delta mode", S("mode") == "delta")
-    cells.nth(idx).hover(); ok("A tooltip", pg.is_visible("#tooltip"))
+    pg.click("#responseControls button:has-text('Δ vs R')")
+    ok("A delta mode (paired differences)", S("mode") == "delta")
+    marks.nth(idx_of(target)).locator("circle.hit").hover(force=True); ok("A tooltip", pg.is_visible("#tooltip"))
+    pg.hover("#responseControls .legend .li[data-strat=naive]")
+    faded = pg.evaluate("[...document.querySelectorAll('#response g.sl')].filter(g=>+g.getAttribute('opacity')<0.5).length")
+    ok("A legend hover highlights one strategy", faded > 0)
+    pg.mouse.move(5, 5)
 
-    # B: sorting + row click opens an episode
-    for mode in ["flip", "seed", "robust"]:
-        pg.click(f"#flipControls button >> nth={['robust','flip','seed'].index(mode)}")
+    # B: sorting, column header click, cell click opens an episode, attribute change, brush -> A
+    for i, mode in enumerate(["flip", "robust", "seed"]):
+        pg.click(f"#seedControls button >> nth={i}")
         ok(f"B sort {mode}", S("sort") == mode)
-    pg.locator("#flip rect.c").nth(300).click()
+    pg.click("#seedControls button >> nth=0")
+    ok("B groups rows by R→C change", pg.locator("#seedtable g.band").count() >= 2)
+    col = pg.evaluate("[...document.querySelectorAll('#seedtable rect.colhit')].findIndex(r=>d3.select(r).datum().id==='naive_d4_h4')")
+    pg.locator("#seedtable rect.colhit").nth(col).click(force=True)
+    ok("B column header click sets candidate", S("cand") == "naive_d4_h4")
+    pg.locator("#seedtable rect.c").nth(300).click()
     ok("B cell click selects seed", S("seed") is not None)
+    pg.select_option("#seedControls select", "jerk_mean")
+    ok("B shift attribute change", S("sx") == "jerk_mean")
+    box = pg.locator("#seedtable svg").bounding_box()
+    start = pg.evaluate("""(()=>{
+      const ov=document.querySelector('#seedtable .brush .overlay'); const r=ov.getBoundingClientRect();
+      for (let fx=0.05; fx<0.95; fx+=0.05) { const x=r.x+r.width*fx, y0=r.y+r.height*0.3, y1=r.y+r.height*0.55;
+        if (document.elementFromPoint(x,y0)===ov) return [x,y0,x,y1]; }
+      return null;})()""")
+    pg.mouse.move(start[0], start[1]); pg.mouse.down(); pg.mouse.move(start[2], start[3], steps=6); pg.mouse.up()
+    br = pg.evaluate("window.LagLens.state.brushed ? window.LagLens.state.brushed.size : 0")
+    ok("B brush selects seeds", br > 0)
+    ok("A recomputes on the selected seeds (cross-filter)", "computed over the" in pg.inner_text("#responseNote"))
+    dimmed = pg.evaluate("[...document.querySelectorAll('#seedtable rect.c')].filter(r=>+r.getAttribute('opacity')<0.5).length")
+    ok("B rows outside the selection are dimmed", dimmed > 0 or br == 50)
+    pg.keyboard.press("Escape"); ok("Esc clears seed selection", S("brushed") is None)
+    pg.locator("#seedtable g.band").first.click(force=True)
+    ok("B band header click selects its seeds", S("brushed") is not None)
+    pg.keyboard.press("Escape")
     pg.wait_for_timeout(500)
 
     # C: player
@@ -67,7 +93,7 @@ with sync_playwright() as p:
     ok("C play advances time", S("t") > 0)
     pg.keyboard.press("ArrowRight"); t1 = S("t"); pg.keyboard.press("ArrowLeft")
     ok("C keyboard stepping", S("t") == t1 - 1)
-    pg.locator("#workspace .fan circle").first.hover()
+    pg.locator("#workspace .fan circle").first.hover(force=True)
     ok("C fan tooltip", pg.is_visible("#tooltip"))
 
     # D: hover a chunk -> hoverChunk, brush window
@@ -81,32 +107,17 @@ with sync_playwright() as p:
     ok("C draws brushed window path", pg.evaluate("document.querySelector('#workspace .pathWin').getAttribute('d')") is not None)
     pg.keyboard.press("Escape"); ok("Esc clears window", S("win") is None)
 
-    # E: axis change + 2-D brush filters B
-    pg.select_option("#scatterControls select >> nth=0", "jerk_mean")
-    ok("E axis change", S("sx") == "jerk_mean")
-    box = pg.locator("#scatter svg").bounding_box()
-    # brush a small region around an existing point, starting the drag on empty background
-    start = pg.evaluate("""(()=>{
-      const ov=document.querySelector('#scatter .brush .overlay');
-      for (const c of document.querySelectorAll('#scatter circle.pc')) {
-        const b=c.getBoundingClientRect(), x=b.x+b.width/2, y=b.y+b.height/2;
-        for (const [dx,dy] of [[-14,-14],[14,14],[-14,14],[14,-14],[-20,0],[20,0],[0,20],[0,-20]])
-          if (document.elementFromPoint(x+dx,y+dy)===ov) return [x+dx,y+dy,x-dx,y-dy];
-      } return null;})()""")
-    pg.mouse.move(start[0], start[1]); pg.mouse.down()
-    pg.mouse.move(start[2], start[3], steps=6); pg.mouse.up()
-    br = pg.evaluate("window.LagLens.state.brushed ? window.LagLens.state.brushed.size : 0")
-    ok("E brush selects seeds", br > 0)
-    dimmed = pg.evaluate("[...document.querySelectorAll('#flip rect.c')].filter(r=>+r.getAttribute('opacity')<0.5).length")
-    ok("B rows dimmed by E brush (link)", dimmed > 0 or br == 50)
-
-    # header: swap, pickers, reset, resize
+    # header: swap, pickers, reset, resize, URL state
     r0, c0 = S("ref"), S("cand")
     pg.click("#swapBtn"); ok("swap R/C", S("ref") == c0 and S("cand") == r0)
     pg.select_option("#candSel", "sync_d0_h8"); ok("candidate picker", S("cand") == "sync_d0_h8")
-    pg.click("#resetBtn"); ok("reset", S("ref") == "sync_d0_h8" and S("metric") == "success_rate")
+    pg.click("#resetBtn"); ok("reset", S("ref") == "sync_d4_h4" and S("cand") == "inpaint_d4_h4" and S("metric") == "success_rate")
     pg.set_viewport_size({"width": 1366, "height": 800}); pg.wait_for_timeout(500)
-    ok("survives resize", pg.locator("#flip rect.c").count() > 0)
+    ok("survives resize", pg.locator("#seedtable rect.c").count() > 0)
+    pg.goto(f"http://127.0.0.1:{port}/index.html?noguide&ref=naive_d4_h4&cand=inpaint_d4_h4&seed=1035&t=116&sel=1000,1001")
+    pg.wait_for_function("window.LagLens && document.querySelectorAll('#timeline svg .bars rect').length > 5", timeout=30000)
+    ok("URL state restores R, C, seed, t and selection", S("ref") == "naive_d4_h4" and S("seed") == 1035 and S("t") == 116
+       and pg.evaluate("window.LagLens.state.brushed.size") == 2)
     b.close()
 srv.shutdown()
 

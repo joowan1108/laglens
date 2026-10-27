@@ -26,11 +26,11 @@ SHOTS = [
     # (file, query, [panel selectors] or None for the whole page, optional JS to run before capture)
     ("image.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140&sort=flip", None, None),
     ("fig_overview.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140&sort=flip", None, None),
-    ("fig_f1_matrix_delta.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=success_rate&mode=delta", ["#pA"], None),
-    ("fig_f1_matrix_seam.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=seam_gap_mean&mode=abs", ["#pA"], None),
+    ("fig_f1_response.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=success_rate&mode=abs", ["#pA"], None),
+    ("fig_f1_seam.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=seam_gap_mean&mode=abs", ["#pA"], None),
     ("fig_f2_noise.png", "ref=sync_d0_h8&cand=sync_d0_h8_r1&sort=flip", ["#pB"], None),
     ("fig_f3_replay.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140", ["#pC", "#pD"], None),
-    ("fig_f4_scatter.png", "ref=naive_d4_h4&cand=inpaint_d4_h4&sx=seam_gap_max&seed=1035", ["#pE"], None),
+    ("fig_f4_shift.png", "ref=naive_d4_h4&cand=inpaint_d4_h4&sx=seam_gap_max&seed=1035&sort=flip", ["#pB"], None),
 ]
 
 log = {}

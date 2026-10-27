@@ -55,53 +55,18 @@
     </div>
     <div style="flex:0.95">
       <svg viewBox="0 0 650 360" width="580" height="322" font-size="12" font-family="Ubuntu Sans, Ubuntu, DejaVu Sans">
-        <text x="0" y="14" font-weight="bold">Three execution strategies (latency d = 2 steps, horizon h = 4)</text>
-        <g transform="translate(0,34)">
-          <text x="0" y="12" font-weight="bold">Sync</text>
-          <g transform="translate(110,0)">
-            <line x1="0" y1="8" x2="40" y2="8" stroke="#999" stroke-dasharray="3 2"/><text x="2" y="30" font-size="10" fill="#999">wait d</text>
-            <rect x="40" y="2" width="80" height="12" fill="#222"/>
-            <line x1="120" y1="8" x2="160" y2="8" stroke="#999" stroke-dasharray="3 2"/>
-            <rect x="160" y="2" width="80" height="12" fill="#555"/>
-            <line x1="240" y1="8" x2="280" y2="8" stroke="#999" stroke-dasharray="3 2"/>
-            <rect x="280" y="2" width="80" height="12" fill="#222"/>
-            <text x="365" y="12" font-size="10" fill="#555">robot idles while waiting</text>
-          </g>
-        </g>
-        <g transform="translate(0,94)">
-          <text x="0" y="12" font-weight="bold">Naive async</text>
-          <g transform="translate(110,0)">
-            <rect x="40" y="2" width="80" height="12" fill="#E69F00"/>
-            <rect x="120" y="2" width="80" height="12" fill="#c98a00"/>
-            <rect x="200" y="2" width="80" height="12" fill="#E69F00"/>
-            <rect x="280" y="2" width="80" height="12" fill="#c98a00"/>
-            <path d="M80,-6 L120,-6" stroke="#555" marker-end="url(#a1)"/><text x="66" y="-10" font-size="10">obs → available</text>
-            <line x1="120" y1="-2" x2="120" y2="18" stroke="#D55E00" stroke-width="3"/><line x1="200" y1="-2" x2="200" y2="18" stroke="#D55E00" stroke-width="3"/><line x1="280" y1="-2" x2="280" y2="18" stroke="#D55E00" stroke-width="3"/>
-            <text x="365" y="12" font-size="10" fill="#555">no idling, but stale + seams</text>
-          </g>
-        </g>
-        <g transform="translate(0,150)">
-          <text x="0" y="12" font-weight="bold">Inpaint async</text>
-          <g transform="translate(110,0)">
-            <rect x="40" y="2" width="80" height="12" fill="#56B4E9"/>
-            <rect x="120" y="2" width="80" height="12" fill="#3a9ad1"/>
-            <rect x="200" y="2" width="80" height="12" fill="#56B4E9"/>
-            <rect x="280" y="2" width="80" height="12" fill="#3a9ad1"/>
-            <line x1="120" y1="2" x2="120" y2="14" stroke="#D55E00" stroke-width="1"/><line x1="200" y1="2" x2="200" y2="14" stroke="#D55E00" stroke-width="1"/>
-            <text x="365" y="12" font-size="10" fill="#555">committed actions frozen,</text>
-            <text x="365" y="24" font-size="10" fill="#555">old plan soft-blended (RTC-like)</text>
-          </g>
-        </g>
-        <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="#555"/></marker></defs>
-        <line x1="110" y1="200" x2="480" y2="200" stroke="#333"/><text x="420" y="216" font-size="10">time (10 Hz steps)</text>
-        <g transform="translate(0,236)">
-          <rect x="0" y="0" width="560" height="110" rx="8" fill="#f6f6f8"/>
-          <text x="12" y="22" font-weight="bold">What a success-rate table tells you</text>
-          <text x="12" y="42" font-size="12">“naive async, d = 4: {{SR_NAIVE_D4_H8}} vs. sync d = 0: {{SR_SYNC_D0_H8}} success (h = 8)”</text>
-          <text x="12" y="70" font-weight="bold">What it hides (LagLens)</text>
-          <text x="12" y="90" font-size="12">which of the {{N_SEEDS}} initial states flipped, when in the episode, and</text>
-          <text x="12" y="104" font-size="12">whether stale actions, seams or idling caused it</text>
-        </g>
+<defs><pattern id="hatchS" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="4" stroke="#a9a9b1" stroke-width="1.2"/></pattern></defs>
+<text x="0" y="14" font-weight="bold">Three execution strategies (latency d = 2 steps, horizon h = 4), as drawn in view D</text>
+<g transform="translate(0,30)"><rect x="0" y="14" width="9" height="9" fill="#0072B2"/><text x="14" y="22" font-weight="bold">Sync</text><g transform="translate(118,0)"><text x="-4" y="11" font-size="9" fill="#777" text-anchor="end">think</text><text x="-4" y="27" font-size="9" fill="#777" text-anchor="end">act</text><rect x="0" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="0" y="16" width="23" height="12" fill="url(#hatchS)"/><rect x="24" y="16" width="47" height="12" fill="#222" fill-opacity="0.85"/><rect x="72" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="72" y="16" width="23" height="12" fill="url(#hatchS)"/><rect x="96" y="16" width="47" height="12" fill="#222" fill-opacity="0.5"/><rect x="144" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="144" y="16" width="23" height="12" fill="url(#hatchS)"/><rect x="168" y="16" width="47" height="12" fill="#222" fill-opacity="0.85"/><rect x="216" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="216" y="16" width="23" height="12" fill="url(#hatchS)"/><rect x="240" y="16" width="47" height="12" fill="#222" fill-opacity="0.5"/><text x="298" y="16" font-size="10.5" fill="#444">robot idles while thinking</text><text x="298" y="29" font-size="10.5" fill="#444">cost: time (idle share d/(h+d))</text></g></g>
+<g transform="translate(0,78)"><rect x="0" y="14" width="9" height="9" fill="#D55E00"/><text x="14" y="22" font-weight="bold">Naive async</text><g transform="translate(118,0)"><text x="-4" y="11" font-size="9" fill="#777" text-anchor="end">think</text><text x="-4" y="27" font-size="9" fill="#777" text-anchor="end">act</text><rect x="24" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="0" y="16" width="47" height="12" fill="#222" fill-opacity="0.85"/><rect x="72" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="48" y="16" width="47" height="12" fill="#222" fill-opacity="0.5"/><line x1="48" x2="48" y1="14" y2="1" stroke="#c2185b" stroke-width="1.6"/><circle cx="48" cy="1" r="2" fill="#c2185b"/><rect x="120" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="96" y="16" width="47" height="12" fill="#222" fill-opacity="0.85"/><line x1="96" x2="96" y1="14" y2="1" stroke="#c2185b" stroke-width="1.6"/><circle cx="96" cy="1" r="2" fill="#c2185b"/><rect x="168" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="144" y="16" width="47" height="12" fill="#222" fill-opacity="0.5"/><line x1="144" x2="144" y1="14" y2="1" stroke="#c2185b" stroke-width="1.6"/><circle cx="144" cy="1" r="2" fill="#c2185b"/><rect x="216" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="192" y="16" width="47" height="12" fill="#222" fill-opacity="0.85"/><line x1="192" x2="192" y1="14" y2="1" stroke="#c2185b" stroke-width="1.6"/><circle cx="192" cy="1" r="2" fill="#c2185b"/><rect x="264" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="240" y="16" width="47" height="12" fill="#222" fill-opacity="0.5"/><line x1="240" x2="240" y1="14" y2="1" stroke="#c2185b" stroke-width="1.6"/><circle cx="240" cy="1" r="2" fill="#c2185b"/><text x="298" y="16" font-size="10.5" fill="#444">acts while thinking; new chunk</text><text x="298" y="29" font-size="10.5" fill="#444">replaces old → tall seam lollipops</text></g></g>
+<g transform="translate(0,126)"><rect x="0" y="14" width="9" height="9" fill="#009E73"/><text x="14" y="22" font-weight="bold">Inpaint async</text><g transform="translate(118,0)"><text x="-4" y="11" font-size="9" fill="#777" text-anchor="end">think</text><text x="-4" y="27" font-size="9" fill="#777" text-anchor="end">act</text><rect x="24" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="0" y="16" width="47" height="12" fill="#222" fill-opacity="0.85"/><rect x="72" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="48" y="16" width="47" height="12" fill="#222" fill-opacity="0.5"/><line x1="48" x2="48" y1="14" y2="11" stroke="#c2185b" stroke-width="1.6"/><circle cx="48" cy="11" r="2" fill="#c2185b"/><rect x="120" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="96" y="16" width="47" height="12" fill="#222" fill-opacity="0.85"/><line x1="96" x2="96" y1="14" y2="11" stroke="#c2185b" stroke-width="1.6"/><circle cx="96" cy="11" r="2" fill="#c2185b"/><rect x="168" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="144" y="16" width="47" height="12" fill="#222" fill-opacity="0.5"/><line x1="144" x2="144" y1="14" y2="11" stroke="#c2185b" stroke-width="1.6"/><circle cx="144" cy="11" r="2" fill="#c2185b"/><rect x="216" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="192" y="16" width="47" height="12" fill="#222" fill-opacity="0.85"/><line x1="192" x2="192" y1="14" y2="11" stroke="#c2185b" stroke-width="1.6"/><circle cx="192" cy="11" r="2" fill="#c2185b"/><rect x="264" y="5" width="23" height="6" fill="#222" fill-opacity="0.45"/><rect x="240" y="16" width="47" height="12" fill="#222" fill-opacity="0.5"/><line x1="240" x2="240" y1="14" y2="11" stroke="#c2185b" stroke-width="1.6"/><circle cx="240" cy="11" r="2" fill="#c2185b"/><text x="298" y="16" font-size="10.5" fill="#444">acts while thinking; new chunk</text><text x="298" y="29" font-size="10.5" fill="#444">continues old plan → small seams</text></g></g>
+<line x1="118" y1="176" x2="406" y2="176" stroke="#333"/><text x="406" y="190" font-size="10" text-anchor="end">time (10 Hz steps)</text>
+<g transform="translate(0,236)"><rect x="0" y="0" width="560" height="110" rx="8" fill="#f6f6f8"/>
+<text x="12" y="22" font-weight="bold">What a success-rate table tells you</text>
+<text x="12" y="42" font-size="12">“naive async, d = 4: {{SR_NAIVE_D4_H8}} vs. sync d = 0: {{SR_SYNC_D0_H8}} success (h = 8)”</text>
+<text x="12" y="70" font-weight="bold">What it hides (LagLens)</text>
+<text x="12" y="90" font-size="12">which of the {{N_SEEDS}} initial states flipped, when in the episode, and</text>
+<text x="12" y="104" font-size="12">whether idling, stale actions or seams caused it</text></g>
       </svg>
     </div>
   </div>
@@ -188,7 +153,7 @@
     <tr><th>Difference</th><th>Mara (primary)</th><th>Arjun (secondary)</th></tr>
     <tr><td>Expertise</td><td>Policy internals (diffusion, chunking)</td><td>Systems, networking, latency</td></tr>
     <tr><td>Granularity of questions</td><td>Single episodes, single chunk hand-overs</td><td>Schedules and aggregate trends</td></tr>
-    <tr><td>Main view used</td><td>Workspace replay + chunk timeline (T3, T4)</td><td>Schedule matrix + flip matrix (T1, T2)</td></tr>
+    <tr><td>Main view used</td><td>Workspace replay + execution timeline, seed shifts (T3, T4)</td><td>Latency-response curves + paired seed table (T1, T2)</td></tr>
     <tr><td>Decision made</td><td>Which strategy / horizon to propose and why</td><td>Latency budget and fallback rule</td></tr>
   </table>
   <div class="foot"><span>Portraits: StyleGAN-generated, public domain (Wikimedia Commons “Woman 1.jpg”, “Man 2.jpg”); the people do not exist. Personas are fictional.</span><span>3 / 7</span></div>
@@ -225,20 +190,20 @@
 
 <!-- 5. How: idioms -->
 <section class="slide">
-  <div class="kicker">4 · How — Vis Idiom Design (5 linked views)</div>
-  <h1>Overview of schedules → paired outcomes → one episode in space &amp; time</h1>
-  <table style="margin-top:8px; font-size:14px">
-    <tr><th style="width:180px">View</th><th style="width:70px">Task</th><th>Idiom &amp; why</th><th style="width:330px">Interaction</th></tr>
-    <tr><td class="k">A · Schedule Matrix</td><td>T1</td><td>Small-multiple heatmaps, one panel per strategy (spatial region for the nominal key), latency × horizon grid (ordered keys on position). Fill = chosen metric (sequential viridis). 46 cells fit in one glance; a line chart would need 12 overlapping lines.</td><td>Click = set candidate C, shift-click = set reference R; radio buttons <b>change</b> the metric; tooltip with all aggregates.</td></tr>
-    <tr><td class="k">B · Paired Flip Matrix</td><td>T2</td><td>Matrix (seeds × schedules), cells coloured by <b>outcome relative to R</b>: gain / loss / both succeed / both fail. Paired design makes flips pre-attentive; rows sorted by robustness. A <b>noise-replicate</b> column shows how many flips happen by chance. 50 × 47 = 2,350 cells.</td><td>Click column = set C; click row = select seed (→ C, D); sort rows (robustness / seed); hover row = <b>link</b> highlight in E.</td></tr>
-    <tr><td class="k">C · Workspace Replay</td><td>T3</td><td>Juxtaposed R | C maps of the 512 px workspace at identical scale: goal T, block pose at time t, executed path, and the <b>chunk fan</b> (16 planned points; executed solid, discarded dashed). Spatial data needs its own geometry; juxtaposition avoids overplotting two paths.</td><td>Scrubber + play (<b>change</b> t); hover fan point → tooltip (planned at step, staleness); brushed window from D filters the drawn path.</td></tr>
-    <tr><td class="k">D · Chunk Provenance Timeline</td><td>T3</td><td>Gantt-style lanes (R, C) on a shared time axis: thin line = waiting (t_obs → t_avail), bar = executed span, hatch = idle, tick height = seam gap; coverage curves underneath. Shows <i>which observation every executed action came from</i>.</td><td><b>Brush</b> time → zoom path in C; hover chunk → highlight its fan in C; click → move cursor; tooltip with seam gap.</td></tr>
-    <tr><td class="k">E · Paired Seed Shifts</td><td>T4</td><td>Dumbbell plot: one row per seed, ● R value → ● C value of one attribute (default max seam gap, log axis). Rows are grouped by the outcome change R→C (loss / gain / both ✓ / both ✗), so a correlation reads as “do the dumbbells of the failing group point right?”, without crossing lines. ▲ marks group medians.</td><td><b>Brush</b> rows or click a group → filter B; <b>change</b> attribute; click row → open episode; hover → link.</td></tr>
+  <div class="kicker">4 · How — Vis Idiom Design (4 linked views, overview → filter → details)</div>
+  <h1>Each view answers one task with the most effective idiom</h1>
+  <table style="margin-top:8px; font-size:15px">
+    <tr><th style="width:170px">View</th><th style="width:60px">Task</th><th>Idiom &amp; why (VIS literature)</th><th style="width:300px">Interaction</th></tr>
+    <tr><td class="k">A · Latency Response</td><td>T1</td><td><b>Line chart small multiples</b>: one panel per horizon h, x = latency d on its true scale, y = metric, strategies <b>superposed</b> (hue + shape). Position on a common scale beats the luminance of a heatmap [Cleveland &amp; McGill 84; Heer &amp; Bostock 10]; superposition for direct sync-vs-async comparison, juxtaposition across h [Gleicher 11]. <b>95 % interval</b> lines instead of bars [Correll &amp; Gleicher 14]; Δ mode = paired difference to R (explicit encoding).</td><td>Click mark = candidate C, shift-click = reference R; <b>change</b> metric (outcome / mechanism: idle, staleness, seam gap, jerk); Δ vs R; legend hover highlights a strategy; recomputes on seeds selected in B.</td></tr>
+    <tr><td class="k">B · Paired Seed Table</td><td>T2, T4</td><td><b>Composite Table-Lens view</b> [Rao &amp; Card 94; Javed &amp; Elmqvist 12]: one row per seed shared by (left) an outcome matrix — filled = success, R column black, C column orange — and (right) <b>dumbbells</b> R → C of one attribute. Rows are <b>grouped by R→C change</b> (spatial region), so flips break their band's pattern; a <b>re-run</b> column shows chance flips (11/50).</td><td>Sort rows (R→C change / robustness / seed); click column header = C; click cell = open episode; <b>brush</b> dumbbells or click a band → <b>cross-filter</b> A [Weaver 10]; change attribute.</td></tr>
+    <tr><td class="k">C · Workspace Replay</td><td>T3</td><td>Juxtaposed R | C maps at identical scale (spatial data on true geometry). Only three overlays: executed part of the current chunk (solid), its thrown-away part (dashed), the chunk still being computed (dotted) and the latest <b>seam</b> (magenta). Status line in strategy terms (“idle: waiting for inference”).</td><td>Play / scrub / ← → (<b>navigate</b> t); hover a planned point → when planned / executed; click → jump.</td></tr>
+    <tr><td class="k">D · Execution Timeline</td><td>T3</td><td><b>Gantt lanes</b> on a shared linear time axis [Plaisant 96; Brehmer 17]: per run a <b>think</b> track (inference) and an <b>act</b> track (chunk spans, hatched = idle), seams as <b>lollipops</b> (length), coverage lines below. Sync shows think/act <i>alternating</i>, async <i>overlapping</i>.</td><td><b>Brush</b> a time window → highlighted path in C; hover chunk → its plan in C; click → cursor.</td></tr>
   </table>
-  <div class="card" style="margin-top:12px; font-size:14px">
-    <b>Why this is not a Tableau dashboard</b>: the views are driven by a <b>reference/candidate pair</b> of schedules and by chunk <b>provenance</b> (each executed action is linked to the observation and the chunk it came from). The fan, the seam ticks and the paired flip colouring are computed from the logged predictions, and selections propagate across all five views.
+  <div class="card" style="margin-top:14px; font-size:15px">
+    <b>Why not a dashboard</b>: views are driven by a reference/candidate pair and by chunk <b>provenance</b> (each executed action is linked to the observation and the chunk it came from).
+    <b>Less is more</b>: the first draft had 5 views and ~10 hues; following the rules of parsimony and consistency [Wang Baldonado 00] we merged the two seed-level views and gave every hue one meaning.
   </div>
-  <div class="foot"><span>Interactions: select, change, brush, link, filter, sort, tooltip, play (details on demand)</span><span>5 / 7</span></div>
+  <div class="foot"><span>Shneiderman's mantra (1996): overview first (A), zoom &amp; filter (B), details on demand (C, D) · interactions after Heer &amp; Shneiderman (2012)</span><span>5 / 7</span></div>
 </section>
 
 <!-- 6. How: marks & channels -->
@@ -246,54 +211,50 @@
   <div class="kicker">4 · How — Marks &amp; Channels (expressiveness · effectiveness)</div>
   <h1>The most important attribute gets the most effective channel</h1>
   <div class="cols" style="margin-top:6px">
-    <div style="flex:1.5">
-      <table style="font-size:13px">
+    <div style="flex:1.55">
+      <table style="font-size:14px">
         <tr><th>Attribute (type)</th><th>View</th><th>Mark</th><th>Channel</th><th>Justification</th></tr>
-        <tr><td>latency d, horizon h (ordinal)</td><td>A</td><td>area (cell)</td><td>position (x, y)</td><td>ordered keys → ordered spatial position</td></tr>
-        <tr><td>strategy (nominal, 3)</td><td>A</td><td>—</td><td>spatial region (panel)</td><td>top channel for categorical</td></tr>
-        <tr><td>success rate, seam gap… (ratio)</td><td>A</td><td>area</td><td>colour luminance (viridis)</td><td>position already used by keys; uniform, CVD-safe ramp + value label</td></tr>
-        <tr><td>outcome vs R (nominal, 4)</td><td>B</td><td>area</td><td>hue + luminance</td><td>4 levels, blue/vermillion gain/loss; greys for “no change”</td></tr>
-        <tr><td>seed, schedule (keys)</td><td>B</td><td>—</td><td>position (row, col)</td><td>aligned for scanning and sorting</td></tr>
-        <tr><td>agent / block position (interval)</td><td>C</td><td>line, point, polygon</td><td>position (x, y)</td><td>spatial data on true geometry</td></tr>
-        <tr><td>chunk index j (ordinal)</td><td>C</td><td>point</td><td>luminance ramp along fan</td><td>order of planned future steps</td></tr>
-        <tr><td>executed vs discarded (binary)</td><td>C, D</td><td>line</td><td>line style (solid / dashed)</td><td>separable from hue</td></tr>
-        <tr><td>t_obs, t_avail, exec window (time)</td><td>D</td><td>line, bar</td><td>position on common time axis + length</td><td>most accurate for time spans</td></tr>
-        <tr><td>seam gap (ratio, px)</td><td>D</td><td>tick (line)</td><td>length (height)</td><td>magnitude → length</td></tr>
-        <tr><td>coverage (ratio)</td><td>D</td><td>line</td><td>position (y)</td><td>common scale, compare R vs C</td></tr>
-        <tr><td>seam gap etc. (ratio)</td><td>E</td><td>point + line</td><td>position x (log)</td><td>R→C shift as aligned length; log for long tails</td></tr>
-        <tr><td>outcome change (nominal, 4)</td><td>E</td><td>row group</td><td>spatial region</td><td>best categorical channel; no overplotting</td></tr>
-        <tr><td>success (binary)</td><td>C, D</td><td>text</td><td>✓ / ✗ label</td><td>keeps hue free for R vs C</td></tr>
-        <tr><td>R vs C identity (nominal, 2)</td><td>all</td><td>all</td><td>hue: near-black vs orange</td><td>consistent across views, CVD-safe</td></tr>
+        <tr><td>success rate, idle, staleness, seam gap (ratio)</td><td>A</td><td>point + line</td><td>position y (common scale)</td><td>best magnitude channel; slope = degradation</td></tr>
+        <tr><td>latency d (ratio)</td><td>A</td><td>—</td><td>position x (true spacing)</td><td>100 ms steps, not ordinal bins</td></tr>
+        <tr><td>horizon h (ordinal)</td><td>A</td><td>panel</td><td>spatial region (small multiples)</td><td>juxtaposed, shared y</td></tr>
+        <tr><td>strategy (nominal, 3)</td><td>A, B</td><td>line, point</td><td>hue + shape (●■◆)</td><td>redundant: never hue alone</td></tr>
+        <tr><td>uncertainty (95 % interval)</td><td>A</td><td>thin line</td><td>position (extent)</td><td>avoids within-the-bar bias</td></tr>
+        <tr><td>success per seed (binary)</td><td>B</td><td>cell</td><td>luminance (filled / empty)</td><td>2 levels → 1 luminance step</td></tr>
+        <tr><td>R→C change (nominal, 4)</td><td>B</td><td>row band</td><td>spatial region</td><td>top categorical channel</td></tr>
+        <tr><td>attribute under R and C (ratio)</td><td>B</td><td>dumbbell</td><td>position x (symlog if long-tailed)</td><td>aligned shift, no crossing</td></tr>
+        <tr><td>agent / block / plan (interval, px)</td><td>C</td><td>line, point, polygon</td><td>position (x, y)</td><td>spatial data, true geometry</td></tr>
+        <tr><td>executed / discarded / computing</td><td>C</td><td>line, point</td><td>line style + fill</td><td>separable, keeps hue for identity</td></tr>
+        <tr><td>think, act intervals (time)</td><td>D</td><td>bar</td><td>position + length on time axis</td><td>alternation vs overlap visible</td></tr>
+        <tr><td>seam gap (ratio, px)</td><td>C, D</td><td>lollipop, segment</td><td>length + magenta hue</td><td>magnitude → length</td></tr>
+        <tr><td>coverage (ratio)</td><td>D</td><td>line</td><td>position y</td><td>R vs C on a common scale</td></tr>
       </table>
     </div>
-    <div style="flex:0.75">
-      <div class="card">
-        <b>Colour</b> (Okabe–Ito, colour-blind safe)
-        <div style="margin-top:8px; font-size:14px; line-height:2">
-          <span style="display:inline-block;width:14px;height:14px;background:#222;vertical-align:middle"></span> Reference R &nbsp;
-          <span style="display:inline-block;width:14px;height:14px;background:#E69F00;vertical-align:middle"></span> Candidate C<br>
-          <span style="display:inline-block;width:14px;height:14px;background:#0072B2;vertical-align:middle"></span> gain vs R &nbsp;
-          <span style="display:inline-block;width:14px;height:14px;background:#D55E00;vertical-align:middle"></span> loss vs R / seam<br>
-          <span style="display:inline-block;width:14px;height:14px;background:#009E73;vertical-align:middle"></span> goal pose &nbsp;
-          <span style="display:inline-block;width:80px;height:14px;background:linear-gradient(90deg,#440154,#31688e,#35b779,#fde725);vertical-align:middle"></span> metric ramp
+    <div style="flex:0.7">
+      <div class="card" style="font-size:13.5px">
+        <b>Hue budget — one meaning per hue</b>
+        <div style="margin-top:6px; line-height:1.9">
+          <span style="display:inline-block;width:12px;height:12px;background:#222;vertical-align:-1px;"></span> Reference R &nbsp; <span style="display:inline-block;width:12px;height:12px;background:#E69F00;vertical-align:-1px;"></span> Candidate C<br>
+          <span style="display:inline-block;width:12px;height:12px;background:#0072B2;vertical-align:-1px;border-radius:50%"></span> Sync <span style="display:inline-block;width:12px;height:12px;background:#D55E00;vertical-align:-1px;"></span> Naive async <span style="display:inline-block;width:12px;height:12px;background:#009E73;vertical-align:-1px;transform:rotate(45deg) scale(.8)"></span> Inpaint<br>
+          <span style="display:inline-block;width:12px;height:12px;background:#c2185b;vertical-align:-1px;"></span> Seam (C, D) &nbsp; grey: everything else
         </div>
+        <div class="muted" style="font-size:12px; margin-top:4px">Okabe–Ito hues. CVD-checked with Machado et al. (VIS 2009) in OKLab: R vs C ΔE ≥ 48; strategy hues ≥ 9 plus redundant shape.</div>
       </div>
-      <div class="card" style="margin-top:10px; font-size:14px">
+      <div class="card" style="margin-top:8px; font-size:13px">
         <b>Ranking used</b> (Munzner, Ch. 5):<br>
-        quantitative: position on common scale &gt; length &gt; angle / area &gt; luminance / saturation<br>
-        categorical: spatial region &gt; hue &gt; shape<br><br>
-        <b>Scalability</b>: A 46 cells · B 2,350 cells · E 50 rows · C/D one episode (≤ 300 steps, ≤ 150 chunks) → all rendered as SVG at interactive rates.
+        magnitude: position on common scale &gt; length &gt; angle/area &gt; luminance<br>
+        identity: spatial region &gt; hue &gt; shape<br><br>
+        <b>Scalability</b>: A 47 points · B 2,350 cells + 50 dumbbells · C/D one episode (≤ 300 steps, ≤ 150 chunks) — SVG at interactive rates.
       </div>
     </div>
   </div>
-  <div class="foot"><span>Okabe &amp; Ito (2008) palette · viridis (van der Walt &amp; Smith 2015)</span><span>6 / 7</span></div>
+  <div class="foot"><span>Cleveland &amp; McGill (1984) · Heer &amp; Bostock (CHI 2010) · Gleicher et al. (2011) · Correll &amp; Gleicher (VIS 2014) · full list: docs/design_rationale.md</span><span>6 / 7</span></div>
 </section>
 
 <!-- 7. Sketch -->
 <section class="slide">
-  <div class="kicker">5 · Sketch (mid-fidelity wireframe) — magenta = interaction &amp; linking</div>
+  <div class="kicker">5 · Sketch (mid-fidelity wireframe) — purple = interaction &amp; linking</div>
   <img src="assets/sketch.svg" style="width:1100px; height:auto; display:block; margin:4px auto 0; border:1px solid var(--line)">
-  <div class="foot"><span>Flow: A (pick R and C) → B (find flipped seeds) → C + D (inspect where/why) → E (is the shift systematic?). Implemented with d3.js v7 only.</span><span>7 / 7</span></div>
+  <div class="foot"><span>Flow: A (pick R and C on the latency curves) → B (find flipped seeds, check the R→C shift, select seeds → A recomputes) → C + D (where and when it went wrong). d3.js v7 only.</span><span>7 / 7</span></div>
 </section>
 
 </body>

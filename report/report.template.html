@@ -50,7 +50,7 @@
   the robot either <b>waits</b> (synchronous) or keeps executing an old chunk and switches when a new one arrives (<b>asynchronous</b>).
   Researchers tune the strategy, the latency budget and the execution horizon from aggregate success curves.
   LagLens replays one pretrained policy from the <b>same {{N_SEEDS}} initial states</b> under <b>{{N_SCHED}} execution schedules</b> (plus a noise replicate),
-  logs every predicted chunk, and links five d3.js views so that an analyst can go from “which schedule is robust?” down to “which chunk hand-over pushed the block away?”.
+  logs every predicted chunk, and links four d3.js views so that an analyst can go from “which schedule is robust?” down to “which chunk hand-over pushed the block away?”.
 </div>
 
 <h2>1 · What: Data Abstraction</h2>
@@ -105,19 +105,19 @@
 <h2>4 · How: Vis Idiom Design</h2>
 <figure>
   <img src="../image.png">
-  <figcaption><b>Figure 1.</b> LagLens (live: R = inpaint async d4 h4, C = naive async d4 h4, seed 1035, window t = 100–140). <b>A</b> Schedule Matrix, <b>B</b> Paired Flip Matrix, <b>C</b> Workspace Replay, <b>D</b> Chunk Provenance Timeline, <b>E</b> Paired Seed Shifts. All views share one R/C pair and one selection.</figcaption>
+  <figcaption><b>Figure 1.</b> LagLens (live: R = inpaint async d4 h4, C = naive async d4 h4, seed 1035, window t = 100–140). <b>A</b> Latency Response, <b>B</b> Paired Seed Table, <b>C</b> Workspace Replay, <b>D</b> Execution Timeline. All views share one R/C pair, one seed and one seed selection.</figcaption>
 </figure>
+<p class="small"><b>Design goal: make the cost of each strategy visible.</b> Sync pays with <b>time</b> (the robot idles while the policy thinks: idle share ≈ <i>d</i>/(<i>h</i>+<i>d</i>), 51 % at <i>d</i>4 <i>h</i>4), naive async with <b>discontinuity</b> (no idling, but the new chunk can pick another mode: mean seam 43.5 px at <i>d</i>4 <i>h</i>4), inpaint async only with <b>staleness</b> (same timing, seam 8.0 px). Each cost has one signature: A's “mechanism” metrics, D's think/act tracks (alternating vs. overlapping) and seam lollipops, C's magenta seam segment. A first version (5 views, ~10 hues, numbers in every heatmap cell) was judged cluttered; we redesigned it with the VIS literature below (full rationale: <code>docs/design_rationale.md</code>).</p>
 <table>
-  <tr><th style="width:15%">View (task)</th><th style="width:47%">Idiom, marks &amp; channels — why</th><th>Interaction</th></tr>
-  <tr><td><b>A</b> Schedule Matrix (T1)</td><td>Small-multiple heatmaps: one panel per strategy (<i>spatial region</i>, best channel for the nominal key), latency × horizon on <i>position</i> (ordered keys). Cell <i>luminance</i> (viridis, brighter = better for every metric) or a diverging Δ-vs-R ramp; value labels restore precision. 46 cells in one glance; infeasible cells hatched with an explanation.</td><td>click = set C, shift-click = set R; <b>change</b> metric and absolute/Δ mode; tooltip with all aggregates and the noise-replicate value.</td></tr>
-  <tr><td><b>B</b> Paired Flip Matrix (T2)</td><td>Seeds × schedules matrix; cell <i>hue</i> encodes the outcome <b>relative to R</b> (blue gain / vermillion loss; greys for no change). The <b>noise</b> column (replicate) shows the chance level. Marginal bar = seed robustness. 2,350 cells, pre-attentive flips.</td><td>sort rows (robustness / flips first / id); click cell = open episode with that schedule as C; hover = link highlight in E; dimmed by E's brush.</td></tr>
-  <tr><td><b>C</b> Workspace Replay (T3)</td><td>Juxtaposed R | C maps at equal scale (true geometry for spatial data): goal, block pose at t, executed path, and the <b>chunk fan</b>: 16 planned points with luminance by index; solid = executed, dashed = discarded, dotted = chunk still being computed, grey = previous chunk's unused tail, vermillion segment = the last seam.</td><td>play / scrub / keyboard <b>change</b> t; hover a fan point = when it was planned and executed; click = jump; brushed window from D highlights the path.</td></tr>
-  <tr><td><b>D</b> Chunk Provenance Timeline (T3)</td><td>Gantt lanes on a common time axis: dot–line = observation → chunk available (wait), bar = executed span (length), hatch = idle, tick <i>length</i> = seam gap; coverage lines (position) underneath with the 95 % success line.</td><td><b>brush</b> a window (→ C), hover a chunk (→ its fan in C), click = cursor.</td></tr>
-  <tr><td><b>E</b> Paired Seed Shifts (T4)</td><td>Dumbbell plot, one row per seed: ● R value → ● C value of one attribute on a common <i>position</i> axis (default max seam gap, log scale for the long tail). Rows are grouped by outcome change R→C (<i>spatial region</i>, colour swatches repeat B), sorted by shift; ▲ = group medians. No crossing lines, so “are failures associated with larger seams?” reads as the position of a group's dots.</td><td><b>brush</b> rows or click a group = filter B; <b>change</b> attribute; click = open episode; hover = link.</td></tr>
+  <tr><th style="width:15%">View (task)</th><th style="width:50%">Idiom, marks &amp; channels — why</th><th>Interaction</th></tr>
+  <tr><td><b>A</b> Latency Response (T1)</td><td>Line-chart small multiples, one panel per horizon <i>h</i> (shared y); x = latency <i>d</i> on its true scale, y = metric (<i>position on a common scale</i>, the most accurate magnitude channel [16,17]); strategies <b>superposed</b> for direct sync-vs-async comparison, hue + redundant shape [18]. Thin 95 % intervals (Wilson / t) instead of bars [19]; Δ mode plots the <b>paired</b> difference to R.</td><td>click = C, shift-click = R; change metric (outcome or mechanism: idle, staleness, seam gap, jerk) and Δ mode; legend hover highlights a strategy; <b>recomputes on the seeds selected in B</b>.</td></tr>
+  <tr><td><b>B</b> Paired Seed Table (T2, T4)</td><td>Composite, Table-Lens-like view [20]: one row per seed shared by an <b>outcome matrix</b> (filled = success; R's column black, C's orange; columns grouped by strategy) and <b>dumbbells</b> R → C of one attribute (position, symlog for long tails). Rows grouped by R→C change (<i>spatial region</i>), so flips break their band; a <b>re-run</b> column gives the chance level; band ticks = medians.</td><td>sort rows; click header = C; click cell = open episode; <b>brush</b> dumbbells or click a band = select seeds (cross-filters A [21], dims rows); change attribute.</td></tr>
+  <tr><td><b>C</b> Workspace Replay (T3)</td><td>Juxtaposed R | C maps at equal scale (true geometry) [18]. Only the current chunk (filled = executed, hollow dashed = thrown away), the chunk still being computed (dotted grey) and the latest seam (magenta segment, length = gap); status line in strategy terms (“idle: waiting for inference”).</td><td>play / scrub / keys; hover a planned point = when planned and executed; click = jump; D's window highlights the path.</td></tr>
+  <tr><td><b>D</b> Execution Timeline (T3)</td><td>Gantt lanes on a shared time axis [22]: per run a <b>think</b> track (inference intervals) and an <b>act</b> track (chunk spans, alternating tints, hatched = idle); seams as <b>lollipops</b> (length on a common baseline); coverage lines with the 95 % threshold.</td><td><b>brush</b> a window (→ C), hover a chunk (→ its plan in C), click = cursor.</td></tr>
 </table>
-<p class="small">Colour is Okabe–Ito throughout (R near-black, C orange, gain blue, loss vermillion, goal green), so hue keeps one meaning across views; success is encoded by fill so that hue stays free for R vs. C.
-  <b>Sketch → implementation:</b> the proposal's mid-fidelity sketch (below) was implemented as drawn, plus the noise-replicate column in B, which we added after seeing how often outcomes flip by chance. During design, E changed from a paired scatter (50 crossing segments on a two-valued coverage axis were hard to read) to the grouped dumbbell plot shown in the sketch.</p>
-<figure style="width:54%;margin:3px auto"><img src="../slides/assets/sketch.svg"><figcaption><b>Figure 2.</b> Proposal sketch (magenta = interaction and linking).</figcaption></figure>
+<p class="small">Hue has one meaning per view family: R near-black, C orange (identity); sync blue, naive vermillion, inpaint green (strategy, with ●■◆); magenta = seam; all else grey. CVD-checked with Machado et al.'s simulation (R/C ΔE<sub>OK</sub> ≥ 48). Following the rules of parsimony and consistency [23], the former flip matrix and seed-shift plot became one view.
+  <b>Sketch → implementation:</b> the sketch (Fig. 2) shows the redesigned layout and is implemented as drawn.</p>
+<figure style="width:54%;margin:3px auto"><img src="../slides/assets/sketch.svg"><figcaption><b>Figure 2.</b> Sketch (purple = interaction and linking).</figcaption></figure>
 
 <h2>5 · Implementation</h2>
 <ul class="small">
@@ -129,26 +129,26 @@
 <h2>6 · Case Study: Mara chooses an execution schedule for 400 ms of latency</h2>
 <p>Mara's server adds ≈ 400 ms (<i>d</i> = 4). She opens LagLens with R = sync <i>d</i>0 <i>h</i>8, the policy's default.</p>
 <div class="cols">
-  <figure><img src="fig_f1_matrix_delta.png"><figcaption><b>Figure 3.</b> A in Δ-vs-R mode (success, R = sync d0 h8).</figcaption></figure>
-  <figure><img src="fig_f2_noise.png" style="height:262px;object-fit:cover;object-position:top"><figcaption><b>Figure 4.</b> B with C = noise replicate, flips first (top rows shown).</figcaption></figure>
+  <figure><img src="fig_f1_response.png"><figcaption><b>Figure 3.</b> A: success rate vs. latency per horizon (C = inpaint d4 h4).</figcaption></figure>
+  <figure><img src="fig_f2_noise.png" style="height:262px;object-fit:cover;object-position:top"><figcaption><b>Figure 4.</b> B with C = noise re-run, rows grouped by R→C change (top shown).</figcaption></figure>
 </div>
 <div class="find"><b class="f">Finding 1 (T1): at 400 ms, inpainting is the only strategy that stays flat across horizons.</b>
-  In A (Fig. 3) every cell is orange: no schedule beats the zero-latency baseline (72 %). Reading the <i>d</i>4 column, sync drops to 44 / 26 / 14 / 0 % for <i>h</i> = 8 / 6 / 4 / 2 (idle share up to 67 %), naive async to 62 / 56 / 38 %, while inpaint async holds 60 / 58 / 60 %.
-  Switching the colour to seam gap shows why naive degrades at short horizons: its mean seam grows to 43.5 px at <i>d</i>4 <i>h</i>4 and 94.2 px at <i>d</i>2 <i>h</i>2, while inpainting stays ≤ 20.6 px everywhere. The horizon also matters without latency: sync <i>d</i>0 succeeds 72 % at <i>h</i>8 but only 28 % at <i>h</i>4, the jittery re-planning Chi et al. reported [2].</div>
+  In A (Fig. 3) no point lies above the zero-latency baseline (sync <i>d</i>0 <i>h</i>8, 72 %). At <i>d</i> = 4, the blue sync curves fall in every panel, to 44 / 26 / 14 / 0 % for <i>h</i> = 8 / 6 / 4 / 2 (idle share up to 67 %), naive async to 62 / 56 / 38 %, while inpaint async holds 60 / 58 / 60 %.
+  Switching the metric to seam gap shows why naive degrades at short horizons: its mean seam grows to 43.5 px at <i>d</i>4 <i>h</i>4 and 94.2 px at <i>d</i>2 <i>h</i>2, while inpainting stays ≤ 20.6 px everywhere. The horizon also matters without latency: sync <i>d</i>0 succeeds 72 % at <i>h</i>8 but only 28 % at <i>h</i>4, the jittery re-planning Chi et al. reported [2].</div>
 <div class="find"><b class="f">Finding 2 (T2): about one in five outcomes flips by chance, so small differences are noise.</b>
   Setting C to the <b>noise replicate</b> (Fig. 4) gives 6 losses and 5 gains: 11 of 50 seeds (22 %) flip with an identical schedule. Schedules such as naive <i>d</i>1 <i>h</i>8 (9 losses / 7 gains) or sync <i>d</i>2 <i>h</i>8 (7 / 6) are therefore indistinguishable from the baseline, whereas sync <i>d</i>4 <i>h</i>8 (19 / 5) is a real loss. Sorting by robustness exposes fragile seeds: seed 1001 succeeds under R but in only 15 % of all schedules, so Mara removes such seeds from her claims.</div>
 <div class="cols" style="align-items:flex-start">
   <figure style="flex:1"><img src="fig_f3_replay.png"><figcaption><b>Figure 5.</b> Seed 1035, R = inpaint d4 h4 (success), C = naive d4 h4 (failure); window t = 100–140 brushed in D, cursor at t = 116.</figcaption></figure>
   <div style="flex:1"><div class="find"><b class="f">Finding 3 (T3): naive async fails through “mode ping-pong” at chunk seams, not through staleness.</b>
-  For seed 1035 both schedules have the same staleness (4–7 steps), and naive async is even <i>ahead</i> until t ≈ 105 (coverage 86 % vs. 66 %). In D, C's seam ticks then explode (184 px at t = 112, 259 px at t = 116, 190–237 px afterwards), while R's stay below 21 px.
+  For seed 1035 both schedules have the same staleness (4–7 steps), and naive async is even <i>ahead</i> until t ≈ 105 (coverage 86 % vs. 66 %). In D, C's seam lollipops then explode (184 px at t = 112, 259 px at t = 116, 190–237 px afterwards), while R's stay below 21 px.
   Scrubbing C to t = 116 shows the cause: the old chunk (planned from the observation at t = 108) heads to the top of the block, the new chunk (planned at t = 112, after the agent had moved down) starts at the bottom and turns left. The agent swings across the T, which slides out of the goal: coverage falls from 73 % (t = 112) to 0 % (t = 118). Inpainting keeps the committed tail of the old plan, so R's fans continue the same motion and the episode finishes at t = 204.</div></div>
 </div>
 <div class="cols" style="align-items:flex-start">
-  <figure style="flex:0.85"><img src="fig_f4_scatter.png"><figcaption><b>Figure 6.</b> E with R = naive d4 h4, C = inpaint d4 h4, attribute = max seam gap (log axis); ▲ = group medians.</figcaption></figure>
+  <figure style="flex:0.85"><img src="fig_f4_shift.png"><figcaption><b>Figure 6.</b> B with R = naive d4 h4, C = inpaint d4 h4, shift of max seam gap (log axis); band ticks = medians.</figcaption></figure>
   <div style="flex:1.15">
     <div class="find"><b class="f">Finding 4 (T4): naive-async failures come with large seams; inpainting shrinks every seam but not every failure.</b>
-      With R = naive <i>d</i>4 <i>h</i>4 and C = inpaint <i>d</i>4 <i>h</i>4, E (Fig. 6) groups the 50 seeds by outcome change. The black ▲ medians separate the groups: seeds that <i>failed</i> under naive async have median max seams of 221–224 px, seeds that succeeded 86–114 px. All 50 dumbbells point left: inpainting lowers the largest seam of <i>every</i> seed, to at most 52 px. 16 seeds are rescued and 5 lost (5 ≤ 11, within the noise floor of Finding 2).
-      Yet 15 seeds still fail under inpainting although their seams (median 32 px) are as small as in successful runs (21–28 px), so their failures need another explanation (e.g. reduced reactivity), which Mara inspects next with C/D. Over all schedules, failed naive episodes have a median max seam of 81 px vs. 50 px for successes, consistent with [12]; for inpainting 23 vs. 20 px.</div>
+      With R = naive <i>d</i>4 <i>h</i>4 and C = inpaint <i>d</i>4 <i>h</i>4, B (Fig. 6) groups the 50 seeds by outcome change. The black median ticks separate the bands: seeds that <i>failed</i> under naive async have median max seams of 221–224 px, seeds that succeeded 86–114 px. All 50 dumbbells point left: inpainting lowers the largest seam of <i>every</i> seed, to at most 52 px. 16 seeds are rescued and 5 lost (5 ≤ 11, within the noise floor of Finding 2).
+      Yet 15 seeds still fail under inpainting although their seams (median 32 px) are as small as in successful runs (21–28 px), so their failures need another explanation (e.g. reduced reactivity), which Mara inspects next with C/D; selecting that band re-aggregates A on those 15 seeds. Over all schedules, failed naive episodes have a median max seam of 81 px vs. 50 px for successes, consistent with [12]; for inpainting 23 vs. 20 px.</div>
     <p><b>Outcome.</b> Mara proposes inpaint async with <i>h</i> = 4–8 for <i>d</i> ≈ 4, reports differences only beyond the 11-flip noise floor, and gives Arjun a latency budget: sync is acceptable only up to <i>d</i> = 2 at <i>h</i> = 8.</p>
   </div>
 </div>
@@ -157,7 +157,7 @@
 <p class="small">One simulated task and one policy; latency is quantised to 100 ms steps; the inpainting strategy is a training-free approximation of RTC; a 10-step DDIM sampler replaces the 100-step DDPM sampler for CPU feasibility (the replicate shows that this changes outcomes of individual seeds but not the 70–72 % baseline rate). With 50 seeds, success differences below ≈ 11 flips should not be interpreted.</p>
 
 <h2>AI Usage Disclosure</h2>
-<p class="small">This project was built with <b>Claude Code (Anthropic, Claude Opus 5.5)</b>, directed and reviewed by the student. <b>Written by AI:</b> the literature survey and topic comparison, all data-generation and preprocessing scripts, the complete interface code in <code>src/</code> (d3.js), the tests, the proposal slides and sketch, the personas, and this report's text, figures and screenshots (produced by operating the interface through scripted states). <b>Human:</b> topic choice among AI-proposed candidates, design requests (more and richer views), deployment approval, review. Numbers in the slides and this report are filled in automatically from the data files. External code, data and images are listed below and in <code>docs/references.md</code>; a dated log is in <code>docs/ai_disclosure.md</code>.</p>
+<p class="small">This project was built with <b>Claude Code (Anthropic, Claude Opus 5.5)</b>, directed and reviewed by the student. <b>Written by AI:</b> the literature survey and topic comparison, all data-generation and preprocessing scripts, the complete interface code in <code>src/</code> (d3.js), the tests, the proposal slides and sketch, the personas, and this report's text, figures and screenshots (produced by operating the interface through scripted states). <b>Human:</b> topic choice among AI-proposed candidates, design requests (more and richer views; later a less cluttered, literature-grounded redesign focused on sync vs. async), deployment approval, review. Numbers in the slides and this report are filled in automatically from the data files. External code, data and images are listed below and in <code>docs/references.md</code>; a dated log is in <code>docs/ai_disclosure.md</code>.</p>
 
 <h2>References &amp; Credits</h2>
 <div class="refs">
@@ -174,8 +174,15 @@
 <p>[11] SEAM: Smooth Execution of Action-Chunked Motion for VLA Policies. 2026. arXiv:2607.04609</p>
 <p>[12] Noise-Space Attribution and Control of Chunk-Boundary Artifact. 2026. arXiv:2603.11642</p>
 <p>[13] Lugmayr et al. RePaint. CVPR 2022 · Song et al. DDIM. ICLR 2021.</p>
-<p>[14] Munzner. Visualization Analysis and Design. CRC, 2014 · Okabe &amp; Ito colour palette · viridis.</p>
+<p>[14] Munzner. Visualization Analysis and Design. CRC, 2014 · Okabe &amp; Ito colour palette.</p>
 <p>[15] Related VIS: DQNViz (VAST 2018), DRLViz (EuroVis 2020), PolicyExplainer (arXiv:2104.02818).</p>
+<p>[16] Cleveland, McGill. Graphical perception. JASA 1984 · [17] Heer, Bostock. Crowdsourcing graphical perception. CHI 2010.</p>
+<p>[18] Gleicher et al. Visual comparison for information visualization. Inf. Vis. 2011 · Gleicher. Considerations for visualizing comparison. TVCG 2018.</p>
+<p>[19] Correll, Gleicher. Error bars considered harmful. TVCG 2014 (VIS).</p>
+<p>[20] Rao, Card. The Table Lens. CHI 1994 · Javed, Elmqvist. Composite visualization. PacificVis 2012.</p>
+<p>[21] Weaver. Cross-filtered views for multidimensional visual analysis. TVCG 2010.</p>
+<p>[22] Plaisant et al. LifeLines. CHI 1996 · Brehmer et al. Timelines revisited. TVCG 2017.</p>
+<p>[23] Wang Baldonado et al. Guidelines for using multiple views. AVI 2000 · Machado et al. CVD simulation. TVCG 2009.</p>
 <p><b>Software:</b> d3.js 7.9.0 (ISC) · LeRobot 0.6.1 and the <code>lerobot/diffusion_pusht</code> checkpoint (Apache-2.0) · gym-pusht (MIT) · PyTorch (BSD) · diffusers (Apache-2.0) · Playwright (Apache-2.0).</p>
 </div>
 

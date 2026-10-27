@@ -1,10 +1,9 @@
 import { state, update, bus, DEFAULTS } from "./state.js";
 import { DATA, loadBase, loadRun, label } from "./data.js";
-import { initMatrix, resizeMatrix } from "./views/matrix.js";
-import { initFlip, resizeFlip } from "./views/flip.js";
+import { initResponse, resizeResponse } from "./views/response.js";
+import { initSeedTable, resizeSeedTable } from "./views/seedtable.js";
 import { initWorkspace, resizeWorkspace, step, togglePlay } from "./views/workspace.js";
 import { initTimeline, resizeTimeline } from "./views/timeline.js";
-import { initScatter, resizeScatter } from "./views/scatter.js";
 
 // First seed that flips from success (R) to failure (C), so the replay opens on something interesting.
 function firstFlip(ref, cand) {
@@ -51,13 +50,14 @@ function initKeys() {
   });
 }
 
-// URL parameters let a case-study state be reproduced exactly, e.g. ?ref=sync_d0_h8&cand=naive_d4_h8&seed=1012&t=80
+// URL parameters let a case-study state be reproduced exactly, e.g. ?ref=sync_d0_h8&cand=naive_d4_h8&seed=1012&t=80&sel=1001,1002
 function applyParams() {
   const p = new URLSearchParams(location.search);
   const patch = {};
   for (const k of ["ref", "cand", "metric", "mode", "sort", "sx"]) if (p.has(k)) patch[k] = p.get(k);
   for (const k of ["seed", "t"]) if (p.has(k)) patch[k] = +p.get(k);
   if (p.has("win")) patch.win = p.get("win").split(",").map(Number);
+  if (p.has("sel")) patch.brushed = new Set(p.get("sel").split(",").map(Number));
   for (const k of ["ref", "cand"]) if (patch[k] && !DATA.schedById.has(patch[k])) delete patch[k];
   Object.assign(state, patch);
 }
@@ -69,9 +69,8 @@ async function main() {
   if (!DATA.schedById.has(state.cand)) state.cand = DATA.schedules[DATA.schedules.length - 1].schedule;
   if (state.seed === null) state.seed = firstFlip(state.ref, state.cand);
   initPickers();
-  initMatrix();
-  initFlip();
-  initScatter();
+  initResponse();
+  initSeedTable();
   initWorkspace();
   initTimeline();
   initGuide();
@@ -79,7 +78,7 @@ async function main() {
   let raf = null;
   window.addEventListener("resize", () => {
     cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => { resizeMatrix(); resizeFlip(); resizeScatter(); resizeWorkspace(); resizeTimeline(); });
+    raf = requestAnimationFrame(() => { resizeResponse(); resizeSeedTable(); resizeWorkspace(); resizeTimeline(); });
   });
   window.LagLens = { state, update, DATA }; // for scripted screenshots / tests
 }
