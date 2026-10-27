@@ -25,7 +25,7 @@ export function initResponse() {
       .attr("transform", "translate(6,6)").attr("d", d3.symbol(STRAT_SYMBOL[s], 52)()).attr("fill", STRAT_COLOR[s]);
     it.append("span").text(STRAT_LABEL[s]);
   }
-  lg.append("span").attr("class", "li muted").html("│ = 95 % interval");
+  lg.append("span").attr("class", "li muted").html("○ re-run &nbsp;│ 95 % interval");
   root = d3.select("#response");
   svg = root.append("svg");
   noteSel = d3.select("#responseNote");
@@ -48,7 +48,10 @@ function points() {
 function render() {
   metricBtns.classed("on", (d) => d[0] === state.metric);
   const n = state.brushed ? state.brushed.size : DATA.seeds.length;
-  noteSel.html(`${METRICS[state.metric].note}${state.brushed ? ` · <b>computed over the ${n} seeds selected in B</b> (Esc clears)` : ""}. Hollow mark = re-run of Sync d0 h8 with new noise.`);
+  // the two schedule parameters are defined where they are encoded: h = panel, d = x
+  noteSel.html(`<b>h</b> (panels) = actions executed from each 16-action chunk before switching to the next ·
+    <b>d</b> (x) = time the policy needs to compute a chunk<br>
+    <b>y</b> = ${METRICS[state.metric].note}${state.brushed ? ` · <b>computed over the ${n} seeds selected in B</b> (Esc clears)` : ""} · ○ = Sync d0 h8 re-run with new noise`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const M = METRICS[state.metric];
@@ -86,7 +89,9 @@ function render() {
     g.select(".xax").attr("transform", `translate(0,${h - m.b})`)
       .call(d3.axisBottom(x).tickValues(LATENCIES).tickSize(3).tickFormat((d) => d)).call((q) => q.select(".domain").attr("stroke", "#c9c9cf"));
     g.select(".pt").attr("x", pw / 2).attr("y", m.t - 7).attr("text-anchor", "middle").attr("font-size", 11).attr("font-weight", 700)
-      .text(`h = ${hz}${i === 0 ? " steps" : ""}`);
+      .text(`h = ${hz}${i === 0 ? " actions per chunk" : ""}`)
+      .call((q) => q.selectAll("title").data([0]).join("title")
+        .text(`execution horizon h = ${hz}: the robot executes ${hz} actions of each chunk, then switches to the next chunk`));
 
     const mine = pts.filter((p) => p.h === hz && !p.rep);
     const zero = mine.find((p) => p.strat === "sync" && p.d === 0);
