@@ -21,6 +21,7 @@ No other charting library is used anywhere in `src/`.
 * `slides/assets/persona_primary.jpg`: Wikimedia Commons, “Woman 1.jpg”, StyleGAN-generated face (uploader: Owlsmcgee). **Public domain**. https://commons.wikimedia.org/wiki/File:Woman_1.jpg
 * `slides/assets/persona_secondary.jpg`: Wikimedia Commons, “Man 2.jpg”, StyleGAN-generated face (uploader: Owlsmcgee). **Public domain**. https://commons.wikimedia.org/wiki/File:Man_2.jpg
 * The people depicted do not exist; the personas are fictional.
+* `slides/assets/hook_inpaint.png`, `hook_naive.png`: crops of our own LagLens screenshot `report/fig_f3_replay.png` (our data, seed 1035).
 
 ## Papers (all arXiv IDs verified against the arXiv API on 2026-10-26)
 1. T. Z. Zhao, V. Kumar, S. Levine, C. Finn. *Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware* (ACT, temporal ensembling). RSS 2023. arXiv:2304.13705

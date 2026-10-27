@@ -138,7 +138,7 @@ note(cx0 + cwid - 10, cy0 + 19, "hover planned point = when planned / executed �
 # ---- D execution timeline
 dx, dy, dw, dh = 528, 392, 664, 260
 panel(dx, dy, dw, dh, "D · Execution Timeline   (T3)")
-add(f'<text x="{dx+10}" y="{dy+36}" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="{SEAM}">lollipop = boundary discontinuity</tspan> · sync alternates, async overlaps</text>')
+add(f'<text x="{dx+10}" y="{dy+36}" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="{SEAM}">lollipop = boundary discontinuity</tspan></text>')
 t0, U = dx + 70, 4.6
 for k, (lab, col, kind) in enumerate([("R ✗", R, "sync"), ("C ✓", C, "async")]):
     y0 = dy + 50 + k * 52

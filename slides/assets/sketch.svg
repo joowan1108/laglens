@@ -2158,7 +2158,7 @@
 <text x="1182" y="73" font-size="11" fill="#6a3d9a" text-anchor="end">hover planned point = when planned / executed · click = jump · ← → space</text>
 <rect x="528" y="392" width="664" height="260" rx="6" fill="#fff" stroke="#555"/>
 <text x="538" y="411" font-weight="bold" font-size="13">D · Execution Timeline   (T3)</text>
-<text x="538" y="428" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="#c2185b">lollipop = boundary discontinuity</tspan> · sync alternates, async overlaps</text>
+<text x="538" y="428" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="#c2185b">lollipop = boundary discontinuity</tspan></text>
 <text x="538" y="474" font-weight="bold" fill="#222">R ✗</text><text x="594" y="460" font-size="9" text-anchor="end" fill="#777">think</text><text x="594" y="475" font-size="9" text-anchor="end" fill="#777">act</text>
 <rect x="598.0" y="454" width="17.4" height="5" fill="#222" fill-opacity=".45"/><rect x="598.0" y="464" width="17.4" height="12" fill="url(#hatch)"/><rect x="616.4" y="464" width="17.4" height="12" fill="#222" fill-opacity="0.85"/>
 <line x1="616.4" x2="616.4" y1="452" y2="448" stroke="#c2185b"/>

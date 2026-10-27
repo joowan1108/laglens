@@ -7,7 +7,8 @@ The rendered, submitted version is `slides.pdf` (7 pages, built from `slides/sli
 Chunked robot policies (Diffusion Policy, ACT, π0, SmolVLA) execute part of each predicted chunk open-loop. Inference takes time *d*, so the robot either waits (sync) or keeps executing the old chunk (async).
 This causes **stale actions**, **discontinuities** (plan disagreement when chunk *k*+1 replaces chunk *k*), and forces practitioners to **tune strategy / latency budget / execution horizon by hand** from aggregate success curves.
 We found no visual analytics work on chunk execution or asynchronous inference.
-**Idea:** paired counterfactual replay. One pretrained policy, the same 50 initial states, 46 execution schedules plus a noise replicate, and every predicted chunk logged.
+Slide 1 shows a real case from our data (start state 1035, d = 4, h = 4): inpaint async succeeds, naive async fails after a 259 px jump at a plan switch, with equal mean staleness (5.5 steps).
+**Idea:** paired counterfactual replay (same start, different schedule). One pretrained policy, the same 50 initial states, 46 execution schedules plus a noise replicate, and every predicted chunk logged.
 
 ## 1 What: data abstraction
 * Self-generated with `lerobot/diffusion_pusht` in the PushT simulator (CPU, DDIM 10 steps): 2,350 episodes × 19 attributes; 598,117 steps; 119,373 chunks (16 predicted 2-D actions each). See `docs/dataset_verification.txt`.
