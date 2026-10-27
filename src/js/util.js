@@ -23,7 +23,7 @@ export const METRICS = {
   idle_frac_mean: { btn: "Idle", sub: "cost of sync", label: "idle share", ep: "idle_frac", pct: true,
     epB: "idle_frac",
     note: "share of steps in which the robot holds still while the policy thinks: the price sync pays" },
-  staleness_mean: { btn: "Staleness", sub: "cost of async", label: "staleness (steps)", ep: "staleness_mean",
+  staleness_mean: { btn: "Staleness", sub: "age of picture", label: "staleness (steps)", ep: "staleness_mean",
     epB: "staleness_mean",
     note: "age of the observation behind each executed action: the price of acting while thinking" },
   seam_gap_mean: { btn: "Discontinuity", sub: "cost of naive async", label: "boundary discontinuity (px)", ep: "seam_gap_mean",

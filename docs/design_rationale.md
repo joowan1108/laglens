@@ -15,7 +15,7 @@ Every strategy pays a different cost for inference latency *d*. The views are bu
 | **Naive async** | The robot keeps executing the old chunk. The new chunk replaces it after *d* steps, skipping its first *d* actions. | **Discontinuity.** The new plan comes from an observation taken before the robot moved and can choose another mode, so discontinuities are large. | idle 2 %, discontinuity 43.5 px, success 38 % | **D:** *think* overlaps *act*, with tall magenta discontinuity lollipops.<br>**C:** magenta discontinuity segment.<br>**A:** discontinuity curve rises as *h* shrinks. |
 | **Inpaint async** | Same timing as naive. The new chunk is sampled with the committed actions clamped, so it continues the old plan. | **Staleness only.** It has the same observation age as naive but small discontinuities. | idle 2 %, discontinuity 8.0 px, success 60 % | **D:** *think* overlaps *act*, with short lollipops.<br>**A:** the green curve stays flat across *d*. |
 
-These are exactly the four questions offered in A's question bar: Success, Idle (cost of sync), Staleness (cost of async), Discontinuity (cost of naive async). The *think / act* tracks in D show each schedule's timing directly instead of describing it in text.
+These are exactly the four questions offered in A's question bar: Success, Idle (cost of sync), Staleness (age of the camera picture behind each move: on average d + (h−1)/2, identical for all three strategies at equal d and h; it hurts only async, where the world keeps moving meanwhile), Discontinuity (cost of naive async). The *think / act* tracks in D show each schedule's timing directly instead of describing it in text.
 
 ## 2 Views, marks and channels
 
