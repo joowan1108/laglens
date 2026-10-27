@@ -46,7 +46,7 @@
 <div class="meta"><b>Theme:</b> VIS + AI &nbsp;·&nbsp; <b>Live demo:</b> <a href="https://joowan1108.github.io/laglens/">https://joowan1108.github.io/laglens/</a>
   &nbsp;·&nbsp; <b>Source:</b> <a href="https://github.com/joowan1108/laglens">github.com/joowan1108/laglens</a> (<code>src/</code>; run locally: <code>python3 -m http.server 8000 --directory src</code>)</div>
 <div class="abs">
-  Modern visuomotor and VLA policies predict <b>chunks</b> of future actions and execute part of each chunk <b>open-loop</b>. Because inference takes time,
+  Modern visuomotor and VLA policies predict a <b>chunk</b> of future actions from one observation and execute its first <i>h</i> actions <b>open-loop</b>, i.e. without looking at the scene again (<i>h</i> = execution horizon). Because inference takes time <i>d</i> (latency),
   the robot either <b>waits</b> (synchronous) or keeps executing an old chunk and switches when a new one arrives (<b>asynchronous</b>).
   Researchers tune the strategy, the latency budget and the execution horizon from aggregate success curves.
   LagLens replays one pretrained policy from the <b>same {{N_SEEDS}} initial states</b> under <b>{{N_SCHED}} execution schedules</b> (plus a noise replicate),
