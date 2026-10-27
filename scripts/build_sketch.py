@@ -37,7 +37,7 @@ note(630, 31, "pick / swap R and C anywhere", "end")
 # ---- A latency response
 ax, ay, aw, ah = 8, 54, 512, 236
 panel(ax, ay, aw, ah, "A · Latency Response   (T1)")
-add(f'<text x="{ax+10}" y="{ay+38}" font-size="11">[<tspan font-weight="bold">Success</tspan> | Idle | Staleness | Seam jump]    <tspan fill="{S["sync"]}">●</tspan> Sync <tspan fill="{S["naive"]}">■</tspan> Naive <tspan fill="{S["inpaint"]}">◆</tspan> Inpaint</text>')
+add(f'<text x="{ax+10}" y="{ay+38}" font-size="11">[<tspan font-weight="bold">Success</tspan> | Idle | Staleness | Discontinuity]    <tspan fill="{S["sync"]}">●</tspan> Sync <tspan fill="{S["naive"]}">■</tspan> Naive <tspan fill="{S["inpaint"]}">◆</tspan> Inpaint</text>')
 vals = {8: {"sync": [72, 62, 70, 44, 40], "naive": [72, 68, 62, 62, 46], "inpaint": [72, 58, 66, 60, 40]},
         6: {"sync": [48, 42, 32, 26, 30], "naive": [48, 44, 58, 56, 32], "inpaint": [48, 48, 50, 58, 26]},
         4: {"sync": [28, 24, 22, 14, 8], "naive": [28, 12, 34, 38], "inpaint": [28, 40, 46, 60]},
@@ -130,15 +130,15 @@ for k, (lab, col, good) in enumerate([("R · Sync d4 h4 ✗ · idle: waiting for
     if good:
         add(f'<polyline points="{" ".join(f"{a+10:.0f},{b-14:.0f}" for a, b in pts[3:])}" fill="none" stroke="#999" stroke-width="2" stroke-dasharray="1 3"/>')
     else:
-        add(f'<line x1="{pts[0][0]:.0f}" y1="{pts[0][1]:.0f}" x2="{pts[0][0]+40:.0f}" y2="{pts[0][1]-40:.0f}" stroke="{SEAM}" stroke-width="2.4"/><circle cx="{pts[0][0]+40:.0f}" cy="{pts[0][1]-40:.0f}" r="3.5" fill="#fff" stroke="{SEAM}"/><text x="{pts[0][0]+46:.0f}" y="{pts[0][1]-40:.0f}" font-size="10" font-weight="bold" fill="{SEAM}">seam 12 px</text>')
-add(f'<text x="{cx0+24}" y="{cy0+300}" font-size="10" fill="#555">— executed part of chunk   ┄ thrown away   ⋯ next chunk computing   <tspan fill="{SEAM}">━ seam</tspan></text>')
+        add(f'<line x1="{pts[0][0]:.0f}" y1="{pts[0][1]:.0f}" x2="{pts[0][0]+40:.0f}" y2="{pts[0][1]-40:.0f}" stroke="{SEAM}" stroke-width="2.4"/><circle cx="{pts[0][0]+40:.0f}" cy="{pts[0][1]-40:.0f}" r="3.5" fill="#fff" stroke="{SEAM}"/><text x="{pts[0][0]+46:.0f}" y="{pts[0][1]-40:.0f}" font-size="10" font-weight="bold" fill="{SEAM}">discontinuity 12 px</text>')
+add(f'<text x="{cx0+24}" y="{cy0+300}" font-size="10" fill="#555">— executed part of chunk   ┄ thrown away   ⋯ next chunk computing   <tspan fill="{SEAM}">━ boundary discontinuity</tspan></text>')
 add(f'<rect x="{cx0+24}" y="{cy0+308}" width="40" height="14" rx="3" fill="#fff" stroke="#555"/><text x="{cx0+30}" y="{cy0+319}" font-size="10">▶ play</text><line x1="{cx0+74}" x2="{cx0+600}" y1="{cy0+315}" y2="{cy0+315}" stroke="#333" stroke-width="3"/><circle cx="{cx0+330}" cy="{cy0+315}" r="6" fill="#333"/>')
 note(cx0 + cwid - 10, cy0 + 19, "hover planned point = when planned / executed · click = jump · ← → space", "end")
 
 # ---- D execution timeline
 dx, dy, dw, dh = 528, 392, 664, 260
 panel(dx, dy, dw, dh, "D · Execution Timeline   (T3)")
-add(f'<text x="{dx+10}" y="{dy+36}" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="{SEAM}">lollipop = seam gap</tspan> · sync alternates, async overlaps</text>')
+add(f'<text x="{dx+10}" y="{dy+36}" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="{SEAM}">lollipop = boundary discontinuity</tspan> · sync alternates, async overlaps</text>')
 t0, U = dx + 70, 4.6
 for k, (lab, col, kind) in enumerate([("R ✗", R, "sync"), ("C ✓", C, "async")]):
     y0 = dy + 50 + k * 52

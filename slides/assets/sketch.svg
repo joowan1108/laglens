@@ -10,7 +10,7 @@
 <text x="630" y="31" font-size="11" fill="#6a3d9a" text-anchor="end">pick / swap R and C anywhere</text>
 <rect x="8" y="54" width="512" height="236" rx="6" fill="#fff" stroke="#555"/>
 <text x="18" y="73" font-weight="bold" font-size="13">A · Latency Response   (T1)</text>
-<text x="18" y="92" font-size="11">[<tspan font-weight="bold">Success</tspan> | Idle | Staleness | Seam jump]    <tspan fill="#0072B2">●</tspan> Sync <tspan fill="#D55E00">■</tspan> Naive <tspan fill="#009E73">◆</tspan> Inpaint</text>
+<text x="18" y="92" font-size="11">[<tspan font-weight="bold">Success</tspan> | Idle | Staleness | Discontinuity]    <tspan fill="#0072B2">●</tspan> Sync <tspan fill="#D55E00">■</tspan> Naive <tspan fill="#009E73">◆</tspan> Inpaint</text>
 <rect x="42" y="112" width="112" height="126" fill="#fafafb" stroke="#ddd"/>
 <text x="98.0" y="108" font-size="10.5" font-weight="bold" text-anchor="middle">h = 8</text>
 <text x="50" y="250" font-size="9" text-anchor="middle" fill="#666">0</text>
@@ -2128,7 +2128,7 @@
 <circle cx="720" cy="295" r="2.6" fill="#fff" stroke="#222"/>
 <circle cx="727" cy="301" r="2.6" fill="#fff" stroke="#222"/>
 <circle cx="622" cy="284" r="10" fill="#222" fill-opacity=".25" stroke="#222" stroke-width="2"/>
-<line x1="622" y1="284" x2="662" y2="244" stroke="#c2185b" stroke-width="2.4"/><circle cx="662" cy="244" r="3.5" fill="#fff" stroke="#c2185b"/><text x="668" y="244" font-size="10" font-weight="bold" fill="#c2185b">seam 12 px</text>
+<line x1="622" y1="284" x2="662" y2="244" stroke="#c2185b" stroke-width="2.4"/><circle cx="662" cy="244" r="3.5" fill="#fff" stroke="#c2185b"/><text x="668" y="244" font-size="10" font-weight="bold" fill="#c2185b">discontinuity 12 px</text>
 <text x="872" y="94" font-size="10.5" font-weight="bold" fill="#9a6a00">C · Inpaint d4 h4 ✓ · acting, 4 steps stale · thinking</text>
 <rect x="872" y="102" width="300" height="230" rx="4" fill="#fafafb" stroke="#ccc"/>
 <path d="M982,184 l80,0 l0,18 l-30,0 l0,60 l-20,0 l0,-60 l-30,0 z" fill="#e9e9ee" stroke="#777" stroke-dasharray="4 3" transform="rotate(45 1022 214)"/>
@@ -2153,12 +2153,12 @@
 <circle cx="1047" cy="301" r="2.6" fill="#fff" stroke="#E69F00"/>
 <circle cx="942" cy="284" r="10" fill="#E69F00" fill-opacity=".25" stroke="#E69F00" stroke-width="2"/>
 <polyline points="973,250 980,245 987,242 994,240 1001,240 1008,243 1015,247 1022,252 1029,259 1036,266 1043,273 1050,281 1057,287" fill="none" stroke="#999" stroke-width="2" stroke-dasharray="1 3"/>
-<text x="552" y="354" font-size="10" fill="#555">— executed part of chunk   ┄ thrown away   ⋯ next chunk computing   <tspan fill="#c2185b">━ seam</tspan></text>
+<text x="552" y="354" font-size="10" fill="#555">— executed part of chunk   ┄ thrown away   ⋯ next chunk computing   <tspan fill="#c2185b">━ boundary discontinuity</tspan></text>
 <rect x="552" y="362" width="40" height="14" rx="3" fill="#fff" stroke="#555"/><text x="558" y="373" font-size="10">▶ play</text><line x1="602" x2="1128" y1="369" y2="369" stroke="#333" stroke-width="3"/><circle cx="858" cy="369" r="6" fill="#333"/>
 <text x="1182" y="73" font-size="11" fill="#6a3d9a" text-anchor="end">hover planned point = when planned / executed · click = jump · ← → space</text>
 <rect x="528" y="392" width="664" height="260" rx="6" fill="#fff" stroke="#555"/>
 <text x="538" y="411" font-weight="bold" font-size="13">D · Execution Timeline   (T3)</text>
-<text x="538" y="428" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="#c2185b">lollipop = seam gap</tspan> · sync alternates, async overlaps</text>
+<text x="538" y="428" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="#c2185b">lollipop = boundary discontinuity</tspan> · sync alternates, async overlaps</text>
 <text x="538" y="474" font-weight="bold" fill="#222">R ✗</text><text x="594" y="460" font-size="9" text-anchor="end" fill="#777">think</text><text x="594" y="475" font-size="9" text-anchor="end" fill="#777">act</text>
 <rect x="598.0" y="454" width="17.4" height="5" fill="#222" fill-opacity=".45"/><rect x="598.0" y="464" width="17.4" height="12" fill="url(#hatch)"/><rect x="616.4" y="464" width="17.4" height="12" fill="#222" fill-opacity="0.85"/>
 <line x1="616.4" x2="616.4" y1="452" y2="448" stroke="#c2185b"/>

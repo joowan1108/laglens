@@ -5,7 +5,7 @@ The rendered, submitted version is `slides.pdf` (7 pages, built from `slides/sli
 
 ## Problem
 Chunked robot policies (Diffusion Policy, ACT, π0, SmolVLA) execute part of each predicted chunk open-loop. Inference takes time *d*, so the robot either waits (sync) or keeps executing the old chunk (async).
-This causes **stale actions**, **seams** (plan disagreement when chunk *k*+1 replaces chunk *k*), and forces practitioners to **tune strategy / latency budget / execution horizon by hand** from aggregate success curves.
+This causes **stale actions**, **discontinuities** (plan disagreement when chunk *k*+1 replaces chunk *k*), and forces practitioners to **tune strategy / latency budget / execution horizon by hand** from aggregate success curves.
 We found no visual analytics work on chunk execution or asynchronous inference.
 **Idea:** paired counterfactual replay. One pretrained policy, the same 50 initial states, 46 execution schedules plus a noise replicate, and every predicted chunk logged.
 
@@ -16,7 +16,7 @@ We found no visual analytics work on chunk execution or asynchronous inference.
 * **Values:** success (binary), coverage_final (ratio, 0–0.99), steps_to_success (ratio, 68–300), seam_gap_mean / max (ratio, px), staleness_mean (ratio, steps), idle_frac (ratio), jerk_mean, path_len, n_inferences, n_seams, inner_step_mean. Per step: agent / block position (interval, px), block angle (cyclic), action, chunk id, index *j*, age, held, coverage.
 
 ## 2 Who: personas
-* **Primary: Mara Jensen.** 28, PhD student in a robot-learning lab in Copenhagen. Deploys diffusion policies on a real arm with a remote GPU server (60–250 ms). Needs per-episode evidence of *why* schedules fail. Pain points: only success tables and videos; cannot separate stale actions from seam jumps.
+* **Primary: Mara Jensen.** 28, PhD student in a robot-learning lab in Copenhagen. Deploys diffusion policies on a real arm with a remote GPU server (60–250 ms). Needs per-episode evidence of *why* schedules fail. Pain points: only success tables and videos; cannot separate stale actions from discontinuities.
 * **Secondary: Arjun Mehta.** 37, ML platform engineer at a robotics start-up in Seoul. Owns the async serving stack and sets latency budgets. Needs aggregate trends and to know whether drops are real.
 * Differences: policy vs. systems expertise; episode-level (T3, T4) vs. aggregate (T1, T2) questions.
 * Portraits: public-domain StyleGAN images (Wikimedia Commons).
@@ -27,10 +27,10 @@ We found no visual analytics work on chunk execution or asynchronous inference.
 | T1 | Compare → trends across schedules | pick a schedule for the latency at hand | robust region, latency budget |
 | T2 | Locate → outliers (paired flips R→C) | aggregates hide which situations break | fragile seeds, flips vs. chance |
 | T3 | Identify → features in time and space | diagnose the failure mechanism | causal hypothesis tied to chunks |
-| T4 | Discover → correlation (seam gap ↔ outcome) | test the boundary-artifact claim | evidence for or against a strategy |
+| T4 | Discover → correlation (boundary discontinuity ↔ outcome) | test the boundary-artifact claim | evidence for or against a strategy |
 
 ## 4 How: idioms
-A Latency Response (line-chart small multiples per horizon, strategies superposed with hue + shape, 95 % intervals, paired Δ vs R on hover, one question bar: Success · Idle · Staleness · Seam jump) · B Paired Seed Table (outcome matrix grouped by R→C change + R→C dumbbells of the question's attribute on one shared row axis, re-run column for chance, brushing cross-filters A) · C Workspace Replay (juxtaposed maps: current chunk, chunk being computed, latest seam) · D Execution Timeline (think / act tracks, seam lollipops, coverage). Rationale and literature: `docs/design_rationale.md`.
+A Latency Response (line-chart small multiples per horizon, strategies superposed with hue + shape, 95 % intervals, paired Δ vs R on hover, one question bar: Success · Idle · Staleness · Discontinuity) · B Paired Seed Table (outcome matrix grouped by R→C change + R→C dumbbells of the question's attribute on one shared row axis, re-run column for chance, brushing cross-filters A) · C Workspace Replay (juxtaposed maps: current chunk, chunk being computed, latest discontinuity) · D Execution Timeline (think / act tracks, discontinuity lollipops, coverage). Rationale and literature: `docs/design_rationale.md`.
 Interactions: select R/C, choose the question (drives A and B), brush and link, filter, tooltip, play and scrub.
 The channel-justification table and the hue budget (Okabe–Ito, CVD-checked) are on slides 5–6.
 

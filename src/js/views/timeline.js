@@ -112,7 +112,7 @@ function render() {
         const js = [...d.c.execJ.keys()];
         showTip(ev, `<b>${L.which === "ref" ? "R" : "C"} chunk #${d.i}</b> (plan shown in C)<br><span class="k">think</span> t=${d.c.t_obs} → ${d.c.t_avail} · <span class="k">act</span> t=${d.c.t0}–${d.c.t1}<br>
           <span class="k">executed actions</span> ${d3.min(js)}–${d3.max(js)} of 16 · <span class="k">staleness</span> ${d.c.t0 - d.c.t_obs}–${d.c.t1 - d.c.t_obs} steps<br>
-          ${seamGap !== undefined ? `<span class="k">seam at its start:</span> <b>${seamGap.toFixed(1)} px</b>` : ""}<br><span class="k">click = jump to its first action</span>`);
+          ${seamGap !== undefined ? `<span class="k">boundary discontinuity at its start:</span> <b>${seamGap.toFixed(1)} px</b>` : ""}<br><span class="k">click = jump to its first action</span>`);
       })
       .on("mouseleave", () => { hideTip(); update({ hoverChunk: null }); })
       .on("click", (ev, d) => update({ t: d.c.t0 }));
@@ -127,12 +127,12 @@ function render() {
     }).attr("transform", (s) => `translate(${x(s.t)},0)`);
     sm.select("line").attr("y1", seamH).attr("y2", (s) => seamH - ys(s.gap)).attr("stroke", COLOR.seam).attr("stroke-width", 1.2);
     sm.select("circle").attr("cy", (s) => seamH - ys(s.gap)).attr("r", 1.7).attr("fill", COLOR.seam);
-    sm.on("mousemove", (ev, s) => showTip(ev, `<b>seam</b> at t=${s.t}: the new chunk's first action is <b>${s.gap.toFixed(1)} px</b> away from what the old chunk planned next`))
+    sm.on("mousemove", (ev, s) => showTip(ev, `<b>chunk-boundary discontinuity</b> at t=${s.t}: the new chunk's first action is <b>${s.gap.toFixed(1)} px</b> away from what the old chunk planned next`))
       .on("mouseleave", hideTip).on("click", (ev, s) => update({ t: s.t }));
   });
 
   svg.selectAll("text.sk").data([0]).join("text").attr("class", "sk axis-title").attr("font-size", 9).attr("fill", COLOR.seam)
-    .attr("x", m.l - 5).attr("y", m.t + 8).attr("text-anchor", "end").text(`seam ${gmax.toFixed(0)}px`);
+    .attr("x", m.l - 5).attr("y", m.t + 8).attr("text-anchor", "end").text(`${gmax.toFixed(0)} px`);
 
   // coverage curves
   const cg = svg.selectAll("g.cov").data([0]).join((en) => {

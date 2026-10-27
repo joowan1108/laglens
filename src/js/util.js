@@ -2,7 +2,7 @@
 // see docs/design_rationale.md):
 //   identity of the compared pair: R = near-black, C = orange (C, D, B's R/C columns, rings in A)
 //   strategy (nominal, only in A and the column headers of B): sync blue, naive vermillion, inpaint green
-//   seam (hand-over jump, C and D): magenta. Selection is drawn in ink; everything else is grey.
+//   chunk-boundary discontinuity (C and D): magenta. Selection is drawn in ink; everything else is grey.
 export const COLOR = {
   ref: "#222222", cand: "#E69F00", sel: "#1d1d1f", seam: "#c2185b",
   ok: "#8e8e98", okLight: "#c9c9d0", fail: "#efeff2",
@@ -26,9 +26,9 @@ export const METRICS = {
   staleness_mean: { btn: "Staleness", sub: "cost of async", label: "staleness (steps)", ep: "staleness_mean",
     epB: "staleness_mean",
     note: "age of the observation behind each executed action: the price of acting while thinking" },
-  seam_gap_mean: { btn: "Seam jump", sub: "cost of naive async", label: "seam gap (px)", ep: "seam_gap_mean",
+  seam_gap_mean: { btn: "Discontinuity", sub: "cost of naive async", label: "boundary discontinuity (px)", ep: "seam_gap_mean",
     epB: "seam_gap_max",
-    note: "jump between the old plan and the new chunk at each hand-over: the price of switching plans abruptly" },
+    note: "chunk-boundary discontinuity: distance between the action the old chunk planned next and the first action of the new chunk, at each hand-over" },
 };
 export function fmtMetric(k, v, signed = false) {
   if (v === null || v === undefined || Number.isNaN(v)) return "–";
@@ -43,7 +43,7 @@ export const EP_ATTRS = {
   coverage_final: "final coverage of the goal",
   idle_frac: "idle share",
   staleness_mean: "mean staleness (steps)",
-  seam_gap_max: "largest seam jump in the episode (px)",
+  seam_gap_max: "largest boundary discontinuity in the episode (px)",
 };
 
 const tip = () => document.getElementById("tooltip");

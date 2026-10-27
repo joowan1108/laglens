@@ -140,7 +140,7 @@ function render() {
     sg.select("circle").attr("cx", (d) => s(d.from[0])).attr("cy", (d) => s(d.from[1])).attr("r", 4).attr("fill", "#fff").attr("stroke", COLOR.seam).attr("stroke-width", 1.6);
     sg.select("text").attr("x", (d) => s((d.from[0] + d.to[0]) / 2) + 6).attr("y", (d) => s((d.from[1] + d.to[1]) / 2) - 6)
       .attr("font-size", 10.5).attr("font-weight", 700).attr("fill", COLOR.seam).attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
-      .text((d) => `seam ${d.gap.toFixed(0)} px`);
+      .text((d) => `discontinuity ${d.gap.toFixed(0)} px`);
 
     b.select(".agent").attr("cx", s(e.ax[t])).attr("cy", s(e.ay[t])).attr("r", s(AGENT_R))
       .attr("fill", p.col).attr("fill-opacity", st.k === "wait" ? 0.08 : 0.3).attr("stroke", p.col).attr("stroke-width", 2)

@@ -11,11 +11,11 @@ Every strategy pays a different cost for inference latency *d*. The views are bu
 
 | Strategy | What happens during inference | Cost it pays | Measured (d = 4, h = 4) | Signature in LagLens |
 |---|---|---|---|---|
-| **Sync** | The robot holds still for *d* steps, then executes *h* actions of the new chunk. | **Time.** The idle share is about d/(h+d). The observation is old but the world did not move, so the plan still fits. | idle 51 %, seam 5.4 px, success 14 % | **D:** *think* and *act* alternate, with hatched idle gaps.<br>**A:** the blue curve falls steadily with *d*. |
-| **Naive async** | The robot keeps executing the old chunk. The new chunk replaces it after *d* steps, skipping its first *d* actions. | **Discontinuity.** The new plan comes from an observation taken before the robot moved and can choose another mode, so seams are large. | idle 2 %, seam 43.5 px, success 38 % | **D:** *think* overlaps *act*, with tall magenta seam lollipops.<br>**C:** magenta seam segment.<br>**A:** seam-gap curve rises as *h* shrinks. |
-| **Inpaint async** | Same timing as naive. The new chunk is sampled with the committed actions clamped, so it continues the old plan. | **Staleness only.** It has the same observation age as naive but small seams. | idle 2 %, seam 8.0 px, success 60 % | **D:** *think* overlaps *act*, with short lollipops.<br>**A:** the green curve stays flat across *d*. |
+| **Sync** | The robot holds still for *d* steps, then executes *h* actions of the new chunk. | **Time.** The idle share is about d/(h+d). The observation is old but the world did not move, so the plan still fits. | idle 51 %, discontinuity 5.4 px, success 14 % | **D:** *think* and *act* alternate, with hatched idle gaps.<br>**A:** the blue curve falls steadily with *d*. |
+| **Naive async** | The robot keeps executing the old chunk. The new chunk replaces it after *d* steps, skipping its first *d* actions. | **Discontinuity.** The new plan comes from an observation taken before the robot moved and can choose another mode, so discontinuities are large. | idle 2 %, discontinuity 43.5 px, success 38 % | **D:** *think* overlaps *act*, with tall magenta discontinuity lollipops.<br>**C:** magenta discontinuity segment.<br>**A:** discontinuity curve rises as *h* shrinks. |
+| **Inpaint async** | Same timing as naive. The new chunk is sampled with the committed actions clamped, so it continues the old plan. | **Staleness only.** It has the same observation age as naive but small discontinuities. | idle 2 %, discontinuity 8.0 px, success 60 % | **D:** *think* overlaps *act*, with short lollipops.<br>**A:** the green curve stays flat across *d*. |
 
-These are exactly the four questions offered in A's question bar: Success, Idle (cost of sync), Staleness (cost of async), Seam jump (cost of naive async). The *think / act* tracks in D show each schedule's timing directly instead of describing it in text.
+These are exactly the four questions offered in A's question bar: Success, Idle (cost of sync), Staleness (cost of async), Discontinuity (cost of naive async). The *think / act* tracks in D show each schedule's timing directly instead of describing it in text.
 
 ## 2 Views, marks and channels
 
@@ -32,7 +32,7 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 | Strategy = hue + shape (circle, square, diamond) | Hue is the strongest identity channel after region. Shape is added redundantly so identity never depends on hue alone (Okabe–Ito hues; colour-vision-deficiency check below). | [1][13][14] |
 | Thin 95 % interval lines (Wilson for success, t for means) | With 50 seeds a 10-point difference can be chance. Points with thin interval lines avoid the "within-the-bar" bias of bar + error-bar charts. | [7][16] |
 | Δ vs R = paired difference over the same seeds, in the hover | Explicit encoding of the difference (Gleicher's third comparison strategy), with a paired interval that matches the paired design. Shown on demand instead of as a separate mode, so there is one less control to learn. | [4][5][17] |
-| One always-visible question bar (4 buttons, each named after who pays the cost) instead of a 6-item dropdown | The choice is the main question of the tool, so it is shown, not hidden in a menu; dropping final coverage and jerk removed metrics that repeated success and seam gap. The same choice sets B's dumbbell attribute, so A and B never disagree. | [9][15] |
+| One always-visible question bar (4 buttons, each named after who pays the cost) instead of a 6-item dropdown | The choice is the main question of the tool, so it is shown, not hidden in a menu; dropping final coverage and jerk removed metrics that repeated success and boundary discontinuity. The same choice sets B's dumbbell attribute, so A and B never disagree. | [9][15] |
 | R and C as letter-labelled rings | The selection is shown without recolouring marks: colour follows the entity, not the selection. | [4] |
 
 ### B Paired Seed Table (T2 locate flips, T4 discover correlation)
@@ -43,14 +43,14 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 | R column black, C column orange; others grey | Identity hues appear only where R and C are, as in every other view. | [4] |
 | Rows grouped by R→C change (lost, gained, both ✓, both ✗), robust seeds first inside a band; no sort or attribute controls | Spatial region is the top-ranked channel for a categorical attribute. Each band directly answers "which seeds flip?". Alternative orders were rarely needed and added controls. | [1] |
 | "re-run" column (same schedule, new noise) | An explicit reference for chance: 11/50 seeds flip with no schedule change. | [5] |
-| Dumbbell: ● R → ● C on a common position axis of the attribute that belongs to A's question (final coverage, idle share, staleness, largest seam jump); symlog for seams; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
+| Dumbbell: ● R → ● C on a common position axis of the attribute that belongs to A's question (final coverage, idle share, staleness, largest discontinuity); symlog for discontinuities; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
 | Vertical brush on the dumbbells, or click a band → selected seeds re-aggregate A | Cross-filtering checks whether a trend holds for a subset ("are the failures driven by these seeds?"). | [12][15] |
 
 ### C Workspace Replay (T3 identify where)
 | Decision | Why | Source |
 |---|---|---|
 | R and C side by side at the same scale and seed | Juxtaposition of two spatial states. True geometry is used because the data is spatial. | [4][6] |
-| Only three overlays: executed part of the current chunk (filled dots, solid), thrown-away part (hollow, dashed), the chunk still being computed (grey, dotted), plus the latest seam (magenta) for 10 steps | Removes the full-path trace, the previous-chunk tail, per-index luminance and the start-pose ghost: data-ink that did not serve T3. Details (when planned, when executed, staleness) are on demand via hover. | [17][18] |
+| Only three overlays: executed part of the current chunk (filled dots, solid), thrown-away part (hollow, dashed), the chunk still being computed (grey, dotted), plus the latest discontinuity (magenta) for 10 steps | Removes the full-path trace, the previous-chunk tail, per-index luminance and the start-pose ghost: data-ink that did not serve T3. Details (when planned, when executed, staleness) are on demand via hover. | [17][18] |
 | Status line in the strategy vocabulary ("idle: waiting for inference", "acting … 4 steps stale · thinking") | States the sync vs. async situation at t in words, so it never has to be decoded from marks. | |
 
 ### D Execution Timeline (T3 identify when)
@@ -58,7 +58,7 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 |---|---|---|
 | Gantt lanes on a linear, chronological time axis; R and C on one shared axis | A linear representation with a chronological scale suits "when" questions, and aligned lanes enable comparison. | [19][20] |
 | Two tracks per run: *think* (inference intervals) and *act* (executed chunk spans, alternating tints; hatched = idle) | Shows the defining difference between the strategies: alternation (sync) vs. overlap (async). | [19] |
-| Seam = lollipop above the act track, stem length on a common baseline (shared R/C scale) | Length on a common baseline is the second-best magnitude channel. The magenta hue means "seam" here and in C only. | [1] |
+| Discontinuity = lollipop above the act track, stem length on a common baseline (shared R/C scale) | Length on a common baseline is the second-best magnitude channel. The magenta hue means "discontinuity" here and in C only. | [1] |
 | Coverage lines (R black, C orange) with the 95 % success threshold | Position channel for the outcome over time. Shares the x-axis with the tracks. | [1] |
 | Brush a window → C highlights that part of the path; hover a chunk → its plan in C; click → cursor | Linked navigation from time to space. | [12][15] |
 
@@ -68,7 +68,7 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 - **Hue budget, chosen by job:**
   - identity: R `#222222`, C `#E69F00`
   - strategy: sync `#0072B2`, naive `#D55E00`, inpaint `#009E73`
-  - event: seam `#c2185b`
+  - event: discontinuity `#c2185b`
   - everything else neutral grey; selection is drawn in ink
 - **Colour-vision-deficiency check.** Colour differences were computed with Machado et al.'s simulation [13] in OKLab (×100):
   - Strategy hues: smallest difference 9 (tritan, blue–green) and 11 (deutan, vermillion–green). Shape is redundant there.

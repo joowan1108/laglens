@@ -49,7 +49,7 @@ with sync_playwright() as p:
     ok("A shift-click sets reference", S("ref") == "sync_d1_h8")
     pg.click("#responseControls .metricbar button[data-metric=seam_gap_mean]")
     ok("A question button sets the metric", S("metric") == "seam_gap_mean")
-    ok("the same question sets B's dumbbell attribute", "largest seam jump" in pg.inner_text("#seedControls"))
+    ok("the same question sets B's dumbbell attribute", "largest boundary discontinuity" in pg.inner_text("#seedControls"))
     ok("A shows exactly four questions, no dropdown", pg.locator("#responseControls .metricbar button").count() == 4 and pg.locator("#responseControls select").count() == 0)
     marks.nth(idx_of(target)).locator("circle.hit").hover(force=True)
     ok("A tooltip gives the paired difference to R", pg.is_visible("#tooltip") and "vs R:" in pg.inner_text("#tooltip"))
