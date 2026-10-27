@@ -54,6 +54,7 @@
         <span><i class="k-dash"></i>planned but thrown away</span>
         <span><i class="k-dot"></i>next chunk, still computing</span>
         <span><i class="k-seam"></i>chunk-boundary discontinuity: jump between old and new plan</span>
+        <span><i class="k-seen"></i>what the policy saw: block &amp; pusher in the camera picture the current chunk was planned from</span>
         <span class="muted">“picture N steps old” = age of the camera picture the current move was planned from</span>
       </div>
     </section>
@@ -63,6 +64,7 @@
         <span><b>think</b> = inference running</span>
         <span><b>act</b> = executing a chunk (tints alternate per chunk, <i class="k-hatch"></i> = idle)</span>
         <span><i class="k-lolli"></i>boundary discontinuity</span>
+        <span><i class="k-prov"></i>current chunk: ○ camera picture → think → act</span>
         <span class="muted">Sync alternates think → act; async overlaps them.</span>
       </div>
       <div class="body" id="timeline"></div>

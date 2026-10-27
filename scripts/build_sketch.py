@@ -21,6 +21,10 @@ def note(x, y, txt, anchor="start"):
     add(f'<text x="{x}" y="{y}" font-size="11" fill="{IA}" text-anchor="{anchor}">{txt}</text>')
 
 
+def badge(x, y, n):  # numbered step, explained under the sketch on slide 7
+    add(f'<circle cx="{x}" cy="{y}" r="10" fill="{IA}"/><text x="{x}" y="{y+4.5}" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">{n}</text>')
+
+
 add('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" font-family="Helvetica, Arial, sans-serif" font-size="12">')
 add(f'<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="{IA}"/></marker>'
     '<pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="4" stroke="#aaa" stroke-width="1.2"/></pattern></defs>')
@@ -129,9 +133,15 @@ for k, (lab, col, good) in enumerate([("R · Sync d4 h4 ✗ · idle: waiting for
     add(f'<circle cx="{pts[0][0]:.0f}" cy="{pts[0][1]:.0f}" r="10" fill="{col}" fill-opacity=".25" stroke="{col}" stroke-width="2"/>')
     if good:
         add(f'<polyline points="{" ".join(f"{a+10:.0f},{b-14:.0f}" for a, b in pts[3:])}" fill="none" stroke="#999" stroke-width="2" stroke-dasharray="1 3"/>')
+        # what the policy saw: block and pusher in the camera picture this chunk was planned from
+        gxx, gyy = bxx - 22, byy + 16
+        add(f'<path d="M{gxx-40},{gyy-30} l80,0 l0,18 l-30,0 l0,60 l-20,0 l0,-60 l-30,0 z" fill="none" stroke="{col}" stroke-width="1.4" stroke-dasharray="1 2.5" stroke-linecap="round" transform="rotate(30 {gxx} {gyy})"/>')
+        sax, say = pts[0][0] - 34, pts[0][1] + 22
+        add(f'<circle cx="{sax:.0f}" cy="{say:.0f}" r="10" fill="none" stroke="{col}" stroke-width="1.4" stroke-dasharray="1 2.5" stroke-linecap="round"/><line x1="{sax+7:.0f}" y1="{say-5:.0f}" x2="{pts[0][0]-8:.0f}" y2="{pts[0][1]+5:.0f}" stroke="{col}" stroke-width="1.3"/>')
+        add(f'<text x="{sax-12:.0f}" y="{say+4:.0f}" font-size="10" fill="#9a6a00" text-anchor="end">seen at t=108 · moved 34 px</text>')
     else:
         add(f'<line x1="{pts[0][0]:.0f}" y1="{pts[0][1]:.0f}" x2="{pts[0][0]+40:.0f}" y2="{pts[0][1]-40:.0f}" stroke="{SEAM}" stroke-width="2.4"/><circle cx="{pts[0][0]+40:.0f}" cy="{pts[0][1]-40:.0f}" r="3.5" fill="#fff" stroke="{SEAM}"/><text x="{pts[0][0]+46:.0f}" y="{pts[0][1]-40:.0f}" font-size="10" font-weight="bold" fill="{SEAM}">discontinuity 12 px</text>')
-add(f'<text x="{cx0+24}" y="{cy0+300}" font-size="10" fill="#555">— executed part of chunk   ┄ thrown away   ⋯ next chunk computing   <tspan fill="{SEAM}">━ boundary discontinuity</tspan></text>')
+add(f'<text x="{cx0+24}" y="{cy0+300}" font-size="10" fill="#555">— executed part of chunk   ┄ thrown away   ⋯ next chunk computing   <tspan fill="{SEAM}">━ boundary discontinuity</tspan>   ⋰ what the policy saw</text>')
 add(f'<rect x="{cx0+24}" y="{cy0+308}" width="40" height="14" rx="3" fill="#fff" stroke="#555"/><text x="{cx0+30}" y="{cy0+319}" font-size="10">▶ play</text><line x1="{cx0+74}" x2="{cx0+600}" y1="{cy0+315}" y2="{cy0+315}" stroke="#333" stroke-width="3"/><circle cx="{cx0+330}" cy="{cy0+315}" r="6" fill="#333"/>')
 note(cx0 + cwid - 10, cy0 + 19, "hover planned point = when planned / executed · click = jump · ← → space", "end")
 
@@ -154,6 +164,12 @@ for k, (lab, col, kind) in enumerate([("R ✗", R, "sync"), ("C ✓", C, "async"
             add(f'<rect x="{t0+c*4*U}" y="{y0+22}" width="{4*U-1}" height="12" fill="{col}" fill-opacity="{.85 if c%2 == 0 else .5}"/><rect x="{t0+c*4*U}" y="{y0+12}" width="{4*U-1}" height="5" fill="{col}" fill-opacity=".45"/>')
             if c:
                 add(f'<line x1="{t0+c*4*U}" x2="{t0+c*4*U}" y1="{y0+10}" y2="{y0+10-random.uniform(1, 6):.1f}" stroke="{SEAM}"/>')
+# provenance of the chunk at the cursor (C lane): ○ camera picture → think → act
+pc, py = 13, dy + 50 + 52
+add(f'<rect x="{t0+(pc-1)*4*U-1}" y="{py+10.5}" width="{4*U+1}" height="8" rx="1.5" fill="none" stroke="#1d1d1f" stroke-width="1.4"/>')
+add(f'<rect x="{t0+pc*4*U-1}" y="{py+21}" width="{4*U+1}" height="14" rx="1.5" fill="none" stroke="#1d1d1f" stroke-width="1.4"/>')
+add(f'<line x1="{t0+pc*4*U-1}" y1="{py+18.5}" x2="{t0+pc*4*U}" y2="{py+21}" stroke="#1d1d1f" stroke-width="1.4"/><circle cx="{t0+(pc-1)*4*U}" cy="{py+14.5}" r="3.4" fill="#fff" stroke="#1d1d1f" stroke-width="1.4"/>')
+add(f'<text x="{t0+(pc-1)*4*U-6}" y="{py+6}" font-size="9.5" text-anchor="end" fill="#1d1d1f">○ picture → think → act of the current chunk</text>')
 cy_top, cy_bot = dy + 160, dy + 236
 add(f'<line x1="{t0}" x2="{dx+dw-12}" y1="{cy_bot}" y2="{cy_bot}" stroke="#999"/><line x1="{t0}" x2="{dx+dw-12}" y1="{cy_top+6}" y2="{cy_top+6}" stroke="#999" stroke-dasharray="4 3"/><text x="{dx+dw-12}" y="{cy_top+2}" font-size="9" text-anchor="end" fill="#555">success 95 %</text>')
 add(f'<text x="{dx+10}" y="{cy_top+20}" font-size="10">coverage</text>')
@@ -162,6 +178,12 @@ add(f'<polyline points="{t0},{cy_bot} {t0+100},{cy_bot-30} {t0+200},{cy_bot-55} 
 add(f'<rect x="{t0+200}" y="{dy+44}" width="80" height="{cy_bot-dy-44}" fill="{IA}" fill-opacity=".06" stroke="{IA}" stroke-dasharray="4 3"/><line x1="{t0+240}" x2="{t0+240}" y1="{dy+44}" y2="{cy_bot}" stroke="#1d1d1f"/>')
 note(dx + 10, dy + dh - 6, "drag = time window (→ path highlighted in C) · hover chunk = its plan in C · click = cursor")
 add(f'<path d="M{t0+240},{dy+44} C{t0+240},{dy+10} {cx0+200},{cy0+290} {cx0+160},{cy0+250}" fill="none" stroke="{IA}" stroke-dasharray="4 3" marker-end="url(#arr)"/>')
+badge(452, 27, 1)
+badge(ax + aw - 16, ay + 34, 2)
+badge(bx + 340, my + 70, 3)
+badge(bx + 24, my + 120, 4)
+badge(cx0 + 630, cy0 + 64, 5)
+badge(dx + 640, dy + 120, 6)
 add('</svg>')
 OUT.write_text("\n".join(o))
 print("wrote", OUT)

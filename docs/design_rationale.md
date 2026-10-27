@@ -51,6 +51,7 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 |---|---|---|
 | R and C side by side at the same scale and seed | Juxtaposition of two spatial states. True geometry is used because the data is spatial. | [4][6] |
 | Four overlays: executed part of the current chunk (filled dots, solid), thrown-away part (hollow, dashed), the chunk still being computed (grey, dotted), plus the latest discontinuity (magenta) for 10 steps | Removes the full-path trace, the previous-chunk tail, per-index luminance and the start-pose ghost: data-ink that did not serve T3. Details (when planned, when executed, staleness) are on demand via hover. | [17][18] |
+| What the policy saw: dotted outline of block and pusher at the time of the camera picture the shown chunk was planned from (t_obs), with an arrow to the pusher now and the label "seen at t=… · moved N px since" | Makes the cost of async visible in space, in the same frame as the plan: sync waits, so the outline and the robot nearly coincide; under async the robot keeps moving and the plan is made for a scene that no longer exists. Also makes the claim "every executed move is traced back to the picture it came from" literal. | [4] |
 | Status line in the strategy vocabulary ("idle: waiting for inference", "acting … picture 4 steps old · thinking") | States the sync vs. async situation at t in words, so it never has to be decoded from marks. | |
 
 ### D Execution Timeline (T3 identify when)
@@ -59,6 +60,7 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 | Gantt lanes on a linear, chronological time axis; R and C on one shared axis | A linear representation with a chronological scale suits "when" questions, and aligned lanes enable comparison. | [19][20] |
 | Two tracks per run: *think* (inference intervals) and *act* (executed chunk spans, alternating tints; hatched = idle) | Shows the defining difference between the strategies: alternation (sync) vs. overlap (async). | [19] |
 | Discontinuity = lollipop above the act track, stem length on a common baseline (shared R/C scale) | Length on a common baseline is the second-best magnitude channel. The magenta hue means "discontinuity" here and in C only. | [1] |
+| Provenance of the chunk at the cursor (or hovered): ○ at the time of its camera picture, its think interval and its act span outlined in ink and linked | In async, think and act bars overlap and it is not obvious which inference produced which span; the link shows picture → think → act for one chunk without adding a hue. | |
 | Coverage lines (R black, C orange) with the 95 % success threshold | Position channel for the outcome over time. Shares the x-axis with the tracks. | [1] |
 | Brush a window → C highlights that part of the path; hover a chunk → its plan in C; click → cursor | Linked navigation from time to space. | [12][15] |
 

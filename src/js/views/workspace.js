@@ -1,6 +1,6 @@
 // View C: juxtaposed replays of the selected seed under R and C (same scale, same seed), showing
-// only what explains the action at time t: the plan being executed, the plan being computed, and
-// the most recent seam (hand-over jump).
+// only what explains the action at time t: the plan being executed, what the policy saw when it
+// planned it, the plan being computed, and the most recent seam (hand-over jump).
 import { state, update, bus } from "../state.js";
 import { DATA, loadRun, activeChunk, pendingChunk, STRAT_LABEL } from "../data.js";
 import { COLOR, showTip, hideTip, size, teePaths, GOAL, AGENT_R } from "../util.js";
@@ -82,6 +82,7 @@ function render() {
     b.append("rect").attr("class", "bg");
     b.append("g").attr("class", "goal");
     b.append("g").attr("class", "block");
+    b.append("g").attr("class", "seen").attr("pointer-events", "none");
     b.append("path").attr("class", "pathNow");
     b.append("path").attr("class", "pathWin");
     b.append("g").attr("class", "pending");
@@ -124,6 +125,7 @@ function render() {
     }).select("path").attr("d", (d) => line(d.a.slice(1))).attr("fill", "none")
       .attr("stroke", "#9a9aa2").attr("stroke-dasharray", "1 3.5").attr("stroke-width", 2).attr("stroke-linecap", "round");
     drawFan(b.select(".fan"), ch, p, s, line, e);
+    drawSeen(b.select(".seen"), ch, p, s, tee, e, t);
 
     // most recent seam at or before t: hollow = what the old chunk planned next, line = the jump
     let seam = null;
@@ -146,6 +148,30 @@ function render() {
       .attr("fill", p.col).attr("fill-opacity", st.k === "wait" ? 0.08 : 0.3).attr("stroke", p.col).attr("stroke-width", 2)
       .attr("stroke-dasharray", st.k === "wait" ? "3 2" : null);
   });
+}
+
+// What the policy saw: block and pusher in the camera picture the shown chunk was planned from
+// (t_obs), with an arrow to where the pusher is now. Sync waits, so the two nearly coincide; under
+// async the robot keeps moving and the plan is made for a scene that no longer exists.
+function drawSeen(g, ch, p, s, tee, e, t) {
+  const to = ch ? Math.min(ch.t_obs, e.n - 1) : null;
+  const moved = ch ? Math.hypot(e.ax[t] - e.ax[to], e.ay[t] - e.ay[to]) : 0;
+  const data = ch && t > to ? [{ to, moved }] : [];
+  const q = g.selectAll("g.sn").data(data).join((en) => {
+    const k = en.append("g").attr("class", "sn");
+    k.append("path").attr("class", "sb"); k.append("circle").attr("class", "sa"); k.append("line").attr("class", "sl"); k.append("text").attr("class", "st");
+    return k;
+  });
+  q.select(".sb").attr("d", (d) => tee(e.bx[d.to], e.by[d.to], e.bth[d.to])).attr("fill", "none")
+    .attr("stroke", p.col).attr("stroke-opacity", 0.75).attr("stroke-width", 1.2).attr("stroke-dasharray", "1 2.5").attr("stroke-linecap", "round");
+  q.select(".sa").attr("cx", (d) => s(e.ax[d.to])).attr("cy", (d) => s(e.ay[d.to])).attr("r", s(AGENT_R))
+    .attr("fill", "none").attr("stroke", p.col).attr("stroke-opacity", 0.7).attr("stroke-width", 1.1).attr("stroke-dasharray", "2 2");
+  q.select(".sl").attr("x1", (d) => s(e.ax[d.to])).attr("y1", (d) => s(e.ay[d.to])).attr("x2", s(e.ax[t])).attr("y2", s(e.ay[t]))
+    .attr("stroke", p.col).attr("stroke-opacity", 0.8).attr("stroke-width", 1.2).attr("marker-end", null)
+    .attr("visibility", (d) => (d.moved >= 3 ? "visible" : "hidden"));
+  q.select(".st").attr("x", (d) => s(e.ax[d.to]) - s(AGENT_R) - 4).attr("y", (d) => s(e.ay[d.to]) + 4).attr("text-anchor", "end")
+    .attr("font-size", 10).attr("fill", p.which === "ref" ? COLOR.ref : "#9a6a00").attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
+    .text((d) => `seen at t=${d.to}${d.moved >= 3 ? ` · moved ${d.moved.toFixed(0)} px since` : ""}`);
 }
 
 // The chunk "fan": 16 planned targets; filled = executed, hollow = never executed (thrown away).

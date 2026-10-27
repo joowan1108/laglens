@@ -5,10 +5,10 @@
 // Sync shows "think" and "act" alternating (idle while thinking); async shows them overlapping.
 // Below: block–goal coverage of both runs.
 import { state, update, bus } from "../state.js";
-import { loadRun } from "../data.js";
+import { loadRun, activeChunk } from "../data.js";
 import { COLOR, showTip, hideTip, size } from "../util.js";
 
-let root, svg, brush, brushKey = null, eps = null, x, curBot = 0;
+let root, svg, brush, brushKey = null, eps = null, x, curBot = 0, geom = null;
 
 export function initTimeline() {
   root = d3.select("#timeline");
@@ -131,6 +131,8 @@ function render() {
       .on("mouseleave", hideTip).on("click", (ev, s) => update({ t: s.t }));
   });
 
+  geom = { lanes, thinkY: seamH + 1, thinkH, actY: seamH + thinkH + 4, actH };
+
   svg.selectAll("text.sk").data([0]).join("text").attr("class", "sk axis-title").attr("font-size", 9).attr("fill", COLOR.seam)
     .attr("x", m.l - 5).attr("y", m.t + 8).attr("text-anchor", "end").text(`${gmax.toFixed(0)} px`);
 
@@ -178,6 +180,34 @@ function cursor() {
   svg.selectAll("line.cur").data([state.t]).join("line").attr("class", "cur").attr("pointer-events", "none")
     .attr("x1", (t) => x(t) + 0.5).attr("x2", (t) => x(t) + 0.5).attr("y1", 2).attr("y2", curBot)
     .attr("stroke", COLOR.sel).attr("stroke-width", 1.2);
+  provenance();
+}
+
+// Provenance of the chunk being executed at the cursor (or the hovered chunk): the camera picture
+// (○ at t_obs) → its inference on the think track → its executed span on the act track.
+function provenance() {
+  if (!geom) return;
+  const { thinkY, thinkH, actY, actH } = geom;
+  const data = geom.lanes.map((L) => {
+    const e = L.e;
+    const hc = state.hoverChunk && state.hoverChunk.which === L.which ? e.chunks[state.hoverChunk.id] : null;
+    const c = hc || (state.t < e.n ? activeChunk(e, state.t) : null);
+    return c && c.t0 !== null ? { L, c } : null;
+  }).filter(Boolean);
+  const g = svg.selectAll("g.prov").data(data, (d) => d.L.which).join((en) => {
+    const q = en.append("g").attr("class", "prov").attr("pointer-events", "none");
+    q.append("rect").attr("class", "pt"); q.append("rect").attr("class", "pa"); q.append("path").attr("class", "pl"); q.append("circle").attr("class", "cam");
+    return q;
+  }).attr("transform", (d) => `translate(0,${d.L.y})`);
+  const ta = (d) => Math.min(d.c.t_avail, d.L.e.n);
+  g.select(".pt").attr("x", (d) => x(d.c.t_obs)).attr("width", (d) => Math.max(2, x(ta(d)) - x(d.c.t_obs)))
+    .attr("y", thinkY - 1.5).attr("height", thinkH + 3).attr("rx", 1.5).attr("fill", "none").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
+  g.select(".pa").attr("x", (d) => x(d.c.t0)).attr("width", (d) => Math.max(2, x(d.c.t1 + 1) - x(d.c.t0)))
+    .attr("y", actY - 1).attr("height", actH + 2).attr("rx", 1.5).attr("fill", "none").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
+  g.select(".pl").attr("d", (d) => `M${x(ta(d))},${thinkY + thinkH + 1.5}L${x(d.c.t0)},${actY - 1}`)
+    .attr("fill", "none").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
+  g.select(".cam").attr("cx", (d) => x(d.c.t_obs)).attr("cy", thinkY + thinkH / 2).attr("r", 3.2)
+    .attr("fill", "#fff").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
 }
 
 export function resizeTimeline() { render(); }
