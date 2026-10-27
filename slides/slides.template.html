@@ -80,8 +80,9 @@
 <section class="slide">
   <div class="kicker">1 · What — Data Abstraction</div>
   <h1>Self-generated rollout logs of a pretrained diffusion policy</h1>
-  <h2>Pretrained <code>lerobot/diffusion_pusht</code> run in the PushT simulator on CPU (DDIM 10 steps).
-    Same {{N_SEEDS}} initial states × ({{N_SCHED}} schedules + 1 noise replicate) = <b>{{N_EP}} episodes</b>. Every predicted chunk (16 future 2-D actions) and every executed action is logged.</h2>
+  <h2><b>Task (PushT, simulated, seen from above)</b>: a round pusher, the <i>agent</i>, must push a T-shaped block onto a fixed T-shaped goal.
+    <b>Policy</b>: pretrained Diffusion Policy (<code>lerobot/diffusion_pusht</code>), a neural network that turns the last 2 camera frames into a chunk of 16 actions (2-D target positions of the agent) by iteratively removing noise from a random start (10 denoising steps, DDIM, CPU). Because each chunk starts from random noise, re-running an identical schedule can change an outcome (→ <i>noise replicate</i>).
+    Same {{N_SEEDS}} initial states × ({{N_SCHED}} schedules + 1 noise replicate) = <b>{{N_EP}} episodes</b> (rollouts = recorded runs); every predicted chunk and every executed action is logged.</h2>
   <div class="cols">
     <div style="flex:1.45">
       <table>
@@ -94,18 +95,18 @@
         <tr><td>success</td><td>nominal (binary)</td><td>0 = fail, 1 = success</td><td>coverage &gt; 95 % within 300 steps</td></tr>
         <tr><td>coverage_final</td><td>quant. ratio, ↑ better</td><td>{{COV_RANGE}}</td><td>overlap of T-block with goal</td></tr>
         <tr><td>steps_to_success</td><td>quant. ratio, ↓ better</td><td>{{STS_RANGE}} (missing if failed)</td><td>time to finish</td></tr>
-        <tr><td>seam_gap_mean / max</td><td>quant. ratio (px), ↓</td><td>{{SEAM_RANGE}} / {{SEAMMAX_RANGE}}</td><td>plan disagreement at chunk hand-over</td></tr>
-        <tr><td>staleness_mean</td><td>quant. ratio (steps), ↓</td><td>{{STALE_RANGE}}</td><td>age of obs. behind executed actions</td></tr>
+        <tr><td>seam_gap_mean / max</td><td>quant. ratio (px), ↓</td><td>{{SEAM_RANGE}} / {{SEAMMAX_RANGE}}</td><td>chunk-boundary discontinuity: jump between old and new plan at a hand-over</td></tr>
+        <tr><td>staleness_mean</td><td>quant. ratio (steps), ↓</td><td>{{STALE_RANGE}}</td><td>age of the observation behind each executed action</td></tr>
         <tr><td>idle_frac</td><td>quant. ratio, ↓</td><td>{{IDLE_RANGE}}</td><td>share of steps with nothing to execute</td></tr>
-        <tr><td>jerk_mean · path_len · n_inferences</td><td>quant. ratio</td><td>{{JERK_RANGE}} · {{PATH_RANGE}} px · {{NINF_RANGE}}</td><td>smoothness · effort · cost</td></tr>
+        <tr><td>jerk_mean · path_len · n_inferences</td><td>quant. ratio</td><td>{{JERK_RANGE}} · {{PATH_RANGE}} px · {{NINF_RANGE}}</td><td>smoothness (jerk = 2nd difference of actions) · distance travelled · # chunks computed</td></tr>
       </table>
     </div>
     <div style="flex:1">
       <div class="card">
         <b>Dataset type</b>: multidimensional <b>table</b> of episodes, each linked to two <b>temporal</b> tables and to a <b>spatial</b> field (512 × 512 px workspace).
         <ul class="small">
-          <li><b>Step table</b> ({{N_STEPS}} items) · keys: schedule, seed, t (ordinal, 10 Hz) · values: agent x, y; block x, y (interval, px); block θ (cyclic, rad); action x, y (interval, px); chunk id (ordinal); index j 0–15 (ordinal); age (ratio, steps); held (binary); coverage (ratio 0–1).</li>
-          <li><b>Chunk table</b> ({{N_CHUNKS}} items) · keys: schedule, seed, chunk id · values: t_obs, t_avail (ordinal time), executed window, 16 predicted (x, y) actions.</li>
+          <li><b>Step table</b> ({{N_STEPS}} items) · keys: schedule, seed, t (ordinal, 10 Hz) · values: agent x, y; block x, y (interval, px); block θ (cyclic, rad); action x, y (interval, px); chunk id (ordinal); index j 0–15 (ordinal); age (ratio, steps since its observation); held (binary, 1 = idle step); coverage (ratio 0–1, block–goal overlap).</li>
+          <li><b>Chunk table</b> ({{N_CHUNKS}} items) · keys: schedule, seed, chunk id · values: t_obs (when the observation was taken), t_avail (when the chunk was ready), executed window, 16 predicted (x, y) actions.</li>
           <li><b>Size</b>: {{CSV_KB}} KB episode CSV + {{DETAIL_MB}} MB step/chunk JSON (lazy-loaded per schedule).</li>
         </ul>
       </div>
@@ -130,7 +131,7 @@
         <div style="font-size:20px;font-weight:bold">Mara Jensen</div>
         <div class="muted">28 · 4th-year PhD student, robot learning lab · Copenhagen, Denmark</div>
         <ul class="small">
-          <li><b>Context</b>: trains diffusion / flow policies; deploys them on a real arm while the GPU server sits across the building (60–250 ms Wi-Fi latency).</li>
+          <li><b>Context</b>: trains diffusion / flow-matching policies (generative models that output action chunks); deploys them on a real arm while the GPU server sits across the building (60–250 ms Wi-Fi latency).</li>
           <li><b>Goals</b>: pick an execution strategy and horizon that keep success high at the latency she actually has; explain <i>why</i> in a paper.</li>
           <li><b>Needs</b>: per-episode evidence of what failed, aligned with what the policy planned at that moment.</li>
           <li><b>Pain points</b>: only success-rate tables and video; cannot tell stale actions from discontinuities; re-running real robot trials is costly; matplotlib debug plots show one episode at a time.</li>
@@ -144,8 +145,8 @@
         <div style="font-size:20px;font-weight:bold">Arjun Mehta</div>
         <div class="muted">37 · ML platform engineer, warehouse-robotics start-up · Seoul (Pangyo), Korea</div>
         <ul class="small">
-          <li><b>Context</b>: owns the policy-serving stack (async robot client ↔ GPU server); does not train models.</li>
-          <li><b>Goals</b>: set a latency budget (SLO) per robot and a safe default strategy; know when to fall back to sync.</li>
+          <li><b>Context</b>: owns the policy-serving software (the robot sends camera frames to a GPU server, which returns action chunks); does not train models.</li>
+          <li><b>Goals</b>: set a latency budget (the largest inference delay a robot may tolerate) per robot and a safe default strategy; know when to fall back to sync.</li>
           <li><b>Needs</b>: an overview of how success degrades with latency for each strategy, with confidence that it is not a few lucky seeds.</li>
           <li><b>Pain points</b>: research papers report curves on other robots; no shared vocabulary with researchers about “why it jitters”.</li>
         </ul>

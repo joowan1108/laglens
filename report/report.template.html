@@ -46,7 +46,7 @@
 <div class="meta"><b>Theme:</b> VIS + AI &nbsp;·&nbsp; <b>Live demo:</b> <a href="https://joowan1108.github.io/laglens/">https://joowan1108.github.io/laglens/</a>
   &nbsp;·&nbsp; <b>Source:</b> <a href="https://github.com/joowan1108/laglens">github.com/joowan1108/laglens</a> (<code>src/</code>; run locally: <code>python3 -m http.server 8000 --directory src</code>)</div>
 <div class="abs">
-  Modern visuomotor and VLA policies predict a <b>chunk</b> of future actions from one observation and execute its first <i>h</i> actions <b>open-loop</b>, i.e. without looking at the scene again (<i>h</i> = execution horizon). Because inference takes time <i>d</i> (latency),
+  Modern robot policies (neural networks that map camera images, and for vision-language-action models also a text instruction, to motor commands) predict a <b>chunk</b> of future actions from one observation and execute its first <i>h</i> actions <b>open-loop</b>, i.e. without looking at the scene again (<i>h</i> = execution horizon). Because inference takes time <i>d</i> (latency),
   the robot either <b>waits</b> (synchronous) or keeps executing an old chunk and switches when a new one arrives (<b>asynchronous</b>).
   Researchers tune the strategy, the latency budget and the execution horizon from aggregate success curves.
   LagLens replays one pretrained policy from the <b>same {{N_SEEDS}} initial states</b> under <b>{{N_SCHED}} execution schedules</b> (plus a noise replicate),
@@ -54,10 +54,10 @@
 </div>
 
 <h2>1 · What: Data Abstraction</h2>
-<p><b>Source.</b> We generated the data ourselves (no public dataset logs per-inference chunks). The pretrained <code>lerobot/diffusion_pusht</code> Diffusion Policy [2] (chunk length 16, 2 observation frames)
-  runs in the PushT simulator at 10 Hz (1 step = 100 ms) on CPU with a 10-step DDIM sampler. A <b>schedule</b> = strategy × latency <i>d</i> × execution horizon <i>h</i>:
+<p><b>Source.</b> We generated the data ourselves (no public dataset logs per-inference chunks). In the simulated <b>PushT</b> task, a round pusher (the <i>agent</i>, seen from above) must push a T-shaped block onto a fixed T-shaped goal.
+  The pretrained <code>lerobot/diffusion_pusht</code> Diffusion Policy [2] turns the last 2 camera frames into a chunk of 16 actions (2-D target positions of the agent) by iteratively removing noise from a random start (10 DDIM denoising steps, CPU, 10 Hz: 1 step = 100 ms); since every chunk starts from random noise, outcomes are stochastic. A <b>schedule</b> = strategy × latency <i>d</i> × execution horizon <i>h</i>:
   <b>sync</b> (hold still for <i>d</i> steps, then execute <i>h</i> actions), <b>naive async</b> (keep executing the old chunk while inference runs, switch after <i>d</i> steps and skip the <i>d</i> outdated actions),
-  and <b>inpaint async</b> (as naive, but the new chunk is sampled with the committed actions clamped and the old plan softly blended in over the overlap; a training-free approximation of Real-Time Chunking [8]).
+  and <b>inpaint async</b> (as naive, but the new chunk is generated with the already committed actions held fixed and the old plan softly blended in over the overlap; a training-free approximation of Real-Time Chunking [8]).
   Async schedules with <i>d</i> = 0 equal sync <i>d</i> = 0, and <i>d</i> &gt; <i>h</i> is infeasible (two inferences would overlap), giving 46 schedules. A <b>replicate</b> of sync <i>d</i>0 <i>h</i>8 with different sampling noise measures chance flips.</p>
 <p><b>Dataset type:</b> a multidimensional <b>table</b> of episodes ({{N_EP}} items × {{N_ATTR}} attributes, {{CSV_KB}} KB), each linked to two <b>temporal</b> tables, steps ({{N_STEPS}} items) and chunks ({{N_CHUNKS}} items, each with 16 predicted 2-D actions),
   and to a 2-D <b>spatial</b> field (512 × 512 px workspace); {{DETAIL_MB}} MB of JSON lazy-loaded per schedule.
@@ -69,16 +69,16 @@
   <tr><td>latency d <span class="k">KEY</span></td><td>ordinal (ratio)</td><td>0&lt;1&lt;2&lt;4&lt;6 steps</td><td>inference delay</td>
       <td>steps_to_success</td><td>ratio ↓</td><td>{{STS_RANGE}} (null if failed)</td><td>time to finish</td></tr>
   <tr><td>horizon h <span class="k">KEY</span></td><td>ordinal (ratio)</td><td>2&lt;4&lt;6&lt;8 steps</td><td>open-loop actions per chunk</td>
-      <td>seam_gap_mean / max</td><td>ratio (px) ↓</td><td>{{SEAM_RANGE}} / {{SEAMMAX_RANGE}}</td><td>plan disagreement at hand-over</td></tr>
+      <td>seam_gap_mean / max</td><td>ratio (px) ↓</td><td>{{SEAM_RANGE}} / {{SEAMMAX_RANGE}}</td><td>boundary discontinuity (jump at hand-over)</td></tr>
   <tr><td>replicate <span class="k">KEY</span></td><td>nominal (binary)</td><td>0, 1</td><td>noise re-run</td>
-      <td>staleness_mean</td><td>ratio (steps) ↓</td><td>{{STALE_RANGE}}</td><td>age of obs. behind actions</td></tr>
+      <td>staleness_mean</td><td>ratio (steps) ↓</td><td>{{STALE_RANGE}}</td><td>age of the observation behind each action</td></tr>
   <tr><td>seed <span class="k">KEY</span></td><td>nominal</td><td>{{SEED_MIN}}–{{SEED_MAX}} (50)</td><td>paired initial state</td>
       <td>idle_frac</td><td>ratio ↓</td><td>{{IDLE_RANGE}}</td><td>share of steps without action</td></tr>
   <tr><td>success</td><td>nominal (binary)</td><td>0, 1</td><td>coverage ≥ 95 % in 300 steps</td>
-      <td>jerk · path_len · n_inferences · n_seams · inner_step</td><td>ratio</td><td>{{JERK_RANGE}} · {{PATH_RANGE}} · {{NINF_RANGE}} · …</td><td>smoothness · effort · cost</td></tr>
+      <td>jerk · path_len · n_inferences · n_seams · inner_step</td><td>ratio</td><td>{{JERK_RANGE}} · {{PATH_RANGE}} · {{NINF_RANGE}} · …</td><td>smoothness (2nd difference) · distance · # chunks · # hand-overs · step size inside a chunk</td></tr>
 </table>
 <p class="small"><b>Derived metrics.</b> <i>Chunk-boundary discontinuity</i> (columns <code>seam_gap_*</code>; the position gap at chunk transitions studied in [8,11,12]): at every hand-over from chunk <i>k</i> to <i>k</i>+1, the distance between the first action executed from <i>k</i>+1 and the action <i>k</i> had planned next.
-  <i>Staleness</i>: steps between the observation a chunk was planned from and the execution of each of its actions. Step values: agent/block x, y (interval, px), block θ (cyclic), action x, y, chunk id, index j (0–15), age, held, coverage.</p>
+  <i>Staleness</i>: steps between the observation a chunk was planned from and the execution of each of its actions. Step values: agent/block x, y (interval, px), block θ (cyclic), action x, y, chunk id, index j (0–15), age (steps since its observation), held (1 = idle step), coverage.</p>
 
 <h2>2 · Who: Personas</h2>
 <div class="cols">
@@ -107,7 +107,7 @@
   <img src="../image.png">
   <figcaption><b>Figure 1.</b> LagLens (live: R = inpaint async d4 h4, C = naive async d4 h4, seed 1035, window t = 100–140). <b>A</b> Latency Response, <b>B</b> Paired Seed Table, <b>C</b> Workspace Replay, <b>D</b> Execution Timeline. All views share one R/C pair, one seed and one seed selection.</figcaption>
 </figure>
-<p class="small"><b>Design goal: make the cost of each strategy visible.</b> Sync pays with <b>time</b> (the robot idles while the policy thinks: idle share ≈ <i>d</i>/(<i>h</i>+<i>d</i>), 51 % at <i>d</i>4 <i>h</i>4), naive async with <b>discontinuity</b> (no idling, but the new chunk can pick another mode: mean discontinuity 43.5 px at <i>d</i>4 <i>h</i>4), inpaint async only with <b>staleness</b> (same timing, discontinuity 8.0 px). Each cost has one signature: A's “mechanism” metrics, D's think/act tracks (alternating vs. overlapping) and discontinuity lollipops, C's magenta discontinuity segment. A first version (5 views, ~10 hues, numbers in every heatmap cell) was judged cluttered; we redesigned it with the VIS literature below (full rationale: <code>docs/design_rationale.md</code>).</p>
+<p class="small"><b>Design goal: make the cost of each strategy visible.</b> Sync pays with <b>time</b> (the robot idles while the policy thinks: idle share ≈ <i>d</i>/(<i>h</i>+<i>d</i>), 51 % at <i>d</i>4 <i>h</i>4), naive async with <b>discontinuity</b> (no idling, but the new chunk can pick another <i>mode</i>, i.e. another way of pushing: mean discontinuity 43.5 px at <i>d</i>4 <i>h</i>4), inpaint async only with <b>staleness</b> (same timing, discontinuity 8.0 px). Each cost has one signature: A's “mechanism” metrics, D's think/act tracks (alternating vs. overlapping) and discontinuity lollipops, C's magenta discontinuity segment. A first version (5 views, ~10 hues, numbers in every heatmap cell) was judged cluttered; we redesigned it with the VIS literature below (full rationale: <code>docs/design_rationale.md</code>).</p>
 <table>
   <tr><th style="width:15%">View (task)</th><th style="width:50%">Idiom, marks &amp; channels — why</th><th>Interaction</th></tr>
   <tr><td><b>A</b> Latency Response (T1)</td><td>Line-chart small multiples, one panel per horizon <i>h</i> (shared y); x = latency <i>d</i> on its true scale, y = metric (<i>position on a common scale</i>, the most accurate magnitude channel [16,17]); strategies <b>superposed</b> for direct sync-vs-async comparison, hue + redundant shape [18]. Thin 95 % intervals (Wilson / t) instead of bars [19]; hover gives the <b>paired</b> difference to R.</td><td>click = C, shift-click = R; <b>one question bar</b> (Success · Idle = cost of sync · Staleness = cost of async · Discontinuity = cost of naive async) sets A's y <i>and</i> B's dumbbells; legend hover; <b>recomputes on the seeds selected in B</b>.</td></tr>
@@ -154,7 +154,7 @@
 </div>
 
 <h2>7 · Limitations</h2>
-<p class="small">One simulated task and one policy; latency is quantised to 100 ms steps; the inpainting strategy is a training-free approximation of RTC; a 10-step DDIM sampler replaces the 100-step DDPM sampler for CPU feasibility (the replicate shows that this changes outcomes of individual seeds but not the 70–72 % baseline rate). With 50 seeds, success differences below ≈ 11 flips should not be interpreted.</p>
+<p class="small">One simulated task and one policy; latency is quantised to 100 ms steps; the inpainting strategy is a training-free approximation of RTC; a faster 10-step denoising schedule (DDIM) replaces the original 100-step one (DDPM) for CPU feasibility (the replicate shows that this changes outcomes of individual seeds but not the 70–72 % baseline rate). With 50 seeds, success differences below ≈ 11 flips should not be interpreted.</p>
 
 <h2>AI Usage Disclosure</h2>
 <p class="small">This project was built with <b>Claude Code (Anthropic, Claude Opus 5.5)</b>, directed and reviewed by the student. <b>Written by AI:</b> the literature survey and topic comparison, all data-generation and preprocessing scripts, the complete interface code in <code>src/</code> (d3.js), the tests, the proposal slides and sketch, the personas, and this report's text, figures and screenshots (produced by operating the interface through scripted states). <b>Human:</b> topic choice among AI-proposed candidates, design requests (more and richer views; later a less cluttered, literature-grounded redesign focused on sync vs. async), deployment approval, review. Numbers in the slides and this report are filled in automatically from the data files. External code, data and images are listed below and in <code>docs/references.md</code>; a dated log is in <code>docs/ai_disclosure.md</code>.</p>
