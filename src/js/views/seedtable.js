@@ -71,7 +71,9 @@ function render() {
   const cnt = d3.rollup(DATA.seeds, (v) => v.length, band);
   d3.select("#seedNote").html(`C vs R: <b>${cnt.get("loss") || 0} lost</b>, <b>${cnt.get("gain") || 0} gained</b> of ${DATA.seeds.length} seeds.
     ${nFlip !== null ? `Chance level: re-running ${STRAT_LABEL[base.strategy]} d${base.latency} h${base.horizon} with new noise flips <b>${nFlip}</b> (column “re-run”).` : ""}`);
-  ctrSel.html(`right part: <b>${EP_ATTRS[METRICS[state.metric].epB]}</b> per seed (set by the question chosen in A)`);
+  // key: every encoding of B is named here, not only in the guide
+  ctrSel.html(`<span>one row per initial state (seed) · <b>left</b>: one column per schedule, <span class="sw ok"></span> success ✓ <span class="sw fail"></span> failure ✗ (R's column black, C's orange)
+    · <b>right</b>: ${EP_ATTRS[METRICS[state.metric].epB]} under R and C (set by the question in A)</span>`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const top = 34, bottom = 30, left = 32;

@@ -14,12 +14,13 @@
     <span class="subtitle">what a robot actually executes when its policy thinks too slowly</span>
   </div>
   <div class="pickers">
+    <span class="lead">compare two schedules</span>
     <label class="chip ref" title="R = the baseline schedule you compare against (or shift-click a mark in A / a column header in B)">
-      <span class="dot"></span>R <span class="role">baseline</span>&nbsp;<select id="refSel"></select>
+      <span class="dot"></span>R <span class="role">= baseline</span>&nbsp;<select id="refSel"></select>
     </label>
     <button id="swapBtn" class="icon" title="Swap reference and candidate">⇄</button>
     <label class="chip cand" title="C = the schedule you are testing (or click a mark in A / a column header in B)">
-      <span class="dot"></span>C <span class="role">compare</span>&nbsp;<select id="candSel"></select>
+      <span class="dot"></span>C <span class="role">= compared</span>&nbsp;<select id="candSel"></select>
     </label>
   </div>
   <div class="actions">
@@ -53,6 +54,7 @@
         <span><i class="k-dash"></i>planned but thrown away</span>
         <span><i class="k-dot"></i>next chunk, still computing</span>
         <span><i class="k-seam"></i>chunk-boundary discontinuity: jump between old and new plan</span>
+        <span class="muted">“N steps stale” = age of the observation the current action was planned from</span>
       </div>
     </section>
     <section class="panel" id="pD">

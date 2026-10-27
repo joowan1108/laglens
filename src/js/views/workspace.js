@@ -47,7 +47,7 @@ async function load() {
   eps = { ref: r.bySeed.get(state.seed), cand: c.bySeed.get(state.seed) };
   maxN = Math.max(eps.ref.n, eps.cand.n);
   slider.attr("max", maxN - 1);
-  d3.select("#seedLabel").text(`seed ${state.seed}`);
+  d3.select("#seedLabel").text(`initial state: seed ${state.seed}`);
   render();
 }
 

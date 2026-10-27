@@ -8,6 +8,12 @@ import { COLOR, STRAT_COLOR, STRAT_SYMBOL, METRICS, fmtMetric, showTip, hideTip,
 
 let root, svg, metricBtns, noteSel, hoverStrat = null;
 const DODGE = { sync: -4, naive: 0, inpaint: 4 };
+// what each strategy does while the policy computes the next chunk (shown under the plot and on legend hover)
+const STRAT_DEF = {
+  sync: "waits (robot idle) until the new chunk is ready",
+  naive: "keeps executing the old chunk, then switches to the new one",
+  inpaint: "like naive, but the new chunk is generated to continue the old plan",
+};
 
 export function initResponse() {
   const ctr = d3.select("#responseControls");
@@ -19,7 +25,7 @@ export function initResponse() {
     .call((b) => b.append("small").text((d) => d[1].sub));
   const lg = ctr.append("span").attr("class", "legend");
   for (const s of STRATEGIES) {
-    const it = lg.append("span").attr("class", "li").attr("data-strat", s)
+    const it = lg.append("span").attr("class", "li").attr("data-strat", s).attr("title", STRAT_DEF[s])
       .on("mouseenter", () => { hoverStrat = s; render(); }).on("mouseleave", () => { hoverStrat = null; render(); });
     it.append("svg").attr("width", 12).attr("height", 12).append("path")
       .attr("transform", "translate(6,6)").attr("d", d3.symbol(STRAT_SYMBOL[s], 52)()).attr("fill", STRAT_COLOR[s]);
@@ -51,6 +57,7 @@ function render() {
   // the two schedule parameters are defined where they are encoded: h = panel, d = x
   noteSel.html(`<b>h</b> (panels) = actions executed from each 16-action chunk before switching to the next ·
     <b>d</b> (x) = time the policy needs to compute a chunk<br>
+    ${STRATEGIES.map((s) => `<b>${STRAT_LABEL[s]}</b> ${STRAT_DEF[s]}`).join(" · ")}<br>
     <b>y</b> = ${METRICS[state.metric].note}${state.brushed ? ` · <b>computed over the ${n} seeds selected in B</b> (Esc clears)` : ""} · ○ = Sync d0 h8 re-run with new noise`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);

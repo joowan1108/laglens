@@ -81,6 +81,7 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
   - *navigate* (time brush, play)
   - *coordinate* (one shared state; every view listens)
   - *record* (URL parameters reproduce any state)
+- **Self-explaining encodings.** Every term is defined where it is encoded, not only in the guide: "compare two schedules: R = baseline, C = compared" in the header; *h*, *d*, the three strategies and the y metric under A; rows, cells (✓/✗), R/C columns and the dumbbell attribute above B; line styles, the discontinuity and "steps stale" under C; think/act/idle and the lollipop above D. [15][18]
 - **Few controls.** The student found ten technically named controls (metric list, Δ mode, three sort orders, an 8-item attribute list, playback speed) hard to understand. The interface now has only the R/C pair and the question bar; everything else is direct manipulation (click, shift-click, brush, hover).
 
 ## References

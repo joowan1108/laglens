@@ -27,6 +27,7 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .pickers { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .chip { display: inline-flex; align-items: center; gap: 4px; border: 2px solid; border-radius: 16px; padding: 2px 4px 2px 10px; font-weight: 700; }
 .chip select { border: none; background: transparent; font-weight: 600; cursor: pointer; }
+.pickers .lead { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
 .chip .role { font-weight: 500; font-size: 11px; color: var(--muted); }
 .chip .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .chip.ref { border-color: var(--ref); } .chip.ref .dot { background: var(--ref); }
@@ -38,7 +39,7 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
   grid-template-columns: minmax(520px, 45fr) minmax(600px, 55fr);
 }
 .col { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
-#pA { flex: 37 1 0; } #pB { flex: 63 1 0; }
+#pA { flex: 43 1 0; } #pB { flex: 57 1 0; }
 #pC { flex: 54 1 0; } #pD { flex: 46 1 0; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
 .ph { padding: 8px 12px 2px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -56,6 +57,8 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .metricbar button:last-child { border-right: none; }
 .metricbar button small { font-size: 10px; color: var(--muted); }
 .metricbar button.on { color: #fff; }
+.controls .sw { display: inline-block; width: 9px; height: 9px; vertical-align: -1px; border: 1px solid #c9c9d0; }
+.controls .sw.ok { background: #8e8e98; border-color: #8e8e98; } .controls .sw.fail { background: #efeff2; }
 .metricbar button.on small { color: #d0d0d6; }
 .body { flex: 1; min-height: 0; position: relative; }
 .body svg { display: block; }
