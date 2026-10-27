@@ -1,14 +1,15 @@
 // View B: paired seed table. One row per initial state (seed), shared by two juxtaposed parts:
 //   left  — outcome matrix: columns = schedules grouped by strategy, filled cell = success
 //           (R's column black, C's column orange, others grey; empty = failure)
-//   right — paired shift: R value (●) → C value (●) of one episode attribute on a common axis.
+//   right — paired shift: R value (●) → C value (●) of the episode attribute that belongs to the
+//           question chosen in A (METRICS.epB), on a common axis.
 // Rows are grouped by how the outcome changes from R to C, so a flip is a cell that breaks the
 // pattern of its band and the right part shows whether that change comes with a mechanism change.
 import { state, update, bus } from "../state.js";
 import { DATA, STRATEGIES, STRAT_LABEL, HORIZONS, LATENCIES, label } from "../data.js";
-import { COLOR, STRAT_COLOR, EP_ATTRS, showTip, hideTip, size, segButtons } from "../util.js";
+import { COLOR, STRAT_COLOR, METRICS, EP_ATTRS, showTip, hideTip, size } from "../util.js";
 
-let root, svg, setSortBtn, attrSel, cols, groupsPresent, brush, brushKey = null;
+let root, svg, ctrSel, cols, groupsPresent, brush, brushKey = null;
 const GROUP_LABEL = { replicate: "Re-run", ...STRAT_LABEL };
 const BANDS = [
   { key: "loss", name: "R ✓ → C ✗", long: "C fails where R succeeded" },
@@ -17,18 +18,11 @@ const BANDS = [
   { key: "bothFail", name: "both ✗", long: "both fail" },
 ];
 // long-tailed attributes on a symmetric-log axis so that the bulk is not squeezed
-const SYMLOG = new Set(["seam_gap_mean", "seam_gap_max", "jerk_mean", "path_len", "n_inferences"]);
+const SYMLOG = new Set(["seam_gap_max"]);
+const PCT = new Set(["coverage_final", "idle_frac"]);
 
 export function initSeedTable() {
-  const ctr = d3.select("#seedControls");
-  ctr.append("span").text("rows");
-  setSortBtn = segButtons(ctr, [
-    { label: "R→C change", value: "flip" }, { label: "robustness", value: "robust" }, { label: "seed", value: "seed" },
-  ], state.sort, (v) => update({ sort: v }));
-  ctr.append("span").text("shift of");
-  attrSel = ctr.append("select").on("change", (ev) => update({ sx: ev.target.value }));
-  attrSel.selectAll("option").data(Object.entries(EP_ATTRS)).join("option").attr("value", (d) => d[0]).text((d) => d[1]);
-  attrSel.property("value", state.sx);
+  ctrSel = d3.select("#seedControls");
   root = d3.select("#seedtable");
   svg = root.append("svg");
   cols = [];
@@ -40,9 +34,7 @@ export function initSeedTable() {
   groupsPresent = ["replicate", ...STRATEGIES].filter((g) => cols.some((c) => c.s === g));
   render();
   bus.on("change.seedtable", (keys) => {
-    if (["ref", "cand", "sort", "sx", "seed", "brushed", "hoverSeed"].some((k) => keys.has(k))) {
-      setSortBtn(state.sort); attrSel.property("value", state.sx); render();
-    }
+    if (["ref", "cand", "metric", "seed", "brushed", "hoverSeed"].some((k) => keys.has(k))) render();
   });
 }
 
@@ -54,17 +46,12 @@ function band(seed) {
   return c ? "gain" : "loss";
 }
 
-// rows (with band headers in the R→C mode) and their y positions
+// rows grouped into bands by R→C change; inside a band, robust seeds (succeed under many schedules) first
 function layout(top, height) {
   const seeds = [...DATA.seeds];
   const byRobust = (a, b) => DATA.robust.get(b) - DATA.robust.get(a) || a - b;
-  let groups;
-  if (state.sort === "flip") {
-    groups = BANDS.map((b) => ({ ...b, seeds: seeds.filter((s) => band(s) === b.key).sort(byRobust) })).filter((g) => g.seeds.length);
-  } else {
-    groups = [{ key: "all", seeds: state.sort === "seed" ? seeds : seeds.sort(byRobust) }];
-  }
-  const headH = state.sort === "flip" ? 15 : 0;
+  const groups = BANDS.map((b) => ({ ...b, seeds: seeds.filter((s) => band(s) === b.key).sort(byRobust) })).filter((g) => g.seeds.length);
+  const headH = 15;
   const rh = Math.max(3, Math.min(12, (height - headH * groups.length) / seeds.length));
   const rows = new Map();
   let yy = top;
@@ -84,6 +71,7 @@ function render() {
   const cnt = d3.rollup(DATA.seeds, (v) => v.length, band);
   d3.select("#seedNote").html(`C vs R: <b>${cnt.get("loss") || 0} lost</b>, <b>${cnt.get("gain") || 0} gained</b> of ${DATA.seeds.length} seeds.
     ${nFlip !== null ? `Chance level: re-running ${STRAT_LABEL[base.strategy]} d${base.latency} h${base.horizon} with new noise flips <b>${nFlip}</b> (column “re-run”).` : ""}`);
+  ctrSel.html(`right part: <b>${EP_ATTRS[METRICS[state.metric].epB]}</b> per seed (set by the question chosen in A)`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const top = 34, bottom = 30, left = 32;
@@ -169,7 +157,7 @@ function render() {
     .transition().duration(300).attr("y", (d) => d.y);
 
   // ---- paired shift (dumbbells) ---------------------------------------------------------------
-  const k = state.sx;
+  const k = METRICS[state.metric].epB;
   const dl = matR + 22, dr = w - 10;
   const vals = order.flatMap((r) => [DATA.ep.get(state.ref).get(r.seed)[k], DATA.ep.get(state.cand).get(r.seed)[k]]);
   const [lo, hi] = d3.extent(vals);
@@ -181,7 +169,7 @@ function render() {
   svg.selectAll("g.dgrid").data([0]).join("g").attr("class", "gridline dgrid").attr("transform", `translate(0,${L.bottom})`)
     .call(d3.axisBottom(x).tickValues(ticks).tickSize(-(L.bottom - top)).tickFormat("")).call((g) => g.select(".domain").remove()).lower();
   svg.selectAll("g.dax").data([0]).join("g").attr("class", "axis dax").attr("transform", `translate(0,${L.bottom})`)
-    .call(d3.axisBottom(x).tickValues(ticks).tickSize(3).tickFormat(d3.format("~s"))).call((g) => g.select(".domain").attr("stroke", "#c9c9cf"));
+    .call(d3.axisBottom(x).tickValues(ticks).tickSize(3).tickFormat(PCT.has(k) ? d3.format(".0%") : d3.format("~s"))).call((g) => g.select(".domain").attr("stroke", "#c9c9cf"));
   svg.selectAll("text.dxt").data([0]).join("text").attr("class", "axis-title dxt").attr("x", dr).attr("y", L.bottom + 26).attr("text-anchor", "end")
     .text(`${EP_ATTRS[k]}${SYMLOG.has(k) ? ", log" : ""} →`);
   svg.selectAll("text.dht").data([0]).join("text").attr("class", "dht").attr("x", dl).attr("y", top - 18).attr("font-size", 10.5).attr("font-weight", 700)
@@ -190,7 +178,7 @@ function render() {
     .text("same seed under both schedules");
 
   // brush over the dumbbell rows = select seeds (cross-filters A, dims rows)
-  const bkey = `${w}x${h}|${state.sort}|${k}|${state.ref}|${state.cand}`;
+  const bkey = `${w}x${h}|${k}|${state.ref}|${state.cand}`;
   const bg = svg.selectAll("g.brush").data([0]).join("g").attr("class", "brush");
   if (bkey !== brushKey) {
     brushKey = bkey;
@@ -206,8 +194,8 @@ function render() {
   }
   if (!state.brushed && d3.brushSelection(bg.node())) bg.call(brush.move, null);
 
-  // band headers (R→C mode): label, count, median R and C value as ticks; click = select band
-  const bands = state.sort === "flip" ? L.groups : [];
+  // band headers: label, count, median R and C value as ticks; click = select band
+  const bands = L.groups;
   const med = (g, which) => d3.median(g.seeds, (s) => DATA.ep.get(which).get(s)[k]);
   const bh = svg.selectAll("g.band").data(bands, (g) => g.key).join((en) => {
     const q = en.append("g").attr("class", "band").style("cursor", "pointer");
@@ -223,7 +211,7 @@ function render() {
       .attr("stroke", col).attr("stroke-width", 2.5);
   }
   bh.on("click", (ev, g) => update({ brushed: new Set(g.seeds) }))
-    .on("mousemove", (ev, g) => showTip(ev, `<b>${g.long}</b>: ${g.seeds.length} seeds<br><span class="k">median ${EP_ATTRS[k]}:</span> R ${fmt(med(g, state.ref))} → C ${fmt(med(g, state.cand))} (ticks)<br><span class="k">click = select these seeds (A recomputes on them)</span>`))
+    .on("mousemove", (ev, g) => showTip(ev, `<b>${g.long}</b>: ${g.seeds.length} seeds<br><span class="k">median ${EP_ATTRS[k]}:</span> R ${fmt(med(g, state.ref), k)} → C ${fmt(med(g, state.cand), k)} (ticks)<br><span class="k">click = select these seeds (A recomputes on them)</span>`))
     .on("mouseleave", hideTip);
 
   const focus = (s) => s === state.seed || s === state.hoverSeed;
@@ -245,7 +233,7 @@ function render() {
   db.on("mousemove", (ev, r) => {
     const a = DATA.ep.get(state.ref).get(r.seed), c = DATA.ep.get(state.cand).get(r.seed);
     showTip(ev, `<b>seed ${r.seed}</b> · ${BANDS.find((b) => b.key === band(r.seed)).long}<br>
-      <span class="k">R</span> ${fmt(a[k])} ${a.success ? "✓" : "✗"} → <span class="k">C</span> ${fmt(c[k])} ${c.success ? "✓" : "✗"}
+      <span class="k">R</span> ${fmt(a[k], k)} ${a.success ? "✓" : "✗"} → <span class="k">C</span> ${fmt(c[k], k)} ${c.success ? "✓" : "✗"}
       <span class="k">(${EP_ATTRS[k]})</span><br><span class="k">click = open episode · drag vertically = select seeds</span>`);
     if (state.hoverSeed !== r.seed) update({ hoverSeed: r.seed });
   }).on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
@@ -260,8 +248,9 @@ function render() {
 
 }
 
-function fmt(v) {
+function fmt(v, k) {
   if (v === null || v === undefined) return "–";
+  if (PCT.has(k)) return `${Math.round(v * 100)}%`;
   const a = Math.abs(v);
   return a >= 100 ? v.toFixed(0) : a >= 10 ? v.toFixed(1) : v.toFixed(2);
 }

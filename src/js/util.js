@@ -12,21 +12,23 @@ export const STRAT_COLOR = { sync: "#0072B2", naive: "#D55E00", inpaint: "#009E7
 // redundant shape encoding so that strategy identity never depends on hue alone
 export const STRAT_SYMBOL = { sync: d3.symbolCircle, naive: d3.symbolSquare, inpaint: d3.symbolDiamond };
 
-// Schedule-level metrics shown in A. `ep` = episode attribute aggregated over seeds;
-// `rate` metrics use a Wilson interval, the others a t-interval of the mean.
+// The four questions LagLens asks, as one choice that drives both A and B. Each strategy pays for
+// latency with a different cost, so every metric after "success" is named after who pays it.
+// `ep` = episode attribute aggregated over seeds in A (`rate` → Wilson interval, else t-interval);
+// `epB` = per-episode attribute shown as R → C dumbbells in B.
 export const METRICS = {
-  success_rate: { label: "success rate", group: "Outcome", ep: "success", rate: true, pct: true, higherBetter: true,
-    note: "share of the 50 episodes that reach ≥ 95 % coverage" },
-  coverage_mean: { label: "final coverage", group: "Outcome", ep: "coverage_final", pct: true, higherBetter: true,
-    note: "mean block–goal overlap at the end of the episode" },
-  idle_frac_mean: { label: "idle share (cost of waiting)", group: "Mechanism", ep: "idle_frac", pct: true, higherBetter: false,
-    note: "share of steps in which the robot holds still because no action is available: the price of sync" },
-  staleness_mean: { label: "staleness (steps)", group: "Mechanism", ep: "staleness_mean", higherBetter: false,
-    note: "how old the observation behind each executed action is: the price of acting while thinking" },
-  seam_gap_mean: { label: "seam gap (px)", group: "Mechanism", ep: "seam_gap_mean", higherBetter: false,
-    note: "jump between the old plan and the new chunk at each hand-over: the price of naive async" },
-  jerk_mean: { label: "jerk (px/step²)", group: "Mechanism", ep: "jerk_mean", higherBetter: false,
-    note: "second difference of the executed actions: overall smoothness" },
+  success_rate: { btn: "Success", sub: "outcome", label: "success rate", ep: "success", rate: true, pct: true,
+    epB: "coverage_final",
+    note: "share of the 50 episodes that end with ≥ 95 % of the T-block in the goal" },
+  idle_frac_mean: { btn: "Idle", sub: "cost of sync", label: "idle share", ep: "idle_frac", pct: true,
+    epB: "idle_frac",
+    note: "share of steps in which the robot holds still while the policy thinks: the price sync pays" },
+  staleness_mean: { btn: "Staleness", sub: "cost of async", label: "staleness (steps)", ep: "staleness_mean",
+    epB: "staleness_mean",
+    note: "age of the observation behind each executed action: the price of acting while thinking" },
+  seam_gap_mean: { btn: "Seam jump", sub: "cost of naive async", label: "seam gap (px)", ep: "seam_gap_mean",
+    epB: "seam_gap_max",
+    note: "jump between the old plan and the new chunk at each hand-over: the price of switching plans abruptly" },
 };
 export function fmtMetric(k, v, signed = false) {
   if (v === null || v === undefined || Number.isNaN(v)) return "–";
@@ -36,15 +38,12 @@ export function fmtMetric(k, v, signed = false) {
   return `${s}${Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(1)}`;
 }
 
+// per-episode attributes on B's dumbbell axis (one per metric, see METRICS.epB)
 export const EP_ATTRS = {
-  seam_gap_max: "max seam gap (px)",
-  seam_gap_mean: "mean seam gap (px)",
-  staleness_mean: "mean staleness (steps)",
+  coverage_final: "final coverage of the goal",
   idle_frac: "idle share",
-  jerk_mean: "mean jerk (px/step²)",
-  coverage_final: "final coverage",
-  path_len: "agent path length (px)",
-  n_inferences: "# inferences",
+  staleness_mean: "mean staleness (steps)",
+  seam_gap_max: "largest seam jump in the episode (px)",
 };
 
 const tip = () => document.getElementById("tooltip");

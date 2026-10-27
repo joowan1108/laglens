@@ -126,6 +126,5 @@ export function aggregate(id, metric, seeds, ref) {
   return meanCI(vals);
 }
 const METRIC_EP = {
-  success_rate: "success", coverage_mean: "coverage_final", idle_frac_mean: "idle_frac",
-  staleness_mean: "staleness_mean", seam_gap_mean: "seam_gap_mean", jerk_mean: "jerk_mean",
+  success_rate: "success", idle_frac_mean: "idle_frac", staleness_mean: "staleness_mean", seam_gap_mean: "seam_gap_mean",
 };

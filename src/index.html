@@ -14,12 +14,12 @@
     <span class="subtitle">what a robot actually executes when its policy thinks too slowly</span>
   </div>
   <div class="pickers">
-    <label class="chip ref" title="Reference schedule (shift-click a mark in A or a column header in B)">
-      <span class="dot"></span>R&nbsp;<select id="refSel"></select>
+    <label class="chip ref" title="R = the baseline schedule you compare against (or shift-click a mark in A / a column header in B)">
+      <span class="dot"></span>R <span class="role">baseline</span>&nbsp;<select id="refSel"></select>
     </label>
     <button id="swapBtn" class="icon" title="Swap reference and candidate">⇄</button>
-    <label class="chip cand" title="Candidate schedule (click a mark in A or a column header in B)">
-      <span class="dot"></span>C&nbsp;<select id="candSel"></select>
+    <label class="chip cand" title="C = the schedule you are testing (or click a mark in A / a column header in B)">
+      <span class="dot"></span>C <span class="role">compare</span>&nbsp;<select id="candSel"></select>
     </label>
   </div>
   <div class="actions">
@@ -79,8 +79,8 @@
     <ol>
       <li><b>A Latency Response</b>: how each strategy degrades as inference gets slower, one panel per execution horizon <i>h</i>.
         <span class="tS">Sync</span> waits while the policy thinks, <span class="tN">naive async</span> keeps acting on the old chunk and switches abruptly, <span class="tI">inpaint async</span> keeps acting and makes the new chunk continue the old one.
-        Switch the metric to <i>idle share</i>, <i>staleness</i> or <i>seam gap</i> to see the cost each strategy pays. Click a mark = <span class="tC">candidate C</span>, shift-click = <span class="tR">reference R</span>; <i>Δ vs R</i> shows paired differences.</li>
-      <li><b>B Paired Seed Table</b>: one row per initial state. Left: filled cell = success under that column's schedule (R black, C orange). Rows are grouped by how the outcome changes from R to C; the <i>Re-run</i> column shows how many outcomes flip by chance alone. Right: the same seed's value under R (●) and C (<span class="tC">●</span>). Drag over the right part to select seeds: A then recomputes on them.</li>
+        The four buttons choose the question: <i>Success</i>, or the cost each strategy pays: <i>Idle</i> (sync), <i>Staleness</i> (all async), <i>Seam jump</i> (naive async). The same choice sets the attribute in B. Click a mark = <span class="tC">C (compare)</span>, shift-click = <span class="tR">R (baseline)</span>; hovering a mark gives its difference to R on the same seeds.</li>
+      <li><b>B Paired Seed Table</b>: one row per initial state. Left: filled cell = success under that column's schedule (R black, C orange). Rows are grouped by how the outcome changes from R to C; the <i>re-run</i> column shows how many outcomes flip by chance alone. Right: the same seed's value under R (●) and C (<span class="tC">●</span>) for the question chosen in A. Drag over the right part to select seeds: A then recomputes on them.</li>
       <li><b>C Workspace Replay</b>: the episode under R and C side by side, with the chunk being executed, the next chunk still being computed and the latest <span class="tSeam">seam</span>.</li>
       <li><b>D Execution Timeline</b>: when the policy thinks and which chunk each action came from; lollipops are seams. Brush a window, hover a chunk to see its plan in C.</li>
     </ol>

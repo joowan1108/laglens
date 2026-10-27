@@ -28,16 +28,16 @@ add('<rect width="1200" height="660" fill="#f4f4f6"/>')
 # header
 add('<rect x="8" y="8" width="1184" height="38" rx="5" fill="#fff" stroke="#555"/>')
 add('<text x="20" y="33" font-size="18" font-weight="bold">LagLens</text>')
-add(f'<rect x="640" y="15" width="220" height="24" rx="12" fill="#fff" stroke="{R}" stroke-width="2"/><text x="652" y="31">● R  Sync · d=4 · h=4 ▾</text>')
+add(f'<rect x="640" y="15" width="220" height="24" rx="12" fill="#fff" stroke="{R}" stroke-width="2"/><text x="652" y="31">● R baseline  Sync · d=4 · h=4 ▾</text>')
 add('<text x="872" y="32" font-size="15">⇄</text>')
-add(f'<rect x="895" y="15" width="220" height="24" rx="12" fill="#fff" stroke="{C}" stroke-width="2"/><text x="907" y="31"><tspan fill="{C}">●</tspan> C  Inpaint async · d=4 · h=4 ▾</text>')
+add(f'<rect x="895" y="15" width="220" height="24" rx="12" fill="#fff" stroke="{C}" stroke-width="2"/><text x="907" y="31"><tspan fill="{C}">●</tspan> C compare  Inpaint · d=4 · h=4 ▾</text>')
 add('<text x="1125" y="31" font-size="11">? ↺</text>')
 note(630, 31, "pick / swap R and C anywhere", "end")
 
 # ---- A latency response
 ax, ay, aw, ah = 8, 54, 512, 236
 panel(ax, ay, aw, ah, "A · Latency Response   (T1)")
-add(f'<text x="{ax+10}" y="{ay+38}" font-size="11">metric [success rate ▾]  [absolute | Δ vs R]     <tspan fill="{S["sync"]}">●</tspan> Sync <tspan fill="{S["naive"]}">■</tspan> Naive <tspan fill="{S["inpaint"]}">◆</tspan> Inpaint</text>')
+add(f'<text x="{ax+10}" y="{ay+38}" font-size="11">[<tspan font-weight="bold">Success</tspan> | Idle | Staleness | Seam jump]    <tspan fill="{S["sync"]}">●</tspan> Sync <tspan fill="{S["naive"]}">■</tspan> Naive <tspan fill="{S["inpaint"]}">◆</tspan> Inpaint</text>')
 vals = {8: {"sync": [72, 62, 70, 44, 40], "naive": [72, 68, 62, 62, 46], "inpaint": [72, 58, 66, 60, 40]},
         6: {"sync": [48, 42, 32, 26, 30], "naive": [48, 44, 58, 56, 32], "inpaint": [48, 48, 50, 58, 26]},
         4: {"sync": [28, 24, 22, 14, 8], "naive": [28, 12, 34, 38], "inpaint": [28, 40, 46, 60]},
@@ -63,12 +63,12 @@ for i, h in enumerate([8, 6, 4, 2]):
         add(f'<circle cx="{sx}" cy="{sy}" r="6" fill="none" stroke="{R}" stroke-width="2"/><text x="{sx-10}" y="{sy+4}" font-size="10" font-weight="bold" text-anchor="end">R</text>')
         add(f'<circle cx="{cx_}" cy="{cy_}" r="6" fill="none" stroke="{C}" stroke-width="2"/><text x="{cx_}" y="{cy_-9}" font-size="10" font-weight="bold" text-anchor="middle" fill="#9a6a00">C</text>')
 add(f'<text x="{ax+aw-10}" y="{py0+ph+26}" font-size="10" text-anchor="end" fill="#555">x = latency d (100 ms steps) · y = metric (shared) · │ = 95 % interval</text>')
-note(ax + 10, ay + ah - 8, "click mark = C · shift-click = R · hover = values · legend hover = one strategy")
+note(ax + 10, ay + ah - 8, "question bar sets A and B · click mark = C · shift-click = R · hover = value &amp; Δ vs R")
 
 # ---- B paired seed table
 bx, by, bw, bh = 8, 298, 512, 354
 panel(bx, by, bw, bh, "B · Paired Seed Table   (T2, T4)")
-add(f'<text x="{bx+10}" y="{by+37}" font-size="11">rows [R→C change | robustness | seed]   shift of [max seam gap ▾]</text>')
+add(f'<text x="{bx+10}" y="{by+37}" font-size="11">right part: attribute of the question chosen in A (no own controls)</text>')
 mx, my, cw, rh = bx + 40, by + 70, 6, 5.2
 groups = [("re", 1), ("sync", 20), ("naive", 13), ("inpaint", 13)]
 x = mx

@@ -15,7 +15,7 @@ Every strategy pays a different cost for inference latency *d*. The views are bu
 | **Naive async** | The robot keeps executing the old chunk. The new chunk replaces it after *d* steps, skipping its first *d* actions. | **Discontinuity.** The new plan comes from an observation taken before the robot moved and can choose another mode, so seams are large. | idle 2 %, seam 43.5 px, success 38 % | **D:** *think* overlaps *act*, with tall magenta seam lollipops.<br>**C:** magenta seam segment.<br>**A:** seam-gap curve rises as *h* shrinks. |
 | **Inpaint async** | Same timing as naive. The new chunk is sampled with the committed actions clamped, so it continues the old plan. | **Staleness only.** It has the same observation age as naive but small seams. | idle 2 %, seam 8.0 px, success 60 % | **D:** *think* overlaps *act*, with short lollipops.<br>**A:** the green curve stays flat across *d*. |
 
-These are exactly the metrics offered in A ("Mechanism" group: idle share, staleness, seam gap, jerk). The *think / act* tracks in D show each schedule's timing directly instead of describing it in text.
+These are exactly the four questions offered in A's question bar: Success, Idle (cost of sync), Staleness (cost of async), Seam jump (cost of naive async). The *think / act* tracks in D show each schedule's timing directly instead of describing it in text.
 
 ## 2 Views, marks and channels
 
@@ -31,7 +31,8 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 | Strategies superposed in each panel | Superposition supports direct, close comparison of a few series, here sync vs. the two async variants. Async lines start from the sync *d* = 0 point with a dotted segment because the strategies are identical without latency. | [4][6] |
 | Strategy = hue + shape (circle, square, diamond) | Hue is the strongest identity channel after region. Shape is added redundantly so identity never depends on hue alone (Okabe–Ito hues; colour-vision-deficiency check below). | [1][13][14] |
 | Thin 95 % interval lines (Wilson for success, t for means) | With 50 seeds a 10-point difference can be chance. Points with thin interval lines avoid the "within-the-bar" bias of bar + error-bar charts. | [7][16] |
-| Δ vs R = paired difference over the same seeds | Explicit encoding of the difference (Gleicher's third comparison strategy), with a paired interval that matches the paired design. | [4][5] |
+| Δ vs R = paired difference over the same seeds, in the hover | Explicit encoding of the difference (Gleicher's third comparison strategy), with a paired interval that matches the paired design. Shown on demand instead of as a separate mode, so there is one less control to learn. | [4][5][17] |
+| One always-visible question bar (4 buttons, each named after who pays the cost) instead of a 6-item dropdown | The choice is the main question of the tool, so it is shown, not hidden in a menu; dropping final coverage and jerk removed metrics that repeated success and seam gap. The same choice sets B's dumbbell attribute, so A and B never disagree. | [9][15] |
 | R and C as letter-labelled rings | The selection is shown without recolouring marks: colour follows the entity, not the selection. | [4] |
 
 ### B Paired Seed Table (T2 locate flips, T4 discover correlation)
@@ -40,9 +41,9 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 | One row per seed shared by an outcome matrix and a dumbbell strip (composite view, Table-Lens style) | The old flip matrix (B) and the dumbbell plot (E) were two views over the same 50 seeds and forced the eye to match rows across panels. Juxtaposed components on one shared row axis remove that matching step and one view. | [8][9][10] |
 | Matrix cell: filled = success, empty = failure (luminance) | Success is binary, so one luminance step suffices. The old four-hue loss/gain scheme reused the C orange and vermillion. Flips are now visible as cells that break their band's pattern. | [1][11] |
 | R column black, C column orange; others grey | Identity hues appear only where R and C are, as in every other view. | [4] |
-| Rows grouped by R→C change (lost, gained, both ✓, both ✗) | Spatial region is the top-ranked channel for a categorical attribute. Each band directly answers "which seeds flip?". | [1] |
+| Rows grouped by R→C change (lost, gained, both ✓, both ✗), robust seeds first inside a band; no sort or attribute controls | Spatial region is the top-ranked channel for a categorical attribute. Each band directly answers "which seeds flip?". Alternative orders were rarely needed and added controls. | [1] |
 | "re-run" column (same schedule, new noise) | An explicit reference for chance: 11/50 seeds flip with no schedule change. | [5] |
-| Dumbbell: ● R → ● C on a common position axis; symlog for long-tailed attributes; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
+| Dumbbell: ● R → ● C on a common position axis of the attribute that belongs to A's question (final coverage, idle share, staleness, largest seam jump); symlog for seams; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
 | Vertical brush on the dumbbells, or click a band → selected seeds re-aggregate A | Cross-filtering checks whether a trend holds for a subset ("are the failures driven by these seeds?"). | [12][15] |
 
 ### C Workspace Replay (T3 identify where)
@@ -76,11 +77,11 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 - **Interaction set**, after Heer & Shneiderman's taxonomy [15]:
   - *select* (R/C, seed)
   - *filter* (seed brush → A)
-  - *sort* (rows)
-  - *derive* (Δ vs R)
+  - *derive* (Δ vs R, on hover)
   - *navigate* (time brush, play)
   - *coordinate* (one shared state; every view listens)
   - *record* (URL parameters reproduce any state)
+- **Few controls.** The student found ten technically named controls (metric list, Δ mode, three sort orders, an 8-item attribute list, playback speed) hard to understand. The interface now has only the R/C pair and the question bar; everything else is direct manipulation (click, shift-click, brush, hover).
 
 ## References
 1. T. Munzner. *Visualization Analysis and Design*. CRC Press, 2014.

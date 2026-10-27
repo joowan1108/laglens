@@ -4,17 +4,16 @@ rendered marks: {'#response g.pm': 47, '#seedtable rect.c': 2350, '#seedtable g.
 PASS  all four views rendered (A curves, B matrix + dumbbells, C boards, D tracks)
 PASS  A click sets candidate
 PASS  A shift-click sets reference
-PASS  A metric change
-PASS  A delta mode (paired differences)
-PASS  A tooltip
+PASS  A question button sets the metric
+PASS  the same question sets B's dumbbell attribute
+PASS  A shows exactly four questions, no dropdown
+PASS  A tooltip gives the paired difference to R
 PASS  A legend hover highlights one strategy
-PASS  B sort flip
-PASS  B sort robust
-PASS  B sort seed
+PASS  B has no controls of its own
 PASS  B groups rows by R→C change
 PASS  B column header click sets candidate
 PASS  B cell click selects seed
-PASS  B shift attribute change
+PASS  B dumbbells follow the question (idle share)
 PASS  B brush selects seeds
 PASS  A recomputes on the selected seeds (cross-filter)
 PASS  B rows outside the selection are dimmed

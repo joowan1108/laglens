@@ -1,5 +1,6 @@
 import { state, update, bus, DEFAULTS } from "./state.js";
 import { DATA, loadBase, loadRun, label } from "./data.js";
+import { METRICS } from "./util.js";
 import { initResponse, resizeResponse } from "./views/response.js";
 import { initSeedTable, resizeSeedTable } from "./views/seedtable.js";
 import { initWorkspace, resizeWorkspace, step, togglePlay } from "./views/workspace.js";
@@ -50,15 +51,16 @@ function initKeys() {
   });
 }
 
-// URL parameters let a case-study state be reproduced exactly, e.g. ?ref=sync_d0_h8&cand=naive_d4_h8&seed=1012&t=80&sel=1001,1002
+// URL parameters let a case-study state be reproduced exactly, e.g. ?ref=sync_d0_h8&cand=naive_d4_h8&metric=seam_gap_mean&seed=1012&t=80&sel=1001,1002
 function applyParams() {
   const p = new URLSearchParams(location.search);
   const patch = {};
-  for (const k of ["ref", "cand", "metric", "mode", "sort", "sx"]) if (p.has(k)) patch[k] = p.get(k);
+  for (const k of ["ref", "cand", "metric"]) if (p.has(k)) patch[k] = p.get(k);
   for (const k of ["seed", "t"]) if (p.has(k)) patch[k] = +p.get(k);
   if (p.has("win")) patch.win = p.get("win").split(",").map(Number);
   if (p.has("sel")) patch.brushed = new Set(p.get("sel").split(",").map(Number));
   for (const k of ["ref", "cand"]) if (patch[k] && !DATA.schedById.has(patch[k])) delete patch[k];
+  if (patch.metric && !METRICS[patch.metric]) delete patch.metric;
   Object.assign(state, patch);
 }
 

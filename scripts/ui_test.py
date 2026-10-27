@@ -39,7 +39,7 @@ with sync_playwright() as p:
     log.append(f"rendered marks: {n}")
     ok("all four views rendered (A curves, B matrix + dumbbells, C boards, D tracks)", all(v > 0 for v in n.values()))
 
-    # A: click = candidate, shift-click = reference, metric + delta mode, tooltip, legend hover
+    # A: click = candidate, shift-click = reference, question buttons (drive A and B), tooltip with Δ vs R, legend hover
     idx_of = lambda sid: pg.evaluate(f"[...document.querySelectorAll('#response g.pm')].findIndex(g=>d3.select(g).datum().id==={sid!r})")
     target = pg.evaluate("window.LagLens.DATA.schedules.filter(s=>!s.replicate).map(s=>s.schedule).find(s=>s!==window.LagLens.state.cand && s!==window.LagLens.state.ref && s!=='sync_d1_h8')")
     marks = pg.locator("#response g.pm")
@@ -47,29 +47,27 @@ with sync_playwright() as p:
     ok("A click sets candidate", S("cand") == target)
     marks.nth(idx_of("sync_d1_h8")).locator("circle.hit").click(modifiers=["Shift"], force=True)
     ok("A shift-click sets reference", S("ref") == "sync_d1_h8")
-    pg.select_option("#responseControls select", "seam_gap_mean")
-    ok("A metric change", S("metric") == "seam_gap_mean")
-    pg.click("#responseControls button:has-text('Δ vs R')")
-    ok("A delta mode (paired differences)", S("mode") == "delta")
-    marks.nth(idx_of(target)).locator("circle.hit").hover(force=True); ok("A tooltip", pg.is_visible("#tooltip"))
+    pg.click("#responseControls .metricbar button[data-metric=seam_gap_mean]")
+    ok("A question button sets the metric", S("metric") == "seam_gap_mean")
+    ok("the same question sets B's dumbbell attribute", "largest seam jump" in pg.inner_text("#seedControls"))
+    ok("A shows exactly four questions, no dropdown", pg.locator("#responseControls .metricbar button").count() == 4 and pg.locator("#responseControls select").count() == 0)
+    marks.nth(idx_of(target)).locator("circle.hit").hover(force=True)
+    ok("A tooltip gives the paired difference to R", pg.is_visible("#tooltip") and "vs R:" in pg.inner_text("#tooltip"))
     pg.hover("#responseControls .legend .li[data-strat=naive]")
     faded = pg.evaluate("[...document.querySelectorAll('#response g.sl')].filter(g=>+g.getAttribute('opacity')<0.5).length")
     ok("A legend hover highlights one strategy", faded > 0)
     pg.mouse.move(5, 5)
 
-    # B: sorting, column header click, cell click opens an episode, attribute change, brush -> A
-    for i, mode in enumerate(["flip", "robust", "seed"]):
-        pg.click(f"#seedControls button >> nth={i}")
-        ok(f"B sort {mode}", S("sort") == mode)
-    pg.click("#seedControls button >> nth=0")
+    # B: no controls of its own; column header click, cell click opens an episode, brush -> A
+    ok("B has no controls of its own", pg.locator("#seedControls button, #seedControls select").count() == 0)
     ok("B groups rows by R→C change", pg.locator("#seedtable g.band").count() >= 2)
     col = pg.evaluate("[...document.querySelectorAll('#seedtable rect.colhit')].findIndex(r=>d3.select(r).datum().id==='naive_d4_h4')")
     pg.locator("#seedtable rect.colhit").nth(col).click(force=True)
     ok("B column header click sets candidate", S("cand") == "naive_d4_h4")
     pg.locator("#seedtable rect.c").nth(300).click()
     ok("B cell click selects seed", S("seed") is not None)
-    pg.select_option("#seedControls select", "jerk_mean")
-    ok("B shift attribute change", S("sx") == "jerk_mean")
+    pg.click("#responseControls .metricbar button[data-metric=idle_frac_mean]")
+    ok("B dumbbells follow the question (idle share)", "idle share" in pg.inner_text("#seedControls"))
     box = pg.locator("#seedtable svg").bounding_box()
     start = pg.evaluate("""(()=>{
       const ov=document.querySelector('#seedtable .brush .overlay'); const r=ov.getBoundingClientRect();

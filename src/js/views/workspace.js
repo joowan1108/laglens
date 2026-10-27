@@ -8,7 +8,7 @@ import { COLOR, showTip, hideTip, size, teePaths, GOAL, AGENT_R } from "../util.
 const shortLab = (id) => { const s = DATA.schedById.get(id); return `${STRAT_LABEL[s.strategy]} d${s.latency} h${s.horizon}${s.replicate ? " re-run" : ""}`; };
 const SEAM_SHOW = 10; // steps a seam stays visible after it happened
 
-let root, svg, slider, tval, playBtn, timer = null, speed = 1;
+let root, svg, slider, tval, playBtn, timer = null;
 let eps = { ref: null, cand: null };
 let maxN = 300;
 
@@ -22,8 +22,6 @@ export function initWorkspace() {
   slider = pl.append("input").attr("type", "range").attr("min", 0).attr("max", 299).attr("value", 0)
     .on("input", (ev) => update({ t: +ev.target.value }));
   tval = pl.append("span").attr("class", "tval");
-  const sp = pl.append("select").attr("title", "playback speed").on("change", (ev) => { speed = +ev.target.value; });
-  sp.selectAll("option").data([1, 2, 4]).join("option").attr("value", (d) => d).text((d) => `${d}×`);
   bus.on("change.workspace", (keys) => {
     if (keys.has("seed") || keys.has("ref") || keys.has("cand")) load();
     else if (["t", "win", "hoverChunk"].some((k) => keys.has(k))) render();
@@ -39,8 +37,8 @@ export function togglePlay() {
   timer = d3.interval(() => {
     const hi = state.win ? state.win[1] : maxN - 1;
     if (state.t >= hi) { togglePlay(); return; }
-    update({ t: Math.min(hi, state.t + speed) });
-  }, 100);
+    update({ t: Math.min(hi, state.t + 1) });
+  }, 50); // one step per 50 ms = 2× real time (1 step = 100 ms)
 }
 
 async function load() {
@@ -88,8 +86,8 @@ function render() {
     b.append("path").attr("class", "pathWin");
     b.append("g").attr("class", "pending");
     b.append("g").attr("class", "fan");
-    b.append("g").attr("class", "seam");
-    b.append("circle").attr("class", "agent");
+    b.append("g").attr("class", "seam").attr("pointer-events", "none");
+    b.append("circle").attr("class", "agent").attr("pointer-events", "none"); // agent and seam never block hover on plan points
     return g;
   }).attr("transform", (d) => `translate(${d.x},0)`);
 

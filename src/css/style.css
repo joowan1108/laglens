@@ -27,6 +27,7 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .pickers { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .chip { display: inline-flex; align-items: center; gap: 4px; border: 2px solid; border-radius: 16px; padding: 2px 4px 2px 10px; font-weight: 700; }
 .chip select { border: none; background: transparent; font-weight: 600; cursor: pointer; }
+.chip .role { font-weight: 500; font-size: 11px; color: var(--muted); }
 .chip .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .chip.ref { border-color: var(--ref); } .chip.ref .dot { background: var(--ref); }
 .chip.cand { border-color: var(--cand); } .chip.cand .dot { background: var(--cand); }
@@ -49,6 +50,13 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .controls .seg button { border: none; border-radius: 0; padding: 2px 7px; border-right: 1px solid var(--line); }
 .controls .seg button:last-child { border-right: none; }
 .controls select { border: 1px solid var(--line); border-radius: 5px; padding: 1px 3px; }
+/* the question bar of A: name + who pays this cost, always visible instead of a dropdown */
+.metricbar { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.metricbar button { border: none; border-radius: 0; border-right: 1px solid var(--line); padding: 2px 9px 3px; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; color: var(--ink); }
+.metricbar button:last-child { border-right: none; }
+.metricbar button small { font-size: 10px; color: var(--muted); }
+.metricbar button.on { color: #fff; }
+.metricbar button.on small { color: #d0d0d6; }
 .body { flex: 1; min-height: 0; position: relative; }
 .body svg { display: block; }
 .player { display: flex; align-items: center; gap: 8px; padding: 2px 10px 6px; }

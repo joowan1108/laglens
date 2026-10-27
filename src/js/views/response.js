@@ -1,26 +1,22 @@
 // View A: latency-response curves. One small multiple per execution horizon h; within a panel,
 // x = inference latency d (true spacing, 100 ms per step), y = the chosen metric, one line per
 // strategy so that sync and the two async strategies are compared on a common position scale.
-// Whiskers are 95 % intervals over the 50 seeds (paired differences in Δ mode).
+// Whiskers are 95 % intervals over the 50 seeds; the paired difference to R is given on hover.
 import { state, update, bus } from "../state.js";
 import { DATA, STRATEGIES, STRAT_LABEL, LATENCIES, HORIZONS, label, aggregate, missingReason } from "../data.js";
-import { COLOR, STRAT_COLOR, STRAT_SYMBOL, METRICS, fmtMetric, showTip, hideTip, size, segButtons } from "../util.js";
+import { COLOR, STRAT_COLOR, STRAT_SYMBOL, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
 
-let root, svg, setModeBtn, metricSel, noteSel, hoverStrat = null;
+let root, svg, metricBtns, noteSel, hoverStrat = null;
 const DODGE = { sync: -4, naive: 0, inpaint: 4 };
 
 export function initResponse() {
   const ctr = d3.select("#responseControls");
-  ctr.append("span").text("metric");
-  metricSel = ctr.append("select").on("change", (ev) => update({ metric: ev.target.value }));
-  const groups = d3.groups(Object.entries(METRICS), (d) => d[1].group);
-  metricSel.selectAll("optgroup").data(groups).join("optgroup").attr("label", (d) => d[0])
-    .selectAll("option").data((d) => d[1]).join("option").attr("value", (d) => d[0]).text((d) => d[1].label);
-  metricSel.property("value", state.metric);
-  setModeBtn = segButtons(ctr, [
-    { label: "absolute", value: "abs" },
-    { label: "Δ vs R", value: "delta", title: "paired difference to the reference schedule R over the same seeds" },
-  ], state.mode, (v) => update({ mode: v }));
+  // one choice of question, always visible; it also sets the dumbbell attribute of B
+  metricBtns = ctr.append("span").attr("class", "metricbar").selectAll("button").data(Object.entries(METRICS)).join("button")
+    .attr("data-metric", (d) => d[0]).attr("title", (d) => d[1].note)
+    .on("click", (ev, d) => update({ metric: d[0] }))
+    .call((b) => b.append("b").text((d) => d[1].btn))
+    .call((b) => b.append("small").text((d) => d[1].sub));
   const lg = ctr.append("span").attr("class", "legend");
   for (const s of STRATEGIES) {
     const it = lg.append("span").attr("class", "li").attr("data-strat", s)
@@ -35,17 +31,14 @@ export function initResponse() {
   noteSel = d3.select("#responseNote");
   render();
   bus.on("change.response", (keys) => {
-    if (["ref", "cand", "metric", "mode", "brushed"].some((k) => keys.has(k))) {
-      metricSel.property("value", state.metric); setModeBtn(state.mode); render();
-    }
+    if (["ref", "cand", "metric", "brushed"].some((k) => keys.has(k))) render();
   });
 }
 
 function points() {
-  const delta = state.mode === "delta";
   const out = [];
   for (const s of DATA.schedules) {
-    const a = aggregate(s.schedule, state.metric, state.brushed, delta ? state.ref : null);
+    const a = aggregate(s.schedule, state.metric, state.brushed);
     if (!a || a.v === null) continue;
     out.push({ id: s.schedule, strat: s.strategy, d: s.latency, h: s.horizon, rep: !!s.replicate, ...a });
   }
@@ -53,39 +46,31 @@ function points() {
 }
 
 function render() {
+  metricBtns.classed("on", (d) => d[0] === state.metric);
   const n = state.brushed ? state.brushed.size : DATA.seeds.length;
   noteSel.html(`${METRICS[state.metric].note}${state.brushed ? ` · <b>computed over the ${n} seeds selected in B</b> (Esc clears)` : ""}. Hollow mark = re-run of Sync d0 h8 with new noise.`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
-  const M = METRICS[state.metric], delta = state.mode === "delta";
+  const M = METRICS[state.metric];
   const pts = points();
   const m = { l: 44, r: 8, t: 22, b: 34 }, gap = 12;
   const pw = (w - m.l - m.r - gap * (HORIZONS.length - 1)) / HORIZONS.length;
   const x = d3.scaleLinear().domain([-0.5, 6.5]).range([8, pw - 4]);
-  let y;
-  if (delta) {
-    // include 0 (no difference) and the full intervals; not forced symmetric so space is not wasted
-    const lo = Math.min(0, d3.min(pts, (p) => p.lo)), hi = Math.max(0, d3.max(pts, (p) => p.hi));
-    const pad = (hi - lo) * 0.04 || 0.01;
-    y = d3.scaleLinear().domain([lo - pad, hi + pad]).nice().range([h - m.b, m.t]);
-  } else {
-    const hi = M.pct ? 1 : d3.max(pts, (p) => p.hi) * 1.04;
-    y = d3.scaleLinear().domain([0, hi]).nice().range([h - m.b, m.t]);
-  }
+  const yHi = M.pct ? 1 : d3.max(pts, (p) => p.hi) * 1.04;
+  const y = d3.scaleLinear().domain([0, yHi]).nice().range([h - m.b, m.t]);
 
   // y axis + gridlines once, shared by the panels (common scale = direct comparison across h)
-  const yfmt = M.pct ? (v) => `${Math.round(v * 100)}${delta ? "" : "%"}` : d3.format("~g");
+  const yfmt = M.pct ? (v) => `${Math.round(v * 100)}%` : d3.format("~g");
   svg.selectAll("g.yax").data([0]).join("g").attr("class", "axis yax").attr("transform", `translate(${m.l},0)`)
     .call(d3.axisLeft(y).ticks(5).tickSize(3).tickFormat(yfmt)).call((g) => g.select(".domain").remove());
   svg.selectAll("text.yt").data([0]).join("text").attr("class", "axis-title yt")
     .attr("transform", `translate(11,${(m.t + h - m.b) / 2}) rotate(-90)`).attr("text-anchor", "middle")
-    .text(delta ? `Δ ${M.label} vs R${M.pct ? " (pt)" : ""}` : M.label);
+    .text(M.label);
 
   const panels = svg.selectAll("g.rp").data(HORIZONS, (d) => d).join((en) => {
     const g = en.append("g").attr("class", "rp");
     g.append("rect").attr("class", "pbg");
     g.append("g").attr("class", "grid gridline");
-    g.append("line").attr("class", "zero");
     g.append("g").attr("class", "axis xax");
     g.append("text").attr("class", "pt");
     g.append("g").attr("class", "lines");
@@ -98,8 +83,6 @@ function render() {
     const g = d3.select(this);
     g.select(".pbg").attr("x", 0).attr("y", m.t).attr("width", pw).attr("height", h - m.t - m.b).attr("fill", "#fafafb");
     g.select(".grid").call(d3.axisLeft(y).ticks(5).tickSize(-pw).tickFormat("")).call((q) => q.select(".domain").remove());
-    g.select(".zero").attr("x1", 0).attr("x2", pw).attr("y1", y(0)).attr("y2", y(0))
-      .attr("stroke", delta ? "#77777f" : "none").attr("stroke-width", 1);
     g.select(".xax").attr("transform", `translate(0,${h - m.b})`)
       .call(d3.axisBottom(x).tickValues(LATENCIES).tickSize(3).tickFormat((d) => d)).call((q) => q.select(".domain").attr("stroke", "#c9c9cf"));
     g.select(".pt").attr("x", pw / 2).attr("y", m.t - 7).attr("text-anchor", "middle").attr("font-size", 11).attr("font-weight", 700)
@@ -158,13 +141,16 @@ function render() {
 }
 
 function tipHtml(p) {
-  const delta = state.mode === "delta";
   const M = METRICS[state.metric];
-  const val = `${fmtMetric(state.metric, p.v, delta)} <span class="k">[${fmtMetric(state.metric, p.lo, delta)}, ${fmtMetric(state.metric, p.hi, delta)}]</span>`;
-  let extra = "";
-  if (p.strat !== "sync" && p.d === 0) extra = `<br><span class="k">${missingReason(p.strat, 0, p.h)}</span>`;
-  return `<b>${label(p.id)}</b><br><span class="k">${delta ? `Δ ${M.label} vs R (paired)` : M.label}:</span> ${val}<br>
-    <span class="k">95 % interval over ${p.n} seeds</span>${extra}<br><span class="k">click = candidate C · shift-click = reference R</span>`;
+  const iv = (a) => `<span class="k">[${fmtMetric(state.metric, a.lo, a.signed)}, ${fmtMetric(state.metric, a.hi, a.signed)}]</span>`;
+  let html = `<b>${label(p.id)}</b><br><span class="k">${M.label}:</span> ${fmtMetric(state.metric, p.v)} ${iv(p)}`;
+  // the difference to R on the same seeds (paired), so R vs C never has to be read off two intervals
+  if (p.id !== state.ref) {
+    const dlt = aggregate(p.id, state.metric, state.brushed, state.ref);
+    if (dlt && dlt.v !== null) html += `<br><span class="k">vs R:</span> <b>${fmtMetric(state.metric, dlt.v, true)}</b> ${iv({ ...dlt, signed: true })} <span class="k">paired, same seeds</span>`;
+  }
+  if (p.strat !== "sync" && p.d === 0) html += `<br><span class="k">${missingReason(p.strat, 0, p.h)}</span>`;
+  return `${html}<br><span class="k">95 % interval over ${p.n} seeds · click = C · shift-click = R</span>`;
 }
 
 export function resizeResponse() { render(); }

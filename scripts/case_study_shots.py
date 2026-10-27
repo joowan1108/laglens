@@ -24,13 +24,13 @@ threading.Thread(target=srv.serve_forever, daemon=True).start()
 
 SHOTS = [
     # (file, query, [panel selectors] or None for the whole page, optional JS to run before capture)
-    ("image.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140&sort=flip", None, None),
-    ("fig_overview.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140&sort=flip", None, None),
-    ("fig_f1_response.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=success_rate&mode=abs", ["#pA"], None),
-    ("fig_f1_seam.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=seam_gap_mean&mode=abs", ["#pA"], None),
-    ("fig_f2_noise.png", "ref=sync_d0_h8&cand=sync_d0_h8_r1&sort=flip", ["#pB"], None),
+    ("image.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140", None, None),
+    ("fig_overview.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140", None, None),
+    ("fig_f1_response.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=success_rate", ["#pA"], None),
+    ("fig_f1_seam.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=seam_gap_mean", ["#pA"], None),
+    ("fig_f2_noise.png", "ref=sync_d0_h8&cand=sync_d0_h8_r1", ["#pB"], None),
     ("fig_f3_replay.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140", ["#pC", "#pD"], None),
-    ("fig_f4_shift.png", "ref=naive_d4_h4&cand=inpaint_d4_h4&sx=seam_gap_max&seed=1035&sort=flip", ["#pB"], None),
+    ("fig_f4_shift.png", "ref=naive_d4_h4&cand=inpaint_d4_h4&metric=seam_gap_mean&seed=1035", ["#pB"], None),
 ]
 
 log = {}

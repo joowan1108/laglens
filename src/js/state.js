@@ -3,16 +3,13 @@
 export const DEFAULTS = {
   ref: "sync_d4_h4",       // reference schedule R (opens on: same 400 ms latency, wait vs. act-while-thinking)
   cand: "inpaint_d4_h4",   // candidate schedule C
-  metric: "success_rate",  // y metric of the latency-response curves (A)
-  mode: "abs",             // "abs" | "delta" (paired difference to R)
+  metric: "success_rate",  // the one question asked: y of A and the dumbbell attribute of B (util.METRICS)
   seed: null,              // selected initial state
   t: 0,                    // replay time step
   win: null,               // brushed time window [t0, t1] in the timeline
   brushed: null,           // Set of seeds selected in B (cross-filters A)
   hoverSeed: null,
   hoverChunk: null,        // {which: "ref"|"cand", id}
-  sort: "flip",            // seed-table row order: "flip" (grouped by R→C change) | "robust" | "seed"
-  sx: "seam_gap_max",      // attribute of the paired R→C shift in the seed table (B)
 };
 
 export const state = { ...DEFAULTS };

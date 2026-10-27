@@ -42,7 +42,7 @@ Checked on 2026-10-27 after the redesign build. ✅ = satisfied, with evidence.
 |---|---|---|
 | ≥ 3 interactive vis components supporting the primary persona | ✅ | 4 linked views A–D (B is a composite of an outcome matrix and a dumbbell strip) |
 | Justification by task, attribute types, scalability | ✅ | slide 5 idiom table, slide 6 mark/channel table (effectiveness ranking, hue budget, CVD check, scalability), report §4, `docs/design_rationale.md` (20 VIS references) |
-| Interactions per vis | ✅ | select, change, brush, link, filter, sort, tooltip, play/scrub; `docs/ui_test_output.txt` (33/33 checks pass, 0 console errors) |
+| Interactions per vis | ✅ | select, change (one question bar for A and B), brush, link, filter, tooltip, play/scrub; `docs/ui_test_output.txt` (32/32 checks pass, 0 console errors) |
 
 ## 5 Sketch (2 pts)
 | Item | Status | Evidence |
