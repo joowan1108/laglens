@@ -8,7 +8,11 @@ Outputs
 Derived metrics (per episode)
   seam gap      at every hand-over from chunk k to chunk k+1: distance (px) between the first action
                 executed from k+1 and the action chunk k had planned next (= plan disagreement)
-  staleness     age (steps) of the observation a executed action was planned from
+  staleness     age (steps) of the observation a executed action was planned from; on average
+                d + (h-1)/2, i.e. the same for every strategy at equal latency and horizon
+  think motion  for every executed chunk: distance (px) the robot moved between the observation the
+                chunk was planned from (t_obs) and the step the chunk became available (t_avail),
+                i.e. how much the scene changed while the policy was thinking
   idle frac     share of steps where nothing was executable (sync waits, async start-up)
   jerk          mean |a_t - 2 a_{t-1} + a_{t-2}| of executed actions (px / step^2)
 """
@@ -43,6 +47,9 @@ def episode_metrics(ep, j0):
     jerk = [dist((acts[i][0] - 2 * acts[i - 1][0] + acts[i - 2][0], acts[i][1] - 2 * acts[i - 1][1] + acts[i - 2][1]), (0, 0))
             for i in range(2, len(acts))]
     ages = [s["age"] for s in S if s["age"] is not None]
+    pos = {s["t"]: (s["ax"], s["ay"]) for s in S}
+    last = S[-1]["t"]
+    motion = [dist(pos[min(c["t_avail"], last)], pos[c["t_obs"]]) for c in C if c["exec"]]
     path = sum(dist((S[i]["ax"], S[i]["ay"]), (S[i - 1]["ax"], S[i - 1]["ay"])) for i in range(1, len(S)))
     t_succ = len(S) if ep["success"] else None
     return {
@@ -58,6 +65,8 @@ def episode_metrics(ep, j0):
         "staleness_mean": round(st.mean(ages), 3) if ages else 0.0,
         "idle_frac": round(sum(s["held"] for s in S) / len(S), 4),
         "jerk_mean": round(st.mean(jerk), 2) if jerk else 0.0,
+        "think_motion_mean": round(st.mean(motion), 2) if motion else 0.0,
+        "think_motion_max": round(max(motion), 2) if motion else 0.0,
         "path_len": round(path, 1),
     }, seams
 
@@ -100,7 +109,8 @@ def main():
                           "seam_gap_mean": round(st.mean(r["seam_gap_mean"] for r in eps), 2),
                           "staleness_mean": round(st.mean(r["staleness_mean"] for r in eps), 3),
                           "idle_frac_mean": round(st.mean(r["idle_frac"] for r in eps), 4),
-                          "jerk_mean": round(st.mean(r["jerk_mean"] for r in eps), 2)})
+                          "jerk_mean": round(st.mean(r["jerk_mean"] for r in eps), 2),
+                          "think_motion_mean": round(st.mean(r["think_motion_mean"] for r in eps), 2)})
     with open(os.path.join(OUT, "episodes.csv"), "w", newline="") as fo:
         w = csv.DictWriter(fo, fieldnames=list(rows[0].keys()))
         w.writeheader(); w.writerows(rows)

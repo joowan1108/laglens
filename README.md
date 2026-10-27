@@ -15,9 +15,9 @@ python3 -m http.server 8000 --directory src     # then open http://localhost:800
 
 Useful URL parameters (reproduce a case-study view exactly):
 `?ref=sync_d0_h8&cand=naive_d4_h8&seed=1001&t=120&win=100,160&metric=seam_gap_mean&sel=1001,1002`
-(`metric` is one of `success_rate`, `idle_frac_mean`, `staleness_mean`, `seam_gap_mean`; `noguide` hides the first-visit guide; `sel` pre-selects seeds).
+(`metric` is one of `success_rate`, `idle_frac_mean`, `think_motion_mean`, `seam_gap_mean`; `noguide` hides the first-visit guide; `sel` pre-selects seeds).
 
-Controls: the R (baseline) / C (compare) pair and one question bar in A (Success · Idle = cost of sync · Staleness = age of the picture · Discontinuity = cost of naive async) that drives both A and B; everything else is direct manipulation.
+Controls: the R (baseline) / C (compare) pair and one question bar in A (Success · Idle = cost of sync · Outdated = robot motion while thinking (cost of async) · Discontinuity = cost of naive async) that drives both A and B; everything else is direct manipulation.
 
 Views: **A** Latency Response (curves per horizon, 95 % intervals) · **B** Paired Seed Table (outcome matrix + R→C dumbbells, cross-filters A) · **C** Workspace Replay · **D** Execution Timeline (think / act tracks, discontinuity lollipops). Design rationale with references: `docs/design_rationale.md`.
 
@@ -26,7 +26,7 @@ Views: **A** Latency Response (curves per horizon, 95 % intervals) · **B** Pair
 | Path | Content |
 |---|---|
 | `src/` | the interface (HTML/CSS/JS + `data/` it loads) |
-| `src/data/episodes.csv` | one row per (schedule, seed) episode: 2,350 items × 19 attributes |
+| `src/data/episodes.csv` | one row per (schedule, seed) episode: 2,350 items × 21 attributes |
 | `src/data/schedules.json` | per-schedule aggregates |
 | `src/data/runs/<schedule>.json` | per-step / per-chunk logs, lazy-loaded |
 | `data/runs/` | raw rollout logs produced by the simulator |

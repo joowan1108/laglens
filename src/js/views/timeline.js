@@ -94,7 +94,7 @@ function render() {
     g.select(".think").selectAll("rect").data(inf, (d) => d.i).join("rect")
       .attr("x", (d) => x(d.c.t_obs) + 0.3).attr("width", (d) => Math.max(1, x(Math.min(d.c.t_avail, e.n)) - x(d.c.t_obs) - 0.6))
       .attr("y", thinkY).attr("height", thinkH).attr("rx", 1).attr("fill", L.col).attr("fill-opacity", 0.45)
-      .on("mousemove", (ev, d) => showTip(ev, `<b>inference for chunk #${d.i}</b><br>observation at t=${d.c.t_obs}, chunk available at t=${d.c.t_avail}`))
+      .on("mousemove", (ev, d) => showTip(ev, `<b>inference for chunk #${d.i}</b><br>camera picture at t=${d.c.t_obs}, chunk ready at t=${d.c.t_avail}<br>the robot moved <b>${Math.hypot(e.ax[Math.min(d.c.t_avail, e.n - 1)] - e.ax[d.c.t_obs], e.ay[Math.min(d.c.t_avail, e.n - 1)] - e.ay[d.c.t_obs]).toFixed(1)} px</b> meanwhile`))
       .on("mouseleave", hideTip);
 
     // act: executed span of each chunk (alternating tints mark chunk boundaries)
@@ -111,7 +111,7 @@ function render() {
         const seamGap = e.seamAt.get(d.c.t0);
         const js = [...d.c.execJ.keys()];
         showTip(ev, `<b>${L.which === "ref" ? "R" : "C"} chunk #${d.i}</b> (plan shown in C)<br><span class="k">think</span> t=${d.c.t_obs} → ${d.c.t_avail} · <span class="k">act</span> t=${d.c.t0}–${d.c.t1}<br>
-          <span class="k">executed actions</span> ${d3.min(js)}–${d3.max(js)} of 16 · <span class="k">staleness</span> ${d.c.t0 - d.c.t_obs}–${d.c.t1 - d.c.t_obs} steps<br>
+          <span class="k">executed actions</span> ${d3.min(js)}–${d3.max(js)} of 16 · <span class="k">picture age</span> ${d.c.t0 - d.c.t_obs}–${d.c.t1 - d.c.t_obs} steps<br>
           ${seamGap !== undefined ? `<span class="k">boundary discontinuity at its start:</span> <b>${seamGap.toFixed(1)} px</b>` : ""}<br><span class="k">click = jump to its first action</span>`);
       })
       .on("mouseleave", () => { hideTip(); update({ hoverChunk: null }); })

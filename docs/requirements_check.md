@@ -16,11 +16,11 @@ Checked on 2026-10-27 after the redesign build. ✅ = satisfied, with evidence.
 ## 1 What: Data abstraction (2 pts)
 | Item | Status | Evidence |
 |---|---|---|
-| ≥ 100 items and ≥ 6 attributes | ✅ | `docs/dataset_verification.txt`: episodes.csv **2,350 items × 19 attributes** → PASS (plus 598,117 step and 119,373 chunk records) |
-| Size (rows, attributes, file size) | ✅ | slide 2, report §1: 2,350 × 19, 215 KB CSV + 112 MB JSON |
+| ≥ 100 items and ≥ 6 attributes | ✅ | `docs/dataset_verification.txt`: episodes.csv **2,350 items × 21 attributes** → PASS (plus 598,117 step and 119,373 chunk records) |
+| Size (rows, attributes, file size) | ✅ | slide 2, report §1: 2,350 × 21, 240 KB CSV + 112 MB JSON |
 | Dataset type; data types and semantics | ✅ | table + temporal (steps, chunks) + spatial field; slide 2, report §1 |
 | Nominal/ordinal: type, ordering, all levels, meaning | ✅ | strategy (sync / naive / inpaint), latency (0 < 1 < 2 < 4 < 6), horizon (2 < 4 < 6 < 8), replicate (0, 1), seed (1000–1049), success (0, 1) |
-| Quantitative: interval/ratio, ordering, range, meaning | ✅ | coverage, steps_to_success, boundary discontinuity, staleness, idle, jerk, path, n_inferences with ranges and ↑/↓; positions are interval, θ cyclic |
+| Quantitative: interval/ratio, ordering, range, meaning | ✅ | coverage, steps_to_success, boundary discontinuity, motion while thinking, staleness, idle, jerk, path, n_inferences with ranges and ↑/↓; positions are interval, θ cyclic |
 | Keys vs. values | ✅ | slide 2 “Keys vs. values” card; report §1 |
 
 ## 2 Who: Personas (2 pts)

@@ -56,7 +56,7 @@ function status(e, t) {
   if (t >= e.n) return { k: "done", text: e.success ? "finished: block in goal" : "time out" };
   if (e.chunk[t] < 0) return { k: "wait", text: "idle: waiting for inference" };
   const pend = pendingChunk(e, t);
-  return { k: "act", text: `acting on chunk #${e.chunk[t]} · ${e.age[t]} steps stale${pend ? " · thinking" : ""}` };
+  return { k: "act", text: `acting on chunk #${e.chunk[t]} · picture ${e.age[t]} steps old${pend ? " · thinking" : ""}` };
 }
 
 function render() {

@@ -32,6 +32,7 @@
   figure.hook { margin:0; flex:1; } figure.hook img { width:100%; display:block; border-radius:6px; }
   figure.hook figcaption { font-size:12.5px; margin-top:3px; line-height:1.3; }
   .q { font-style:italic; color:#1d1d1f; margin-bottom:2px; }
+  table.dense { font-size:12px; } table.dense td, table.dense th { padding:2.5px 5px; line-height:1.25; }
 </style>
 </head>
 <body>
@@ -49,11 +50,11 @@
         <li><b>Act.</b> The robot performs the first <i>h</i> moves of the chunk without looking again, then needs a new chunk.</li>
         <li><b>Think.</b> Computing a chunk takes time <i>d</i> (<b>inference latency</b>, here 0–600 ms). What should the robot do meanwhile? (right)
           <br>• <span class="tS">Sync</span>: <b>wait</b>. Safe, but the robot stands idle.
-          <br>• <b>Async</b>: <b>keep moving</b> on the old chunk. No waiting, but the scene changes while the policy thinks, so the new chunk may not continue the current motion: the robot <b>jumps</b> when it switches (a <b>chunk-boundary discontinuity</b>). <span class="tN">Naive async</span> just swaps the chunks; <span class="tI">inpaint async</span> computes the new chunk so that it continues the old one.</li>
+          <br>• <b>Async</b>: <b>keep moving</b> on the old chunk. No waiting, but the scene changes while the policy thinks, so the new chunk is made for a scene that no longer exists (an <b>outdated plan</b>) and may not continue the current motion: the robot <b>jumps</b> when it switches (a <b>chunk-boundary discontinuity</b>). <span class="tN">Naive async</span> just swaps the chunks; <span class="tI">inpaint async</span> computes the new chunk so that it continues the old one.</li>
       </ol>
       <div class="big" style="margin-top:9px">
         <b>The problem.</b> Engineers choose the strategy, <i>d</i> and <i>h</i> from one success rate per setting, e.g. “naive async, d = 4: {{SR_NAIVE_D4_H8}} vs. sync, d = 0: {{SR_SYNC_D0_H8}}”.
-        That number cannot show <b>which</b> situations broke, <b>when</b>, or <b>why</b> (idling or jumps). We found no visualization tool for this.
+        That number cannot show <b>which</b> situations broke, <b>when</b>, or <b>why</b> (idling, outdated plans or jumps). We found no visualization tool for this.
       </div>
       <div class="card" style="margin-top:10px; background:#fffaf0; border-color:#f0d9a8; font-size:14.5px; line-height:1.4">
         <b>Our idea: same start, different schedule.</b> We run one pretrained policy from the <b>same {{N_SEEDS}} start states</b> under <b>{{N_SCHED}} schedules</b>
@@ -84,24 +85,26 @@
 <!-- 2. What: data abstraction -->
 <section class="slide">
   <div class="kicker">1 · What — Data Abstraction</div>
-  <h1>Self-generated rollout logs of a pretrained diffusion policy</h1>
-  <h2><b>Task (PushT, simulated, seen from above)</b>: a round pusher, the <i>agent</i>, must push a T-shaped block onto a fixed T-shaped goal.
-    <b>Policy</b>: pretrained Diffusion Policy (<code>lerobot/diffusion_pusht</code>), a neural network that turns the last 2 camera frames into a chunk of 16 actions (2-D target positions of the agent) by iteratively removing noise from a random start (10 denoising steps, DDIM, CPU). Because each chunk starts from random noise, re-running an identical schedule can change an outcome (→ <i>noise replicate</i>).
-    Same {{N_SEEDS}} initial states × ({{N_SCHED}} schedules + 1 noise replicate) = <b>{{N_EP}} episodes</b> (rollouts = recorded runs); every predicted chunk and every executed action is logged.</h2>
+  <h1>Our own recorded runs of a pretrained robot policy</h1>
+  <h2><b>Task (PushT, simulated, top view)</b>: a round pusher (the <i>agent</i>) must push a T-shaped block onto a fixed T-shaped goal.
+    <b>Policy</b>: a pretrained Diffusion Policy (<code>lerobot/diffusion_pusht</code>) that turns the last 2 camera frames and pusher positions into a chunk of 16 moves (target positions of the pusher).
+    It builds every chunk from random noise, so running the same schedule again can change an outcome; one <i>noise replicate</i> measures how often.
+    Same {{N_SEEDS}} start states × ({{N_SCHED}} schedules + 1 noise replicate) = <b>{{N_EP}} episodes</b> (recorded runs, also called rollouts); every planned chunk and every executed move is logged.</h2>
   <div class="cols">
-    <div style="flex:1.45">
-      <table>
+    <div style="flex:1.75">
+      <table class="dense">
         <tr><th>Attribute (episode table, {{N_EP}} items × {{N_ATTR}} attributes)</th><th>Type</th><th>Order / range / levels</th><th>Meaning</th></tr>
-        <tr><td class="k">strategy <span class="keyb">KEY</span></td><td>nominal</td><td>sync · naive · inpaint</td><td>how a new chunk replaces the old one</td></tr>
+        <tr><td class="k">strategy <span class="keyb">KEY</span></td><td>nominal</td><td>sync · naive · inpaint</td><td>what the robot does while a chunk is computed</td></tr>
         <tr><td class="k">latency d <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>0 &lt; 1 &lt; 2 &lt; 4 &lt; 6 steps (0–600 ms)</td><td>inference delay; d = 0 only for sync</td></tr>
-        <tr><td class="k">horizon h <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>2 &lt; 4 &lt; 6 &lt; 8</td><td>actions executed open-loop per chunk</td></tr>
-        <tr><td class="k">replicate <span class="keyb">KEY</span></td><td>nominal (binary)</td><td>0 · 1</td><td>1 = sync d0 h8 re-run with new sampling noise (noise floor)</td></tr>
-        <tr><td class="k">seed <span class="keyb">KEY</span></td><td>nominal (ID)</td><td>{{SEED_MIN}}–{{SEED_MAX}} ({{N_SEEDS}} levels)</td><td>initial state of block &amp; agent (paired)</td></tr>
+        <tr><td class="k">horizon h <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>2 &lt; 4 &lt; 6 &lt; 8</td><td>moves executed from each chunk before switching</td></tr>
+        <tr><td class="k">replicate <span class="keyb">KEY</span></td><td>nominal (binary)</td><td>0 · 1</td><td>1 = sync d0 h8 run again with new random noise (chance level)</td></tr>
+        <tr><td class="k">seed <span class="keyb">KEY</span></td><td>nominal (ID)</td><td>{{SEED_MIN}}–{{SEED_MAX}} ({{N_SEEDS}} levels)</td><td>start state of block &amp; pusher, same in every schedule</td></tr>
         <tr><td>success</td><td>nominal (binary)</td><td>0 = fail, 1 = success</td><td>coverage &gt; 95 % within 300 steps</td></tr>
-        <tr><td>coverage_final</td><td>quant. ratio, ↑ better</td><td>{{COV_RANGE}}</td><td>overlap of T-block with goal</td></tr>
-        <tr><td>steps_to_success</td><td>quant. ratio, ↓ better</td><td>{{STS_RANGE}} (missing if failed)</td><td>time to finish</td></tr>
+        <tr><td>coverage_final</td><td>quant. ratio, ↑</td><td>{{COV_RANGE}}</td><td>overlap of T-block with goal</td></tr>
+        <tr><td>steps_to_success</td><td>quant. ratio, ↓</td><td>{{STS_RANGE}} (empty if failed)</td><td>time to finish</td></tr>
         <tr><td>seam_gap_mean / max</td><td>quant. ratio (px), ↓</td><td>{{SEAM_RANGE}} / {{SEAMMAX_RANGE}}</td><td>chunk-boundary discontinuity: jump between old and new plan at a hand-over</td></tr>
-        <tr><td>staleness_mean</td><td>quant. ratio (steps), ↓</td><td>{{STALE_RANGE}}</td><td>age of the observation behind each executed action</td></tr>
+        <tr><td>think_motion_mean / max</td><td>quant. ratio (px), ↓</td><td>{{THINK_RANGE}} / {{THINKMAX_RANGE}}</td><td>how far the robot moved while the policy was thinking (change the new chunk did not see)</td></tr>
+        <tr><td>staleness_mean</td><td>quant. ratio (steps)</td><td>{{STALE_RANGE}}</td><td>age of the camera picture behind each move (≈ d + (h−1)/2, equal for all strategies)</td></tr>
         <tr><td>idle_frac</td><td>quant. ratio, ↓</td><td>{{IDLE_RANGE}}</td><td>share of steps with nothing to execute</td></tr>
         <tr><td>jerk_mean · path_len · n_inferences</td><td>quant. ratio</td><td>{{JERK_RANGE}} · {{PATH_RANGE}} px · {{NINF_RANGE}}</td><td>smoothness (jerk = 2nd difference of actions) · distance travelled · # chunks computed</td></tr>
       </table>
@@ -110,8 +113,8 @@
       <div class="card">
         <b>Dataset type</b>: multidimensional <b>table</b> of episodes, each linked to two <b>temporal</b> tables and to a <b>spatial</b> field (512 × 512 px workspace).
         <ul class="small">
-          <li><b>Step table</b> ({{N_STEPS}} items) · keys: schedule, seed, t (ordinal, 10 Hz) · values: agent x, y; block x, y (interval, px); block θ (cyclic, rad); action x, y (interval, px); chunk id (ordinal); index j 0–15 (ordinal); age (ratio, steps since its observation); held (binary, 1 = idle step); coverage (ratio 0–1, block–goal overlap).</li>
-          <li><b>Chunk table</b> ({{N_CHUNKS}} items) · keys: schedule, seed, chunk id · values: t_obs (when the observation was taken), t_avail (when the chunk was ready), executed window, 16 predicted (x, y) actions.</li>
+          <li><b>Step table</b> ({{N_STEPS}} items) · keys: schedule, seed, t (ordinal, 10 Hz) · values: agent x, y; block x, y (interval, px); block θ (cyclic, rad); action x, y (interval, px); chunk id (ordinal); index j 0–15 (ordinal); age (ratio, steps since its camera picture); held (binary, 1 = idle step); coverage (ratio 0–1, block–goal overlap).</li>
+          <li><b>Chunk table</b> ({{N_CHUNKS}} items) · keys: schedule, seed, chunk id · values: t_obs (time of the camera picture), t_avail (time the chunk was ready), executed window, 16 predicted (x, y) actions.</li>
           <li><b>Size</b>: {{CSV_KB}} KB episode CSV + {{DETAIL_MB}} MB step/chunk JSON (lazy-loaded per schedule).</li>
         </ul>
       </div>
@@ -139,7 +142,7 @@
           <li><b>Context</b>: trains diffusion / flow-matching policies (generative models that output action chunks); deploys them on a real arm while the GPU server sits across the building (60–250 ms Wi-Fi latency).</li>
           <li><b>Goals</b>: pick an execution strategy and horizon that keep success high at the latency she actually has; explain <i>why</i> in a paper.</li>
           <li><b>Needs</b>: per-episode evidence of what failed, aligned with what the policy planned at that moment.</li>
-          <li><b>Pain points</b>: only success-rate tables and video; cannot tell stale actions from discontinuities; re-running real robot trials is costly; matplotlib debug plots show one episode at a time.</li>
+          <li><b>Pain points</b>: only success-rate tables and video; cannot tell whether a failure came from waiting, an outdated plan or a jump; re-running real robot trials is costly; matplotlib debug plots show one episode at a time.</li>
         </ul>
       </div>
     </div>
@@ -171,10 +174,10 @@
 <!-- 4. Why: tasks -->
 <section class="slide">
   <div class="kicker">3 · Why — Task Abstraction (action + target, Munzner)</div>
-  <h1>Four tasks, from schedules down to a single discontinuity</h1>
+  <h1>Four tasks, from all schedules down to a single chunk switch</h1>
   <table style="margin-top:10px; font-size:15px">
     <tr><th style="width:38px">#</th><th style="width:250px">Action + target</th><th>Concrete question (Mara)</th><th style="width:250px">Why</th><th style="width:260px">Expected outcome</th></tr>
-    <tr><td class="k">T1</td><td><b>Compare</b> → <b>trends</b> of success / boundary discontinuity / staleness across schedules</td>
+    <tr><td class="k">T1</td><td><b>Compare</b> → <b>trends</b> of success and of each strategy's cost (idle time, outdated plans, jumps) across schedules</td>
       <td>“How fast does success fall with latency for each strategy, and which horizon is most robust?”</td>
       <td>Choose a candidate schedule for the latency the lab actually has.</td>
       <td>A shortlist of robust schedules and a latency budget per strategy.</td></tr>
@@ -182,11 +185,11 @@
       <td>“Going from sync d=0 to naive async d=4, <i>which</i> seeds start failing, and which are rescued?”</td>
       <td>Aggregate rates hide which situations break; paired seeds isolate the schedule's effect.</td>
       <td>A small set of fragile seeds to inspect (and to add to a regression test set).</td></tr>
-    <tr><td class="k">T3</td><td><b>Identify</b> → <b>features</b> in time &amp; space: where stale actions, discontinuities and idling occur in a flipped episode</td>
-      <td>“At which step does the candidate diverge from the reference, and was the executed action stale, a discontinuity, or a wait?”</td>
+    <tr><td class="k">T3</td><td><b>Identify</b> → <b>features</b> in time &amp; space: where idling, outdated plans and jumps occur in a flipped episode</td>
+      <td>“At which step does the candidate diverge from the reference, and did the robot wait, act on an outdated plan, or jump?”</td>
       <td>Diagnose the mechanism of failure, not just its rate.</td>
       <td>A causal hypothesis, e.g. “a 30 px discontinuity right at block contact makes the push slip.”</td></tr>
-    <tr><td class="k">T4</td><td><b>Discover</b> → <b>correlation</b> between boundary discontinuities (plan inconsistency) and task outcome (coverage) over paired episodes</td>
+    <tr><td class="k">T4</td><td><b>Discover</b> → <b>correlation</b> between jumps at chunk switches (boundary discontinuities) and task outcome (coverage) over paired episodes</td>
       <td>“When a seed moves from R to C, do larger discontinuities go with lower coverage? Does inpainting shrink the discontinuities?”</td>
       <td>If jumps are what breaks episodes, a strategy that shrinks them should rescue seeds; check it on our policy.</td>
       <td>Evidence for or against a strategy (direction and size of shift per seed).</td></tr>
@@ -203,9 +206,9 @@
   <h1>Each view answers one task with the most effective idiom</h1>
   <table style="margin-top:8px; font-size:15px">
     <tr><th style="width:170px">View</th><th style="width:60px">Task</th><th>Idiom &amp; why (VIS literature)</th><th style="width:300px">Interaction</th></tr>
-    <tr><td class="k">A · Latency Response</td><td>T1</td><td><div class="q">“How fast does each strategy get worse as the policy gets slower?”</div><b>Line chart small multiples</b>: one panel per horizon h, x = latency d on its true scale, y = metric, strategies <b>superposed</b> (hue + shape). Position on a common scale beats the luminance of a heatmap [Cleveland &amp; McGill 84; Heer &amp; Bostock 10]; superposition for direct sync-vs-async comparison, juxtaposition across h [Gleicher 11]. <b>95 % interval</b> lines instead of bars [Correll &amp; Gleicher 14]; hover = paired difference to R.</td><td>Click mark = C (compare), shift-click = R (baseline); <b>one question bar</b>: Success · Idle (cost of sync) · Staleness (age of the picture) · Discontinuity (cost of naive async), drives A <i>and</i> B; recomputes on seeds selected in B.</td></tr>
+    <tr><td class="k">A · Latency Response</td><td>T1</td><td><div class="q">“How fast does each strategy get worse as the policy gets slower?”</div><b>Line chart small multiples</b>: one panel per horizon h, x = latency d on its true scale, y = metric, strategies <b>superposed</b> (hue + shape). Position on a common scale beats the luminance of a heatmap [Cleveland &amp; McGill 84; Heer &amp; Bostock 10]; superposition for direct sync-vs-async comparison, juxtaposition across h [Gleicher 11]. <b>95 % interval</b> lines instead of bars [Correll &amp; Gleicher 14]; hover = paired difference to R.</td><td>Click mark = C (compare), shift-click = R (baseline); <b>one question bar</b>: Success · Idle (cost of sync) · Outdated (cost of async) · Discontinuity (cost of naive async), drives A <i>and</i> B; recomputes on seeds selected in B.</td></tr>
     <tr><td class="k">B · Paired Seed Table</td><td>T2, T4</td><td><div class="q">“Which start states flip between R and C, and is that more than chance?”</div><b>Composite Table-Lens view</b> [Rao &amp; Card 94; Javed &amp; Elmqvist 12]: one row per seed shared by (left) an outcome matrix — filled = success, R column black, C column orange — and (right) <b>dumbbells</b> R → C of the attribute that belongs to A's question. Rows are <b>grouped by R→C change</b> (spatial region), so flips break their band's pattern; a <b>re-run</b> column shows chance flips (11/50).</td><td>No controls of its own. Click column header = C; click cell = open episode; <b>brush</b> dumbbells or click a band → <b>cross-filter</b> A [Weaver 10].</td></tr>
-    <tr><td class="k">C · Workspace Replay</td><td>T3</td><td><div class="q">“Watch both runs side by side: what was planned, what was done, where it jumped.”</div>Juxtaposed R | C maps at identical scale (spatial data on true geometry). Only three overlays: executed part of the current chunk (solid), its thrown-away part (dashed), the chunk still being computed (dotted) and the latest <b>discontinuity</b> (magenta). Status line in strategy terms (“idle: waiting for inference”).</td><td>Play / scrub / ← → (<b>navigate</b> t); hover a planned point → when planned / executed; click → jump.</td></tr>
+    <tr><td class="k">C · Workspace Replay</td><td>T3</td><td><div class="q">“Watch both runs side by side: what was planned, what was done, where it jumped.”</div>Juxtaposed R | C maps at identical scale (spatial data on true geometry). Four overlays: executed part of the current chunk (solid), its thrown-away part (dashed), the chunk still being computed (dotted) and the latest <b>discontinuity</b> (magenta). Status line in strategy terms (“idle: waiting for inference”).</td><td>Play / scrub / ← → (<b>navigate</b> t); hover a planned point → when planned / executed; click → jump.</td></tr>
     <tr><td class="k">D · Execution Timeline</td><td>T3</td><td><div class="q">“When was the policy thinking, which plan did each move come from, where were the jumps?”</div><b>Gantt lanes</b> on a shared linear time axis [Plaisant 96; Brehmer 17]: per run a <b>think</b> track (inference) and an <b>act</b> track (chunk spans, hatched = idle), discontinuities as <b>lollipops</b> (length), coverage lines below. Sync shows think/act <i>alternating</i>, async <i>overlapping</i>.</td><td><b>Brush</b> a time window → highlighted path in C; hover chunk → its plan in C; click → cursor.</td></tr>
   </table>
   <div class="card" style="margin-top:14px; font-size:15px">
@@ -223,7 +226,7 @@
     <div style="flex:1.55">
       <table style="font-size:14px">
         <tr><th>Attribute (type)</th><th>View</th><th>Mark</th><th>Channel</th><th>Justification</th></tr>
-        <tr><td>success rate, idle, staleness, boundary discontinuity (ratio)</td><td>A</td><td>point + line</td><td>position y (common scale)</td><td>best magnitude channel; slope = degradation</td></tr>
+        <tr><td>success rate, idle share, motion while thinking, boundary discontinuity (ratio)</td><td>A</td><td>point + line</td><td>position y (common scale)</td><td>best magnitude channel; slope = degradation</td></tr>
         <tr><td>latency d (ratio)</td><td>A</td><td>—</td><td>position x (true spacing)</td><td>100 ms steps, not ordinal bins</td></tr>
         <tr><td>horizon h (ordinal)</td><td>A</td><td>panel</td><td>spatial region (small multiples)</td><td>juxtaposed, shared y</td></tr>
         <tr><td>strategy (nominal, 3)</td><td>A, B</td><td>line, point</td><td>hue + shape (●■◆)</td><td>redundant: never hue alone</td></tr>

@@ -37,7 +37,7 @@ note(630, 31, "pick / swap R and C anywhere", "end")
 # ---- A latency response
 ax, ay, aw, ah = 8, 54, 512, 236
 panel(ax, ay, aw, ah, "A · Latency Response   (T1)")
-add(f'<text x="{ax+10}" y="{ay+38}" font-size="11">[<tspan font-weight="bold">Success</tspan> | Idle | Staleness | Discontinuity]    <tspan fill="{S["sync"]}">●</tspan> Sync <tspan fill="{S["naive"]}">■</tspan> Naive <tspan fill="{S["inpaint"]}">◆</tspan> Inpaint</text>')
+add(f'<text x="{ax+10}" y="{ay+38}" font-size="11">[<tspan font-weight="bold">Success</tspan> | Idle | Outdated | Discontinuity]    <tspan fill="{S["sync"]}">●</tspan> Sync <tspan fill="{S["naive"]}">■</tspan> Naive <tspan fill="{S["inpaint"]}">◆</tspan> Inpaint</text>')
 vals = {8: {"sync": [72, 62, 70, 44, 40], "naive": [72, 68, 62, 62, 46], "inpaint": [72, 58, 66, 60, 40]},
         6: {"sync": [48, 42, 32, 26, 30], "naive": [48, 44, 58, 56, 32], "inpaint": [48, 48, 50, 58, 26]},
         4: {"sync": [28, 24, 22, 14, 8], "naive": [28, 12, 34, 38], "inpaint": [28, 40, 46, 60]},
@@ -111,7 +111,7 @@ add(f'<path d="M{bx+352},{my+110} C{bx+300},{by-20} {bx+300},{ay+120} {bx+260},{
 # ---- C workspace replay
 cx0, cy0, cwid, cht = 528, 54, 664, 330
 panel(cx0, cy0, cwid, cht, "C · Workspace Replay   (T3)")
-for k, (lab, col, good) in enumerate([("R · Sync d4 h4 ✗ · idle: waiting for inference", R, False), ("C · Inpaint d4 h4 ✓ · acting, 4 steps stale · thinking", C, True)]):
+for k, (lab, col, good) in enumerate([("R · Sync d4 h4 ✗ · idle: waiting for inference", R, False), ("C · Inpaint d4 h4 ✓ · acting · picture 4 steps old", C, True)]):
     x0 = cx0 + 24 + k * 320
     add(f'<text x="{x0}" y="{cy0+40}" font-size="10.5" font-weight="bold" fill="{"#222" if k == 0 else "#9a6a00"}">{lab}</text>')
     add(f'<rect x="{x0}" y="{cy0+48}" width="300" height="230" rx="4" fill="#fafafb" stroke="#ccc"/>')

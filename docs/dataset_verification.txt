@@ -1,4 +1,4 @@
-episodes.csv: 2350 items x 19 attributes, 215 KB
+episodes.csv: 2350 items x 21 attributes, 240 KB
   schedule           distinct=47
   strategy           levels=['inpaint', 'naive', 'sync']
   latency            levels=[0, 1, 2, 4, 6]  (missing 0)
@@ -17,6 +17,8 @@ episodes.csv: 2350 items x 19 attributes, 215 KB
   staleness_mean     range=[0.493, 9.5]  distinct=291  (missing 0)
   idle_frac          range=[0, 0.7533]  distinct=413  (missing 0)
   jerk_mean          range=[1.22, 221.3]  distinct=819  (missing 0)
+  think_motion_mean  range=[0, 106.52]  distinct=1484  (missing 0)
+  think_motion_max   range=[0, 316.51]  distinct=1802  (missing 0)
   path_len           range=[205, 12827.8]  distinct=2249  (missing 0)
 step records: 598117   chunk records: 119373 (16 predicted 2-D actions each)   detail files: 111.8 MB
 REQUIREMENT >=100 items and >=6 attributes: PASS

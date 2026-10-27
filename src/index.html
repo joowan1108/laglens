@@ -54,7 +54,7 @@
         <span><i class="k-dash"></i>planned but thrown away</span>
         <span><i class="k-dot"></i>next chunk, still computing</span>
         <span><i class="k-seam"></i>chunk-boundary discontinuity: jump between old and new plan</span>
-        <span class="muted">“N steps stale” = age of the observation the current action was planned from</span>
+        <span class="muted">“picture N steps old” = age of the camera picture the current move was planned from</span>
       </div>
     </section>
     <section class="panel" id="pD">
@@ -81,7 +81,7 @@
     <ol>
       <li><b>A Latency Response</b>: how each strategy degrades as inference gets slower (x = latency <i>d</i>, the time the policy needs to compute a chunk), one panel per execution horizon <i>h</i> (how many actions of each chunk are executed before switching to the next).
         <span class="tS">Sync</span> waits while the policy thinks, <span class="tN">naive async</span> keeps acting on the old chunk and switches abruptly, <span class="tI">inpaint async</span> keeps acting and makes the new chunk continue the old one.
-        The four buttons choose the question: <i>Success</i>, or the cost each strategy pays: <i>Idle</i> (sync), <i>Staleness</i> (age of the camera picture behind each move; the same for every strategy at equal <i>d</i>, <i>h</i>), <i>Discontinuity</i> (naive async). The same choice sets the attribute in B. Click a mark = <span class="tC">C (compare)</span>, shift-click = <span class="tR">R (baseline)</span>; hovering a mark gives its difference to R on the same seeds.</li>
+        The four buttons choose the question: <i>Success</i>, or the cost each strategy pays: <i>Idle</i> (sync), <i>Outdated</i> (async: how far the robot moved while the policy was thinking, so the new plan fits an old scene), <i>Discontinuity</i> (naive async). The same choice sets the attribute in B. Click a mark = <span class="tC">C (compare)</span>, shift-click = <span class="tR">R (baseline)</span>; hovering a mark gives its difference to R on the same seeds.</li>
       <li><b>B Paired Seed Table</b>: one row per initial state. Left: filled cell = success under that column's schedule (R black, C orange). Rows are grouped by how the outcome changes from R to C; the <i>re-run</i> column shows how many outcomes flip by chance alone. Right: the same seed's value under R (●) and C (<span class="tC">●</span>) for the question chosen in A. Drag over the right part to select seeds: A then recomputes on them.</li>
       <li><b>C Workspace Replay</b>: the episode under R and C side by side, with the chunk being executed, the next chunk still being computed and the latest <span class="tSeam">discontinuity</span>.</li>
       <li><b>D Execution Timeline</b>: when the policy thinks and which chunk each action came from; lollipops are discontinuities. Brush a window, hover a chunk to see its plan in C.</li>

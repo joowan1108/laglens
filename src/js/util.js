@@ -19,13 +19,13 @@ export const STRAT_SYMBOL = { sync: d3.symbolCircle, naive: d3.symbolSquare, inp
 export const METRICS = {
   success_rate: { btn: "Success", sub: "outcome", label: "success rate", ep: "success", rate: true, pct: true,
     epB: "coverage_final",
-    note: "share of the 50 episodes that end with ≥ 95 % of the T-block in the goal" },
+    note: "share of the 50 episodes that end with more than 95 % of the T-block in the goal" },
   idle_frac_mean: { btn: "Idle", sub: "cost of sync", label: "idle share", ep: "idle_frac", pct: true,
     epB: "idle_frac",
     note: "share of steps in which the robot holds still while the policy thinks: the price sync pays" },
-  staleness_mean: { btn: "Staleness", sub: "age of picture", label: "staleness (steps)", ep: "staleness_mean",
-    epB: "staleness_mean",
-    note: "age of the observation behind each executed action: the price of acting while thinking" },
+  think_motion_mean: { btn: "Outdated", sub: "cost of async", label: "robot motion while thinking (px)", ep: "think_motion_mean",
+    epB: "think_motion_mean",
+    note: "how far the robot moved between the camera picture a chunk was planned from and the moment that chunk was ready: the plan was made for a scene that has since changed (the price async pays; sync waits, so it moves less)" },
   seam_gap_mean: { btn: "Discontinuity", sub: "cost of naive async", label: "boundary discontinuity (px)", ep: "seam_gap_mean",
     epB: "seam_gap_max",
     note: "chunk-boundary discontinuity: distance between the action the old chunk planned next and the first action of the new chunk, at each hand-over" },
@@ -42,7 +42,7 @@ export function fmtMetric(k, v, signed = false) {
 export const EP_ATTRS = {
   coverage_final: "final coverage of the goal",
   idle_frac: "idle share",
-  staleness_mean: "mean staleness (steps)",
+  think_motion_mean: "mean robot motion while thinking (px)",
   seam_gap_max: "largest boundary discontinuity in the episode (px)",
 };
 

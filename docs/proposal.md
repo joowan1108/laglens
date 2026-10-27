@@ -10,10 +10,10 @@ Slide 1 shows a real case from our data (start state 1035, d = 4, h = 4): inpain
 **Idea:** same start, different schedule (paired counterfactual replay). One pretrained policy, the same 50 start states, 46 schedules plus a noise replicate, and every planned chunk logged.
 
 ## 1 What: data abstraction
-* Self-generated with `lerobot/diffusion_pusht` in the PushT simulator (CPU, DDIM 10 steps): 2,350 episodes × 19 attributes; 598,117 steps; 119,373 chunks (16 predicted 2-D actions each). See `docs/dataset_verification.txt`.
+* Self-generated with `lerobot/diffusion_pusht` in the PushT simulator (CPU, DDIM 10 steps): 2,350 episodes × 21 attributes; 598,117 steps; 119,373 chunks (16 predicted 2-D actions each). See `docs/dataset_verification.txt`.
 * Dataset type: a table of episodes linked to temporal step and chunk tables and to a 512 × 512 px spatial field.
 * **Keys:** strategy (nominal: sync / naive / inpaint), latency *d* (ordinal: 0 < 1 < 2 < 4 < 6 steps), horizon *h* (ordinal: 2 < 4 < 6 < 8), replicate (binary), seed (nominal, 1000–1049), t, chunk id.
-* **Values:** success (binary), coverage_final (ratio, 0–0.99), steps_to_success (ratio, 68–300), seam_gap_mean / max (ratio, px), staleness_mean (ratio, steps), idle_frac (ratio), jerk_mean, path_len, n_inferences, n_seams, inner_step_mean. Per step: agent / block position (interval, px), block angle (cyclic), action, chunk id, index *j*, age, held, coverage.
+* **Values:** success (binary), coverage_final (ratio, 0–0.99), steps_to_success (ratio, 68–300), seam_gap_mean / max (ratio, px), think_motion_mean / max (ratio, px: robot motion while the policy thinks), staleness_mean (ratio, steps; ≈ d + (h−1)/2 for every strategy), idle_frac (ratio), jerk_mean, path_len, n_inferences, n_seams, inner_step_mean. Per step: agent / block position (interval, px), block angle (cyclic), action, chunk id, index *j*, age, held, coverage.
 
 ## 2 Who: personas
 * **Primary: Mara Jensen.** 28, PhD student in a robot-learning lab in Copenhagen. Deploys diffusion policies on a real arm with a remote GPU server (60–250 ms). Needs per-episode evidence of *why* schedules fail. Pain points: only success tables and videos; cannot separate stale actions from discontinuities.
@@ -30,7 +30,7 @@ Slide 1 shows a real case from our data (start state 1035, d = 4, h = 4): inpain
 | T4 | Discover → correlation (boundary discontinuity ↔ outcome) | test the boundary-artifact claim | evidence for or against a strategy |
 
 ## 4 How: idioms
-A Latency Response (line-chart small multiples per horizon, strategies superposed with hue + shape, 95 % intervals, paired Δ vs R on hover, one question bar: Success · Idle · Staleness · Discontinuity) · B Paired Seed Table (outcome matrix grouped by R→C change + R→C dumbbells of the question's attribute on one shared row axis, re-run column for chance, brushing cross-filters A) · C Workspace Replay (juxtaposed maps: current chunk, chunk being computed, latest discontinuity) · D Execution Timeline (think / act tracks, discontinuity lollipops, coverage). Rationale and literature: `docs/design_rationale.md`.
+A Latency Response (line-chart small multiples per horizon, strategies superposed with hue + shape, 95 % intervals, paired Δ vs R on hover, one question bar: Success · Idle · Outdated · Discontinuity) · B Paired Seed Table (outcome matrix grouped by R→C change + R→C dumbbells of the question's attribute on one shared row axis, re-run column for chance, brushing cross-filters A) · C Workspace Replay (juxtaposed maps: current chunk, chunk being computed, latest discontinuity) · D Execution Timeline (think / act tracks, discontinuity lollipops, coverage). Rationale and literature: `docs/design_rationale.md`.
 Interactions: select R/C, choose the question (drives A and B), brush and link, filter, tooltip, play and scrub.
 The channel-justification table and the hue budget (Okabe–Ito, CVD-checked) are on slides 5–6.
 

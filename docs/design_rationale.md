@@ -13,9 +13,9 @@ Every strategy pays a different cost for inference latency *d*. The views are bu
 |---|---|---|---|---|
 | **Sync** | The robot holds still for *d* steps, then executes *h* actions of the new chunk. | **Time.** The idle share is about d/(h+d). The observation is old but the world did not move, so the plan still fits. | idle 51 %, discontinuity 5.4 px, success 14 % | **D:** *think* and *act* alternate, with hatched idle gaps.<br>**A:** the blue curve falls steadily with *d*. |
 | **Naive async** | The robot keeps executing the old chunk. The new chunk replaces it after *d* steps, skipping its first *d* actions. | **Discontinuity.** The new plan comes from an observation taken before the robot moved and can choose another mode, so discontinuities are large. | idle 2 %, discontinuity 43.5 px, success 38 % | **D:** *think* overlaps *act*, with tall magenta discontinuity lollipops.<br>**C:** magenta discontinuity segment.<br>**A:** discontinuity curve rises as *h* shrinks. |
-| **Inpaint async** | Same timing as naive. The new chunk is sampled with the committed actions clamped, so it continues the old plan. | **Staleness only.** It has the same observation age as naive but small discontinuities. | idle 2 %, discontinuity 8.0 px, success 60 % | **D:** *think* overlaps *act*, with short lollipops.<br>**A:** the green curve stays flat across *d*. |
+| **Inpaint async** | Same timing as naive. The new chunk is sampled with the committed actions clamped, so it continues the old plan. | **Outdated plans only.** Like naive, the robot keeps moving while the policy thinks (motion while thinking 30.8 px vs. 47.7 px naive and 11.5 px sync), but discontinuities stay small. | idle 2 %, discontinuity 8.0 px, success 60 % | **D:** *think* overlaps *act*, with short lollipops.<br>**A:** the green curve stays roughly level up to *d* = 4 (58–66 % at *h* = 8), then drops at *d* = 6. |
 
-These are exactly the four questions offered in A's question bar: Success, Idle (cost of sync), Staleness (age of the camera picture behind each move: on average d + (h−1)/2, identical for all three strategies at equal d and h; it hurts only async, where the world keeps moving meanwhile), Discontinuity (cost of naive async). The *think / act* tracks in D show each schedule's timing directly instead of describing it in text.
+These are exactly the four questions offered in A's question bar: Success, Idle (cost of sync), Outdated (cost of async: how far the robot moved between the camera picture a chunk was planned from and the moment the chunk was ready). It replaced an earlier *Staleness* question: the age of that picture averages d + (h−1)/2 and is identical for all three strategies at equal d and h, so its curves overlapped and could not separate the strategies, Discontinuity (cost of naive async). The *think / act* tracks in D show each schedule's timing directly instead of describing it in text.
 
 ## 2 Views, marks and channels
 
@@ -43,15 +43,15 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 | R column black, C column orange; others grey | Identity hues appear only where R and C are, as in every other view. | [4] |
 | Rows grouped by R→C change (lost, gained, both ✓, both ✗), robust seeds first inside a band; no sort or attribute controls | Spatial region is the top-ranked channel for a categorical attribute. Each band directly answers "which seeds flip?". Alternative orders were rarely needed and added controls. | [1] |
 | "re-run" column (same schedule, new noise) | An explicit reference for chance: 11/50 seeds flip with no schedule change. | [5] |
-| Dumbbell: ● R → ● C on a common position axis of the attribute that belongs to A's question (final coverage, idle share, staleness, largest discontinuity); symlog for discontinuities; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
+| Dumbbell: ● R → ● C on a common position axis of the attribute that belongs to A's question (final coverage, idle share, motion while thinking, largest discontinuity); symlog for discontinuities; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
 | Vertical brush on the dumbbells, or click a band → selected seeds re-aggregate A | Cross-filtering checks whether a trend holds for a subset ("are the failures driven by these seeds?"). | [12][15] |
 
 ### C Workspace Replay (T3 identify where)
 | Decision | Why | Source |
 |---|---|---|
 | R and C side by side at the same scale and seed | Juxtaposition of two spatial states. True geometry is used because the data is spatial. | [4][6] |
-| Only three overlays: executed part of the current chunk (filled dots, solid), thrown-away part (hollow, dashed), the chunk still being computed (grey, dotted), plus the latest discontinuity (magenta) for 10 steps | Removes the full-path trace, the previous-chunk tail, per-index luminance and the start-pose ghost: data-ink that did not serve T3. Details (when planned, when executed, staleness) are on demand via hover. | [17][18] |
-| Status line in the strategy vocabulary ("idle: waiting for inference", "acting … 4 steps stale · thinking") | States the sync vs. async situation at t in words, so it never has to be decoded from marks. | |
+| Four overlays: executed part of the current chunk (filled dots, solid), thrown-away part (hollow, dashed), the chunk still being computed (grey, dotted), plus the latest discontinuity (magenta) for 10 steps | Removes the full-path trace, the previous-chunk tail, per-index luminance and the start-pose ghost: data-ink that did not serve T3. Details (when planned, when executed, staleness) are on demand via hover. | [17][18] |
+| Status line in the strategy vocabulary ("idle: waiting for inference", "acting … picture 4 steps old · thinking") | States the sync vs. async situation at t in words, so it never has to be decoded from marks. | |
 
 ### D Execution Timeline (T3 identify when)
 | Decision | Why | Source |
