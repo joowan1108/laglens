@@ -1,189 +1,286 @@
-"""Writes slides/assets/sketch.svg: the mid-fidelity wireframe of the LagLens layout
-(4 linked views). Purple text/arrows = interaction and linking."""
+"""Writes slides/assets/sketch.svg: the low-fidelity wireframe of the LagLens layout
+(4 linked views). Boxes and placeholder marks are drawn with rough strokes; every view says
+what it encodes. Purple = interaction and linking, numbered as the steps on slide 7."""
 import math, random
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "slides" / "assets" / "sketch.svg"
+INK, GREY, LIGHT = "#333", "#8a8a92", "#e6e6ea"
 IA = "#6a3d9a"  # interaction annotations
-S = {"sync": "#0072B2", "naive": "#D55E00", "inpaint": "#009E73"}
 R, C, SEAM = "#222", "#E69F00", "#c2185b"
-random.seed(3)
+random.seed(7)
 o = []
 add = o.append
 
 
-def panel(x, y, w, h, title):
-    add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="6" fill="#fff" stroke="#555"/>')
-    add(f'<text x="{x+10}" y="{y+19}" font-weight="bold" font-size="13">{title}</text>')
+def j(a=0.9):
+    return random.uniform(-a, a)
 
 
-def note(x, y, txt, anchor="start"):
-    add(f'<text x="{x}" y="{y}" font-size="11" fill="{IA}" text-anchor="{anchor}">{txt}</text>')
+def rl(x1, y1, x2, y2, col=INK, w=1.4, dash=None, over=2.0):
+    """Hand-drawn line: ends overshoot a little, the middle bows slightly."""
+    L = math.hypot(x2 - x1, y2 - y1) or 1
+    ux, uy = (x2 - x1) / L, (y2 - y1) / L
+    x1, y1, x2, y2 = x1 - ux * over + j(), y1 - uy * over + j(), x2 + ux * over + j(), y2 + uy * over + j()
+    b = random.uniform(-1, 1) * min(2.2, L * 0.01)
+    mx, my = (x1 + x2) / 2 - uy * b, (y1 + y2) / 2 + ux * b
+    d = f' stroke-dasharray="{dash}"' if dash else ""
+    add(f'<path d="M{x1:.1f},{y1:.1f} Q{mx:.1f},{my:.1f} {x2:.1f},{y2:.1f}" fill="none" stroke="{col}" stroke-width="{w}" stroke-linecap="round"{d}/>')
+
+
+def rbox(x, y, w, h, col=INK, sw=1.4, fill=None, dash=None):
+    if fill:
+        add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}"/>')
+    rl(x, y, x + w, y, col, sw, dash); rl(x + w, y, x + w, y + h, col, sw, dash)
+    rl(x + w, y + h, x, y + h, col, sw, dash); rl(x, y + h, x, y, col, sw, dash)
+
+
+def rpoly(pts, col=INK, w=1.6, dash=None):
+    d = f' stroke-dasharray="{dash}"' if dash else ""
+    add(f'<polyline points="{" ".join(f"{a + j(0.6):.1f},{b + j(0.6):.1f}" for a, b in pts)}" fill="none" stroke="{col}" stroke-width="{w}" stroke-linejoin="round" stroke-linecap="round"{d}/>')
+
+
+def rcirc(x, y, r, col=INK, w=1.4, fill="none", dash=None):
+    d = f' stroke-dasharray="{dash}" stroke-linecap="round"' if dash else ""
+    add(f'<ellipse cx="{x + j(0.4):.1f}" cy="{y + j(0.4):.1f}" rx="{r + j(0.5):.1f}" ry="{r + j(0.5):.1f}" fill="{fill}" stroke="{col}" stroke-width="{w}"{d}/>')
+
+
+def txt(x, y, s, size=11, col=INK, anchor="start", weight="normal"):
+    add(f'<text x="{x}" y="{y}" font-size="{size}" fill="{col}" text-anchor="{anchor}" font-weight="{weight}">{s}</text>')
+
+
+def note(x, y, s, anchor="start", size=11):
+    txt(x, y, s, size, IA, anchor)
 
 
 def badge(x, y, n):  # numbered step, explained under the sketch on slide 7
-    add(f'<circle cx="{x}" cy="{y}" r="10" fill="{IA}"/><text x="{x}" y="{y+4.5}" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">{n}</text>')
+    add(f'<circle cx="{x}" cy="{y}" r="10" fill="{IA}"/><text x="{x}" y="{y + 4.5}" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">{n}</text>')
+
+
+def arrow(d):
+    add(f'<path d="{d}" fill="none" stroke="{IA}" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#arr)"/>')
+
+
+def tee(cx, cy, rot, **kw):
+    """T-shaped block (PushT) as a rough outline."""
+    P = [(-40, -30), (40, -30), (40, -12), (10, -12), (10, 48), (-10, 48), (-10, -12), (-40, -12)]
+    a = math.radians(rot)
+    Q = [(cx + x * math.cos(a) - y * math.sin(a), cy + x * math.sin(a) + y * math.cos(a)) for x, y in P]
+    if kw.get("fill"):
+        add(f'<polygon points="{" ".join(f"{x:.1f},{y:.1f}" for x, y in Q)}" fill="{kw["fill"]}"/>')
+    for (x1, y1), (x2, y2) in zip(Q, Q[1:] + Q[:1]):
+        rl(x1, y1, x2, y2, kw.get("col", INK), kw.get("w", 1.3), kw.get("dash"), over=1)
 
 
 add('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" font-family="Helvetica, Arial, sans-serif" font-size="12">')
 add(f'<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="{IA}"/></marker>'
-    '<pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="4" stroke="#aaa" stroke-width="1.2"/></pattern></defs>')
-add('<rect width="1200" height="660" fill="#f4f4f6"/>')
-# header
-add('<rect x="8" y="8" width="1184" height="38" rx="5" fill="#fff" stroke="#555"/>')
-add('<text x="20" y="33" font-size="18" font-weight="bold">LagLens</text>')
-add(f'<rect x="640" y="15" width="220" height="24" rx="12" fill="#fff" stroke="{R}" stroke-width="2"/><text x="652" y="31">● R baseline  Sync · d=4 · h=4 ▾</text>')
-add('<text x="872" y="32" font-size="15">⇄</text>')
-add(f'<rect x="895" y="15" width="220" height="24" rx="12" fill="#fff" stroke="{C}" stroke-width="2"/><text x="907" y="31"><tspan fill="{C}">●</tspan> C compare  Inpaint · d=4 · h=4 ▾</text>')
-add('<text x="1125" y="31" font-size="11">? ↺</text>')
-note(630, 31, "pick / swap R and C anywhere", "end")
+    '<pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="5" stroke="#999" stroke-width="1.1"/></pattern></defs>')
+add('<rect width="1200" height="660" fill="#fff"/>')
+
+cx0, cy0, cwid, cht = 528, 54, 664, 330  # C
+dx, dy, dw, dh = 528, 392, 664, 260  # D
+
+# ---- header: R and C pickers
+rbox(8, 8, 1184, 38)
+txt(20, 33, "LagLens", 18, weight="bold")
+rbox(640, 15, 215, 24, R, 2)
+txt(652, 31, f'R (baseline): Sync · d=4 · h=4 ▾', 11.5)
+txt(866, 32, "⇄", 15)
+rbox(890, 15, 230, 24, C, 2)
+txt(902, 31, f'<tspan fill="{C}">C</tspan> (compare): Inpaint · d=4 · h=4 ▾', 11.5)
+txt(1132, 31, "? ↺", 12)
+badge(604, 27, 1)
+note(588, 31, "pick the two schedules to compare (or click in A)", "end")
 
 # ---- A latency response
 ax, ay, aw, ah = 8, 54, 512, 236
-panel(ax, ay, aw, ah, "A · Latency Response   (T1)")
-add(f'<text x="{ax+10}" y="{ay+38}" font-size="11">[<tspan font-weight="bold">Success</tspan> | Idle | Outdated | Discontinuity]    <tspan fill="{S["sync"]}">●</tspan> Sync <tspan fill="{S["naive"]}">■</tspan> Naive <tspan fill="{S["inpaint"]}">◆</tspan> Inpaint</text>')
-vals = {8: {"sync": [72, 62, 70, 44, 40], "naive": [72, 68, 62, 62, 46], "inpaint": [72, 58, 66, 60, 40]},
-        6: {"sync": [48, 42, 32, 26, 30], "naive": [48, 44, 58, 56, 32], "inpaint": [48, 48, 50, 58, 26]},
-        4: {"sync": [28, 24, 22, 14, 8], "naive": [28, 12, 34, 38], "inpaint": [28, 40, 46, 60]},
-        2: {"sync": [42, 16, 8, 0, 0], "naive": [42, 36, 8], "inpaint": [42, 26, 26]}}
+rbox(ax, ay, aw, ah)
+txt(ax + 10, ay + 19, "A · Latency response  (T1)", 13, weight="bold")
+qx = ax + 10
+for lab, wd in [("Success", 64), ("Idle", 42), ("Outdated", 70), ("Discontinuity", 96)]:
+    sel = lab == "Success"
+    rbox(qx, ay + 28, wd, 20, fill="#444" if sel else None)
+    txt(qx + wd / 2, ay + 42, lab, 11, "#fff" if sel else INK, "middle", "bold" if sel else "normal")
+    qx += wd + 5
+badge(qx + 14, ay + 38, 2)
+note(qx + 28, ay + 42, "the question = y-axis of A and B")
 D = [0, 1, 2, 4, 6]
-pw, ph, px0, py0 = 112, 126, ax + 34, ay + 58
+shape = {8: {"sync": [.75, .7, .7, .5, .45], "naive": [.75, .72, .65, .62, .5], "inpaint": [.75, .66, .7, .64, .45]},
+         6: {"sync": [.5, .45, .35, .3, .32], "naive": [.5, .48, .58, .56, .35], "inpaint": [.5, .52, .54, .6, .3]},
+         4: {"sync": [.3, .26, .24, .16, .1], "naive": [.3, .16, .36, .4], "inpaint": [.3, .42, .48, .62]},
+         2: {"sync": [.44, .2, .1, .03, .02], "naive": [.44, .38, .12], "inpaint": [.44, .3, .28]}}
+style = {"sync": None, "naive": "6 3", "inpaint": "1.5 3"}
+pw, ph, px0, py0 = 108, 100, ax + 36, ay + 74
 for i, h in enumerate([8, 6, 4, 2]):
-    x0 = px0 + i * (pw + 8)
-    add(f'<rect x="{x0}" y="{py0}" width="{pw}" height="{ph}" fill="#fafafb" stroke="#ddd"/>')
-    add(f'<text x="{x0+pw/2}" y="{py0-4}" font-size="10.5" font-weight="bold" text-anchor="middle">h = {h}</text>')
-    for k, d in enumerate(D):
-        add(f'<text x="{x0+8+d*16}" y="{py0+ph+12}" font-size="9" text-anchor="middle" fill="#666">{d}</text>')
-    for s, col in S.items():
-        v = vals[h][s]
-        pts = [(x0 + 8 + D[k] * 16 + {"sync": -3, "naive": 0, "inpaint": 3}[s], py0 + ph - v[k] / 100 * (ph - 10) - 4) for k in range(len(v))]
-        add(f'<polyline points="{" ".join(f"{a:.1f},{b:.1f}" for a, b in pts)}" fill="none" stroke="{col}" stroke-width="1.8"/>')
+    x0 = px0 + i * (pw + 10)
+    rl(x0, py0, x0, py0 + ph, GREY, 1.1); rl(x0, py0 + ph, x0 + pw, py0 + ph, GREY, 1.1)
+    txt(x0 + pw / 2, py0 - 5, f"h = {h}", 11, anchor="middle", weight="bold")
+    X = lambda d: x0 + 8 + d * 15
+    Y = lambda v: py0 + ph - 6 - v * (ph - 14)
+    for s, v in shape[h].items():
+        pts = [(X(D[k]), Y(v[k])) for k in range(len(v))]
+        rpoly(pts, "#555", 1.5, style[s])
         for a, b in pts:
-            add(f'<line x1="{a:.1f}" x2="{a:.1f}" y1="{b-9:.1f}" y2="{b+9:.1f}" stroke="{col}" stroke-opacity=".35"/>')
-            add(f'<circle cx="{a:.1f}" cy="{b:.1f}" r="2.4" fill="{col}"/>')
+            add(f'<circle cx="{a:.1f}" cy="{b:.1f}" r="2.2" fill="#555"/>')
+    if h == 8:
+        a, b = X(1), Y(.66)
+        rl(a, b - 9, a, b + 9, GREY, 1)
     if h == 4:
-        sx, sy = x0 + 8 + 4 * 16 - 3, py0 + ph - 14 / 100 * (ph - 10) - 4
-        cx_, cy_ = x0 + 8 + 4 * 16 + 3, py0 + ph - 60 / 100 * (ph - 10) - 4
-        add(f'<circle cx="{sx}" cy="{sy}" r="6" fill="none" stroke="{R}" stroke-width="2"/><text x="{sx-10}" y="{sy+4}" font-size="10" font-weight="bold" text-anchor="end">R</text>')
-        add(f'<circle cx="{cx_}" cy="{cy_}" r="6" fill="none" stroke="{C}" stroke-width="2"/><text x="{cx_}" y="{cy_-9}" font-size="10" font-weight="bold" text-anchor="middle" fill="#9a6a00">C</text>')
-add(f'<text x="{ax+aw-10}" y="{py0+ph+26}" font-size="10" text-anchor="end" fill="#555">x = latency d (100 ms steps) · y = metric (shared) · │ = 95 % interval</text>')
-note(ax + 10, ay + ah - 8, "question bar sets A and B · click mark = C · shift-click = R · hover = value &amp; Δ vs R")
+        rcirc(X(4), Y(.16), 6.5, R, 2); txt(X(4) - 10, Y(.16) + 4, "R", 11, R, "end", "bold")
+        rcirc(X(4), Y(.62), 6.5, C, 2); txt(X(4) - 10, Y(.62) + 4, "C", 11, "#9a6a00", "end", "bold")
+txt(ax + 36, py0 + ph + 16, "x = latency d (0–6 steps) · y = the question · one panel per horizon h", 10.5, "#555")
+txt(ax + 36, py0 + ph + 31, "── sync   - - - naive   ····· inpaint   │ = 95 % interval   ○ = current R and C", 10.5, "#555")
+note(ax + 10, ay + ah - 8, "click a point → it becomes C · shift-click → R · hover → value and Δ vs R")
 
 # ---- B paired seed table
 bx, by, bw, bh = 8, 298, 512, 354
-panel(bx, by, bw, bh, "B · Paired Seed Table   (T2, T4)")
-add(f'<text x="{bx+10}" y="{by+37}" font-size="11">right part: attribute of the question chosen in A (no own controls)</text>')
-mx, my, cw, rh = bx + 40, by + 70, 6, 5.2
-groups = [("re", 1), ("sync", 20), ("naive", 13), ("inpaint", 13)]
-x = mx
-for g, n in groups:
-    col = "#bbb" if g == "re" else S[g]
-    add(f'<rect x="{x}" y="{my-18}" width="{n*cw-1}" height="3" fill="{col}"/>')
-    if g != "re":
-        add(f'<text x="{x+n*cw/2}" y="{my-22}" font-size="10" font-weight="bold" text-anchor="middle">{dict(sync="Sync",naive="Naive",inpaint="Inpaint")[g]}</text>')
+rbox(bx, by, bw, bh)
+txt(bx + 10, by + 19, "B · Paired seed table  (T2, T4)", 13, weight="bold")
+txt(bx + 10, by + 36, "one row = one start state · one column = one schedule (52)", 11, "#555")
+cx_, cw, rh = bx + 96, 8, 7
+cols = [("sync", 10), ("naive", 8), ("inpaint", 8)]
+Rcol, Ccol = 6, 10 + 8 + 5
+x = cx_
+for g, n in cols:
+    rl(x, by + 56, x + n * cw - 2, by + 56, GREY, 1.2)
+    txt(x + n * cw / 2, by + 52, g, 10.5, anchor="middle", weight="bold")
     x += n * cw + 4
-bands = [("R ✓ → C ✗", 3, 0.75), ("R ✗ → C ✓", 12, 0.3), ("both ✓", 9, 0.85), ("both ✗", 16, 0.15)]
-y = my
-Rcol, Ccol = 1 + 14, 1 + 20 + 13 + 9
-for name, n, p in bands:
-    add(f'<rect x="{bx+4}" y="{y}" width="{bw-8}" height="11" rx="2" fill="#ececf0"/><text x="{bx+8}" y="{y+9}" font-size="9" font-weight="bold">{name}  {n}</text>')
-    y += 12
-    for r in range(n):
-        x = mx
+txt(bx + 340, by + 52, f"R ●──<tspan fill='{C}'>●</tspan> C on the question", 10.5, weight="bold")
+bands = [("R ✓ C ✗", 0.7, (1, 0)), ("R ✗ C ✓", 0.35, (0, 1)), ("both ✓", 0.85, (1, 1)), ("both ✗", 0.15, (0, 0))]
+y = by + 66
+rowpos = {}
+for bi, (name, p, (rok, cok)) in enumerate(bands):
+    add(f'<rect x="{bx + 6}" y="{y}" width="{bw - 12}" height="13" fill="{LIGHT}"/>')
+    txt(bx + 12, y + 10, name, 10.5, weight="bold")
+    y += 16
+    for r in range(3):
+        x = cx_
         ci = 0
-        for g, cnt in groups:
-            for c in range(cnt):
-                ok = random.random() < p
-                if ci == Rcol: ok = name in ("R ✓ → C ✗", "both ✓")
-                if ci == Ccol: ok = name in ("R ✗ → C ✓", "both ✓")
-                fill = (R if ci == Rcol else C if ci == Ccol else "#8e8e98") if ok else "#efeff2"
-                add(f'<rect x="{x}" y="{y:.1f}" width="{cw-1}" height="{rh-0.8:.1f}" fill="{fill}"/>')
+        for g, n in cols:
+            for c in range(n):
+                ok = rok if ci == Rcol else cok if ci == Ccol else random.random() < p
+                add(f'<rect x="{x}" y="{y}" width="{cw - 2}" height="{rh - 1.5}" fill="{"#555" if ok else "#fff"}" stroke="#999" stroke-width=".6"/>')
                 x += cw; ci += 1
             x += 4
-        # dumbbell
-        d0x = bx + 360
-        rv = random.uniform(40, 130) if name != "R ✗ → C ✓" else random.uniform(120, 145)
-        cv = random.uniform(5, 40)
-        add(f'<line x1="{d0x+rv:.0f}" x2="{d0x+cv:.0f}" y1="{y+rh/2:.1f}" y2="{y+rh/2:.1f}" stroke="#b4b4bc"/><circle cx="{d0x+rv:.0f}" cy="{y+rh/2:.1f}" r="2" fill="{R}"/><circle cx="{d0x+cv:.0f}" cy="{y+rh/2:.1f}" r="2" fill="{C}"/>')
-        y += rh
-add(f'<text x="{bx+360}" y="{my-22}" font-size="10" font-weight="bold">● R → <tspan fill="{C}">●</tspan> C (same seed)</text>')
-add(f'<rect x="{bx+352}" y="{my+80}" width="150" height="60" fill="none" stroke="{IA}" stroke-dasharray="4 3"/>')
-note(bx + 505, my + 154, "drag = select seeds", "end"); note(bx + 505, my + 167, "→ A recomputes on them", "end")
-note(bx + 10, by + bh - 8, "click cell = open episode (column → C) · click header = C · click band = select its seeds")
-add(f'<path d="M{bx+352},{my+110} C{bx+300},{by-20} {bx+300},{ay+120} {bx+260},{ay+120}" fill="none" stroke="{IA}" stroke-dasharray="4 3" marker-end="url(#arr)"/>')
+        rv = random.uniform(60, 140) if name != "R ✗ C ✓" else random.uniform(130, 150)
+        cv = random.uniform(10, 50)
+        yy = y + rh / 2
+        rl(bx + 340 + cv, yy, bx + 340 + rv, yy, "#999", 1, over=0)
+        add(f'<circle cx="{bx + 340 + rv:.0f}" cy="{yy:.1f}" r="2.6" fill="{R}"/><circle cx="{bx + 340 + cv:.0f}" cy="{yy:.1f}" r="2.6" fill="{C}"/>')
+        rowpos[(bi, r)] = y
+        y += rh + 1
+    txt(cx_ + 100, y + 8, "⋮", 12, GREY, "middle")
+    y += 12
+# R and C columns outlined across all bands
+for ci, col in [(Rcol, R), (Ccol, C)]:
+    gx = cx_ + ci * cw + (4 if ci >= 10 else 0) + (4 if ci >= 18 else 0)
+    rbox(gx - 1.5, by + 64, cw + 1, y - by - 66, col, 1.6)
+txt(bx + 12, y + 14, "■ success  □ failure · bands: where R and C disagree first", 10.5, "#555")
+# brush over dumbbells of band 2
+b2 = rowpos[(1, 0)]
+rbox(bx + 335, b2 - 4, 168, 3 * (rh + 1) + 6, IA, 1.4, dash="4 3")
+badge(bx + 494, b2 - 12, 3)
+# clicked row
+r1 = rowpos[(0, 1)]
+rbox(cx_ - 3, r1 - 2, 408, rh + 3, IA, 1.6)
+badge(cx_ - 16, r1 + 3, 4)
+note(bx + 10, by + bh - 24, "③ drag over rows → select start states → A recomputes on them only")
+note(bx + 10, by + bh - 9, "④ click a row → C and D replay that start state under R and C")
+arrow(f"M{bx + 506},{b2 - 4} C{bx + 508},{by + 40} {bx + 500},{by + 10} {bx + 492},{ay + ah - 3}")
+arrow(f"M{cx_ + 407},{r1 + 2} C{bx + 530},{r1} {bx + 518},{cy0 + 250} {cx0 + 20},{cy0 + 230}")
+arrow(f"M{cx_ + 407},{r1 + 2} C{bx + 530},{r1 + 10} {bx + 518},{dy + 90} {dx + 8},{dy + 80}")
 
 # ---- C workspace replay
-cx0, cy0, cwid, cht = 528, 54, 664, 330
-panel(cx0, cy0, cwid, cht, "C · Workspace Replay   (T3)")
-for k, (lab, col, good) in enumerate([("R · Sync d4 h4 ✗ · idle: waiting for inference", R, False), ("C · Inpaint d4 h4 ✓ · acting · picture 4 steps old", C, True)]):
-    x0 = cx0 + 24 + k * 320
-    add(f'<text x="{x0}" y="{cy0+40}" font-size="10.5" font-weight="bold" fill="{"#222" if k == 0 else "#9a6a00"}">{lab}</text>')
-    add(f'<rect x="{x0}" y="{cy0+48}" width="300" height="230" rx="4" fill="#fafafb" stroke="#ccc"/>')
-    # goal and block
-    gx, gy = x0 + 150, cy0 + 160
-    add(f'<path d="M{gx-40},{gy-30} l80,0 l0,18 l-30,0 l0,60 l-20,0 l0,-60 l-30,0 z" fill="#e9e9ee" stroke="#777" stroke-dasharray="4 3" transform="rotate(45 {gx} {gy})"/>')
-    bxx, byy = gx + (10 if good else 40), gy + (5 if good else -30)
-    add(f'<path d="M{bxx-40},{byy-30} l80,0 l0,18 l-30,0 l0,60 l-20,0 l0,-60 l-30,0 z" fill="#a9adb5" stroke="#777" transform="rotate({40 if good else 75} {bxx} {byy})"/>')
-    # fan
-    pts = [(gx - 80 + j * 7, gy + 70 - math.sin(j / 4) * 30) for j in range(16)]
-    add(f'<polyline points="{" ".join(f"{a:.0f},{b:.0f}" for a, b in pts[:5])}" fill="none" stroke="{col}" stroke-width="2.4"/>')
-    add(f'<polyline points="{" ".join(f"{a:.0f},{b:.0f}" for a, b in pts[4:])}" fill="none" stroke="{col}" stroke-width="1.2" stroke-dasharray="4 3"/>')
-    for j, (a, b) in enumerate(pts):
-        add(f'<circle cx="{a:.0f}" cy="{b:.0f}" r="2.6" fill="{col if j < 5 else "#fff"}" stroke="{col}"/>')
-    add(f'<circle cx="{pts[0][0]:.0f}" cy="{pts[0][1]:.0f}" r="10" fill="{col}" fill-opacity=".25" stroke="{col}" stroke-width="2"/>')
+rbox(cx0, cy0, cwid, cht)
+txt(cx0 + 10, cy0 + 19, "C · Workspace replay  (T3)", 13, weight="bold")
+txt(cx0 + 215, cy0 + 19, "the table seen from above, R and C side by side, same moment", 11, "#555")
+for k, (lab, col, good) in enumerate([("R · Sync: standing still, waiting for its next plan", R, False),
+                                      ("C · Inpaint: moving · picture k steps old", C, True)]):
+    x0 = cx0 + 22 + k * 322
+    txt(x0, cy0 + 42, lab, 11, "#222" if k == 0 else "#9a6a00", weight="bold")
+    rbox(x0, cy0 + 50, 300, 200, "#999", 1.2)
+    gx, gy = x0 + 190, cy0 + 130
+    tee(gx, gy, 45, col=GREY, dash="5 4")
+    bxx, byy = (gx - 8, gy + 10) if good else (gx + 26, gy - 14)
+    tee(bxx, byy, 35 if good else 75, fill=LIGHT)
+    pts = [(x0 + 40 + i * 9, cy0 + 222 - math.sin(i / 4.5) * 46) for i in range(16)]
+    rpoly(pts[:6], col, 2.4)
+    rpoly(pts[5:], col, 1.3, "4 3")
+    for i, (a, b) in enumerate(pts):
+        add(f'<circle cx="{a:.0f}" cy="{b:.0f}" r="2.4" fill="{col if i < 6 else "#fff"}" stroke="{col}"/>')
+    ppx, ppy = pts[5]
     if good:
-        add(f'<polyline points="{" ".join(f"{a+10:.0f},{b-14:.0f}" for a, b in pts[3:])}" fill="none" stroke="#999" stroke-width="2" stroke-dasharray="1 3"/>')
-        # what the policy saw: block and pusher in the camera picture this chunk was planned from
-        gxx, gyy = bxx - 22, byy + 16
-        add(f'<path d="M{gxx-40},{gyy-30} l80,0 l0,18 l-30,0 l0,60 l-20,0 l0,-60 l-30,0 z" fill="none" stroke="{col}" stroke-width="1.4" stroke-dasharray="1 2.5" stroke-linecap="round" transform="rotate(30 {gxx} {gyy})"/>')
-        sax, say = pts[0][0] - 34, pts[0][1] + 22
-        add(f'<circle cx="{sax:.0f}" cy="{say:.0f}" r="10" fill="none" stroke="{col}" stroke-width="1.4" stroke-dasharray="1 2.5" stroke-linecap="round"/><line x1="{sax+7:.0f}" y1="{say-5:.0f}" x2="{pts[0][0]-8:.0f}" y2="{pts[0][1]+5:.0f}" stroke="{col}" stroke-width="1.3"/>')
-        add(f'<text x="{sax-12:.0f}" y="{say+4:.0f}" font-size="10" fill="#9a6a00" text-anchor="end">seen at t=108 · moved 34 px</text>')
+        rcirc(ppx, ppy, 10, col, 2)
+        add(f'<circle cx="{ppx:.0f}" cy="{ppy:.0f}" r="10" fill="{col}" fill-opacity=".25"/>')
+        # what the policy saw: block and pusher in the camera picture of the current chunk
+        tee(bxx - 22, byy + 14, 25, col=col, w=1.5, dash="1.5 3")
+        sax, say = ppx - 32, ppy + 18
+        rcirc(sax, say, 10, col, 1.5, dash="1.5 3")
+        rl(sax + 9, say - 4, ppx - 10, ppy + 4, col, 1.3, over=0)
+        txt(x0 + 8, cy0 + 244, "dotted = what the policy saw · moved N px since", 10.5, "#9a6a00")
+        badge(x0 + 286, cy0 + 64, 5)
     else:
-        add(f'<line x1="{pts[0][0]:.0f}" y1="{pts[0][1]:.0f}" x2="{pts[0][0]+40:.0f}" y2="{pts[0][1]-40:.0f}" stroke="{SEAM}" stroke-width="2.4"/><circle cx="{pts[0][0]+40:.0f}" cy="{pts[0][1]-40:.0f}" r="3.5" fill="#fff" stroke="{SEAM}"/><text x="{pts[0][0]+46:.0f}" y="{pts[0][1]-40:.0f}" font-size="10" font-weight="bold" fill="{SEAM}">discontinuity 12 px</text>')
-add(f'<text x="{cx0+24}" y="{cy0+300}" font-size="10" fill="#555">— executed part of chunk   ┄ thrown away   ⋯ next chunk computing   <tspan fill="{SEAM}">━ boundary discontinuity</tspan>   ⋰ what the policy saw</text>')
-add(f'<rect x="{cx0+24}" y="{cy0+308}" width="40" height="14" rx="3" fill="#fff" stroke="#555"/><text x="{cx0+30}" y="{cy0+319}" font-size="10">▶ play</text><line x1="{cx0+74}" x2="{cx0+600}" y1="{cy0+315}" y2="{cy0+315}" stroke="#333" stroke-width="3"/><circle cx="{cx0+330}" cy="{cy0+315}" r="6" fill="#333"/>')
-note(cx0 + cwid - 10, cy0 + 19, "hover planned point = when planned / executed · click = jump · ← → space", "end")
+        rcirc(ppx, ppy, 10, col, 2, fill=col)
+        a, b = ppx - 40, ppy - 44
+        rl(ppx, ppy, a, b, SEAM, 2.4, over=0)
+        rcirc(a, b, 3.5, SEAM, 1.4, fill="#fff")
+        txt(x0 + 10, b - 9, "jump to the next chunk", 10.5, SEAM, weight="bold")
+        txt(x0 + 8, cy0 + 244, "filled pusher = standing still", 10.5, "#555")
+txt(cx0 + 22, cy0 + 266, "grey T = block · dashed T = goal · ● pusher (the robot's tool) · ━ moves done · ┄ rest of the current plan", 10.5, "#555")
+txt(cx0 + 22, cy0 + 280, f"⋯ block and pusher as seen in the camera picture the plan came from · <tspan fill='{SEAM}'>━ jump at a chunk switch</tspan>", 10.5, "#555")
+rbox(cx0 + 22, cy0 + 293, 44, 18, sw=1.2)
+txt(cx0 + 30, cy0 + 306, "▶ play", 10.5)
+rl(cx0 + 78, cy0 + 302, cx0 + 300, cy0 + 302, INK, 2.4)
+rcirc(cx0 + 200, cy0 + 302, 6, INK, 1.4, fill=INK)
+note(cx0 + 312, cy0 + 306, "← → step · hover a planned point → when planned")
 
 # ---- D execution timeline
-dx, dy, dw, dh = 528, 392, 664, 260
-panel(dx, dy, dw, dh, "D · Execution Timeline   (T3)")
-add(f'<text x="{dx+10}" y="{dy+36}" font-size="10.5"><tspan font-weight="bold">think</tspan> = inference · <tspan font-weight="bold">act</tspan> = chunk executed (hatched = idle) · <tspan fill="{SEAM}">lollipop = boundary discontinuity</tspan></text>')
-t0, U = dx + 70, 4.6
-for k, (lab, col, kind) in enumerate([("R ✗", R, "sync"), ("C ✓", C, "async")]):
-    y0 = dy + 50 + k * 52
-    add(f'<text x="{dx+10}" y="{y0+32}" font-weight="bold" fill="{"#222" if k == 0 else "#9a6a00"}">{lab}</text><text x="{t0-4}" y="{y0+18}" font-size="9" text-anchor="end" fill="#777">think</text><text x="{t0-4}" y="{y0+33}" font-size="9" text-anchor="end" fill="#777">act</text>')
+rbox(dx, dy, dw, dh)
+txt(dx + 10, dy + 19, "D · Execution timeline  (T3)", 13, weight="bold")
+txt(dx + dw - 10, dy + 19, "the same episode over time, left → right", 11, "#555", "end")
+txt(dx + 10, dy + 37, f"think = computing a plan · act = executing it (hatched = standing still) · <tspan fill='{SEAM}'>stick = jump size</tspan>", 10.5, "#555")
+t0, W = dx + 74, 34
+for k, (lab, col, kind) in enumerate([("R", R, "sync"), ("C", C, "async")]):
+    y0 = dy + 48 + k * 52
+    txt(dx + 12, y0 + 30, lab, 13, "#222" if k == 0 else "#9a6a00", weight="bold")
+    txt(t0 - 6, y0 + 17, "think", 10, GREY, "end"); txt(t0 - 6, y0 + 33, "act", 10, GREY, "end")
     if kind == "sync":
-        t = 0
-        while t + 8 <= 125:
-            add(f'<rect x="{t0+t*U}" y="{y0+12}" width="{4*U-1}" height="5" fill="{col}" fill-opacity=".45"/><rect x="{t0+t*U}" y="{y0+22}" width="{4*U-1}" height="12" fill="url(#hatch)"/><rect x="{t0+(t+4)*U}" y="{y0+22}" width="{4*U-1}" height="12" fill="{col}" fill-opacity="{.85 if (t//8)%2 == 0 else .5}"/>')
-            add(f'<line x1="{t0+(t+4)*U}" x2="{t0+(t+4)*U}" y1="{y0+10}" y2="{y0+6}" stroke="{SEAM}"/>')
-            t += 8
-    else:
-        for c in range(31):
-            add(f'<rect x="{t0+c*4*U}" y="{y0+22}" width="{4*U-1}" height="12" fill="{col}" fill-opacity="{.85 if c%2 == 0 else .5}"/><rect x="{t0+c*4*U}" y="{y0+12}" width="{4*U-1}" height="5" fill="{col}" fill-opacity=".45"/>')
+        for c in range(8):
+            x = t0 + c * 2 * W
+            rbox(x, y0 + 11, W - 3, 7, "#555", 1, fill="#ccc")
+            rbox(x, y0 + 22, W - 3, 13, "#999", 1, fill="url(#hatch)")
+            rbox(x + W, y0 + 22, W - 3, 13, "#555", 1.1, fill="#bbb")
             if c:
-                add(f'<line x1="{t0+c*4*U}" x2="{t0+c*4*U}" y1="{y0+10}" y2="{y0+10-random.uniform(1, 6):.1f}" stroke="{SEAM}"/>')
+                rl(x + W, y0 + 20, x + W, y0 + 4, SEAM, 1.6, over=0)
+    else:
+        for c in range(16):
+            x = t0 + c * W
+            rbox(x, y0 + 11, W - 3, 7, col, 1, fill="#fbe3b0")
+            rbox(x, y0 + 22, W - 3, 13, col, 1.1, fill="#f3c66a" if c % 2 == 0 else "#fbe3b0")
+            if c:
+                rl(x, y0 + 20, x, y0 + 20 - random.uniform(2, 6), SEAM, 1.6, over=0)
 # provenance of the chunk at the cursor (C lane): ○ camera picture → think → act
-pc, py = 13, dy + 50 + 52
-add(f'<rect x="{t0+(pc-1)*4*U-1}" y="{py+10.5}" width="{4*U+1}" height="8" rx="1.5" fill="none" stroke="#1d1d1f" stroke-width="1.4"/>')
-add(f'<rect x="{t0+pc*4*U-1}" y="{py+21}" width="{4*U+1}" height="14" rx="1.5" fill="none" stroke="#1d1d1f" stroke-width="1.4"/>')
-add(f'<line x1="{t0+pc*4*U-1}" y1="{py+18.5}" x2="{t0+pc*4*U}" y2="{py+21}" stroke="#1d1d1f" stroke-width="1.4"/><circle cx="{t0+(pc-1)*4*U}" cy="{py+14.5}" r="3.4" fill="#fff" stroke="#1d1d1f" stroke-width="1.4"/>')
-add(f'<text x="{t0+(pc-1)*4*U-6}" y="{py+6}" font-size="9.5" text-anchor="end" fill="#1d1d1f">○ picture → think → act of the current chunk</text>')
-cy_top, cy_bot = dy + 160, dy + 236
-add(f'<line x1="{t0}" x2="{dx+dw-12}" y1="{cy_bot}" y2="{cy_bot}" stroke="#999"/><line x1="{t0}" x2="{dx+dw-12}" y1="{cy_top+6}" y2="{cy_top+6}" stroke="#999" stroke-dasharray="4 3"/><text x="{dx+dw-12}" y="{cy_top+2}" font-size="9" text-anchor="end" fill="#555">success 95 %</text>')
-add(f'<text x="{dx+10}" y="{cy_top+20}" font-size="10">coverage</text>')
-add(f'<polyline points="{t0},{cy_bot} {t0+120},{cy_bot-20} {t0+250},{cy_bot-45} {t0+380},{cy_bot-50} {t0+560},{cy_bot-40}" fill="none" stroke="{R}" stroke-width="1.8"/>')
-add(f'<polyline points="{t0},{cy_bot} {t0+100},{cy_bot-30} {t0+200},{cy_bot-55} {t0+300},{cy_bot-70}" fill="none" stroke="{C}" stroke-width="1.8"/>')
-add(f'<rect x="{t0+200}" y="{dy+44}" width="80" height="{cy_bot-dy-44}" fill="{IA}" fill-opacity=".06" stroke="{IA}" stroke-dasharray="4 3"/><line x1="{t0+240}" x2="{t0+240}" y1="{dy+44}" y2="{cy_bot}" stroke="#1d1d1f"/>')
-note(dx + 10, dy + dh - 6, "drag = time window (→ path highlighted in C) · hover chunk = its plan in C · click = cursor")
-add(f'<path d="M{t0+240},{dy+44} C{t0+240},{dy+10} {cx0+200},{cy0+290} {cx0+160},{cy0+250}" fill="none" stroke="{IA}" stroke-dasharray="4 3" marker-end="url(#arr)"/>')
-badge(452, 27, 1)
-badge(ax + aw - 16, ay + 34, 2)
-badge(bx + 340, my + 70, 3)
-badge(bx + 24, my + 120, 4)
-badge(cx0 + 630, cy0 + 64, 5)
-badge(dx + 640, dy + 120, 6)
+pc, py = 5, dy + 100
+rbox(t0 + (pc - 1) * W - 1, py + 9, W - 1, 11, INK, 2.2)
+rbox(t0 + pc * W - 1, py + 20, W - 1, 17, INK, 2.2)
+rcirc(t0 + (pc - 1) * W - 1, py + 14.5, 4, INK, 1.6, fill="#fff")
+badge(t0 + (pc - 1) * W - 8, py + 52, 6)
+txt(t0 + (pc - 1) * W + 6, py + 56, "current chunk: ○ camera picture → think → act", 10.5, weight="bold")
+# cursor and brush window
+cur = t0 + (pc + 0.5) * W
+rl(cur, dy + 44, cur, dy + 228, INK, 1.4, over=0)
+rbox(t0 + 466, dy + 44, 72, 100, IA, 1.3, dash="4 3")
+note(t0 + 502, dy + 158, "drag = window", "middle")
+# coverage under the lanes
+cb, ct = dy + 228, dy + 174
+rl(t0, cb, dx + dw - 14, cb, GREY, 1.1)
+rl(t0, ct + 4, dx + dw - 14, ct + 4, GREY, 1, "4 3")
+txt(dx + dw - 14, ct, "success line (95 %)", 10, "#555", "end")
+txt(dx + 12, ct + 26, "block on", 10.5, "#555"); txt(dx + 12, ct + 39, "goal (%)", 10.5, "#555")
+rpoly([(t0, cb), (t0 + 120, cb - 16), (t0 + 250, cb - 30), (t0 + 380, cb - 36), (t0 + 560, cb - 28)], R, 1.8)
+rpoly([(t0, cb), (t0 + 100, cb - 22), (t0 + 200, cb - 38), (t0 + 300, cb - 52)], C, 1.8)
+note(dx + 10, dy + dh - 8, "click = move the time cursor (C follows) · hover a chunk → its plan in C · window → that path in C")
+arrow(f"M{cur},{dy + 44} C{cur},{dy + 20} {cx0 + 200},{cy0 + 330} {cx0 + 200},{cy0 + 312}")
 add('</svg>')
 OUT.write_text("\n".join(o))
 print("wrote", OUT)

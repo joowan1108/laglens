@@ -47,7 +47,7 @@ Checked on 2026-10-27 after the redesign build. ✅ = satisfied, with evidence.
 ## 5 Sketch (2 pts)
 | Item | Status | Evidence |
 |---|---|---|
-| Sketch of the interface, specific about what happens | ✅ | `slides/assets/sketch.svg` (mid-fidelity, interactions and linking annotated in purple), slide 7, report Fig. 2 |
+| Sketch of the interface, specific about what happens | ✅ | `slides/assets/sketch.svg` (low-fidelity boxes, each view's encoding labelled, interactions and linking in purple, six numbered steps), slide 7, report Fig. 2 |
 
 ## 6 Implementation (20 pts)
 | Item | Status | Evidence |
