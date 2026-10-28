@@ -6,10 +6,14 @@ import { initSeedTable, resizeSeedTable, rebuildColumns } from "./views/seedtabl
 import { initWorkspace, resizeWorkspace, step, togglePlay } from "./views/workspace.js";
 import { initTimeline, resizeTimeline } from "./views/timeline.js";
 
-// First seed that flips from success (R) to failure (C), so the replay opens on something interesting.
+// The replay opens on a seed that flips between baseline and candidate, in the more common direction
+// (e.g. sync ✗ → async ✓ when the candidate mostly rescues seeds), so the first episode shown tells
+// the main story of the pair instead of one where both runs end alike.
 function firstFlip(ref, cand) {
   const R = DATA.ep.get(ref), C = DATA.ep.get(cand);
-  return DATA.seeds.find((s) => R.get(s).success === 1 && C.get(s).success === 0) ?? DATA.seeds[0];
+  const loss = DATA.seeds.filter((s) => R.get(s).success === 1 && C.get(s).success === 0);
+  const gain = DATA.seeds.filter((s) => R.get(s).success === 0 && C.get(s).success === 1);
+  return (gain.length > loss.length ? gain : loss)[0] ?? gain[0] ?? DATA.seeds[0];
 }
 
 function fillPickers() {
