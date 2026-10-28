@@ -113,7 +113,7 @@ function render() {
     b.select(".goal").selectAll("path").data([0]).join("path").attr("d", goalD)
       .attr("transform", reach ? `translate(${s(e.goal[0])},${s(e.goal[1])})` : null)
       .attr("fill", "#e9e9ee").attr("stroke", COLOR.goal).attr("stroke-dasharray", "4 3").attr("stroke-width", 1.2);
-    b.select(".goal").selectAll("text").data(reach ? [0] : []).join("text").attr("x", s(e.goal[0])).attr("y", s(e.goal[1]) + s(TARGET_R) + 12)
+    b.select(".goal").selectAll("text").data(reach ? [e.goal] : []).join("text").attr("x", (g) => s(g[0])).attr("y", (g) => s(g[1]) + s(TARGET_R) + 12)
       .attr("text-anchor", "middle").attr("font-size", 10).attr("fill", COLOR.goal).text("target");
     b.select(".block").selectAll("path").data(reach ? [] : [0]).join("path").attr("d", () => tee(e.bx[t], e.by[t], e.bth[t]))
       .attr("fill", COLOR.block).attr("fill-opacity", 0.9).attr("stroke", "#7b7f88");
