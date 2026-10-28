@@ -2,11 +2,10 @@
 <defs><marker id="arrI" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="#6a3d9a" stroke-width="1.6" stroke-linecap="round"/></marker><marker id="arrK" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="#2b2b2b" stroke-width="1.6" stroke-linecap="round"/></marker><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="6" stroke="#999" stroke-width="1.2"/></pattern></defs>
 <rect width="1200" height="660" fill="#fff"/>
 <rect x="8" y="8" width="1184" height="40" rx="3" fill="none" stroke="#2b2b2b" stroke-width="1.5"/>
-<text x="22" y="36" font-size="20" fill="#2b2b2b" text-anchor="start" font-weight="bold">LagLens</text>
-<rect x="118" y="15" width="170" height="26" rx="3" fill="none" stroke="#2b2b2b" stroke-width="1.5"/>
-<rect x="118" y="15" width="70" height="26" rx="3" fill="#444" stroke="#2b2b2b" stroke-width="1.5"/>
-<text x="153" y="33" font-size="12.5" fill="#fff" text-anchor="middle" font-weight="normal">PushT</text>
-<text x="238" y="33" font-size="12.5" fill="#2b2b2b" text-anchor="middle" font-weight="normal">Catch the ball</text>
+<rect x="22" y="15" width="170" height="26" rx="3" fill="none" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="22" y="15" width="70" height="26" rx="3" fill="#444" stroke="#2b2b2b" stroke-width="1.5"/>
+<text x="57" y="33" font-size="12.5" fill="#fff" text-anchor="middle" font-weight="normal">PushT</text>
+<text x="142" y="33" font-size="12.5" fill="#2b2b2b" text-anchor="middle" font-weight="normal">Catch the ball</text>
 <rect x="640" y="15" width="228" height="26" rx="3" fill="none" stroke="#222" stroke-width="2.2"/>
 <text x="652" y="34" font-size="12.5" fill="#2b2b2b" text-anchor="start" font-weight="normal">Baseline:  Sync, d=4, h=4  ▾</text>
 <text x="882" y="34" font-size="15" fill="#2b2b2b" text-anchor="start" font-weight="normal">⇄</text>

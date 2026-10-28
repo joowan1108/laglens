@@ -1,4 +1,4 @@
-"""Writes slides/assets/sketch.svg: the low-fidelity design sketch of the LagLens layout (4 linked views).
+"""Writes slides/assets/sketch.svg: the low-fidelity design sketch of the interface layout (4 linked views).
 Each view is a plain box with a schematic of its idiom (a few placeholder marks, not data) and short
 notes on what it encodes. Purple = interaction and linking, numbered as the steps on slide 7."""
 import math, random
@@ -91,10 +91,9 @@ dx, dy, dw, dh = 528, 382, 664, 270  # D
 
 # ---- header: baseline and candidate pickers
 rbox(8, 8, 1184, 40)
-txt(22, 36, "LagLens", 20, weight="bold")
-rbox(118, 15, 170, 26)
-rbox(118, 15, 70, 26, fill="#444")
-txt(153, 33, "PushT", 12.5, "#fff", "middle"); txt(238, 33, "Catch the ball", 12.5, INK, "middle")
+rbox(22, 15, 170, 26)
+rbox(22, 15, 70, 26, fill="#444")
+txt(57, 33, "PushT", 12.5, "#fff", "middle"); txt(142, 33, "Catch the ball", 12.5, INK, "middle")
 
 rbox(640, 15, 228, 26, R, 2.2)
 txt(652, 34, "Baseline:  Sync, d=4, h=4  ▾", 12.5)
