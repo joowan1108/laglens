@@ -11,8 +11,6 @@
 | gym-pusht | 0.1.8 | MIT | PushT simulator (T-block geometry in `src/js/util.js` is re-implemented from its `add_tee`) |
 | Playwright + Chromium headless shell | 1.64.1 | Apache-2.0 | headless UI tests, screenshots, PDF rendering of slides/report |
 | pypdf | 6.21.2 | BSD-3 | page-count checks |
-| Patrick Hand font (Patrick Wagesreiter, via Google Fonts) | 1.003 (`slides/assets/fonts/`, license text alongside) | SIL OFL 1.1 | handwriting in the sketch, subset and embedded in `sketch.svg` |
-| fontTools | 4.68.0 | MIT | subsetting the sketch font |
 
 No other charting library is used anywhere in `src/`.
 

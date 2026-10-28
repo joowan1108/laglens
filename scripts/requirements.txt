@@ -1,6 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 diffusers==0.39.0
-fonttools==4.68.0
 gym-pusht==0.1.8
 gymnasium==1.4.0
 huggingface_hub==1.33.0
