@@ -95,6 +95,7 @@ with sync_playwright() as p:
     ok("C fan tooltip", pg.is_visible("#tooltip"))
     ok("C shows what the policy saw (outline at the picture time)", pg.locator("#workspace g.sn path.sb").count() >= 1)
     ok("D traces the current chunk picture → think → act", pg.locator("#timeline g.prov circle.cam").count() >= 1)
+    ok("D shows which of the current chunk's moves were used", pg.locator("#timeline g.use rect").count() >= 16)
 
     # D: hover a chunk -> hoverChunk, brush window
     pg.locator("#timeline .bars rect").nth(3).hover()

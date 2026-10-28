@@ -226,6 +226,11 @@ t0, Wd = dx + 130, 62
 for k, (lab, col) in enumerate([("baseline", R), ("candidate", C)]):
     yy = dy + 58 + k * 66
     txt(dx + 12, yy + 30, lab, 13, "#222" if k == 0 else "#9a6a00", weight="bold")
+    # the current chunk's 16 planned moves: skipped while thinking · executed · discarded
+    skip, used = (1, 4) if k == 0 else (5, 4)
+    for jj in range(16):
+        f = "#cfcfd6" if jj < skip else (("#555" if k == 0 else col) if jj < skip + used else "#fff")
+        add(f'<rect x="{dx + 12 + jj * 6}" y="{yy + 37}" width="5" height="7" fill="{f}" stroke="#b4b4bc" stroke-width=".6"/>')
     txt(t0 - 8, yy, "motion", 11.5, GREY, "end")
     txt(t0 - 8, yy + 14, "think", 11.5, GREY, "end"); txt(t0 - 8, yy + 34, "act", 11.5, GREY, "end")
     # motion track: grey movement per step (0 while standing still), red bar = jump at each switch

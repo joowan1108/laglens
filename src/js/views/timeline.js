@@ -7,7 +7,7 @@
 // Sync shows "think" and "act" alternating (idle while thinking); async shows them overlapping.
 // Below: block–goal coverage of both runs.
 import { state, update, bus } from "../state.js";
-import { loadRun, activeChunk } from "../data.js";
+import { DATA, loadRun, activeChunk } from "../data.js";
 import { COLOR, showTip, hideTip, size } from "../util.js";
 
 let root, svg, brush, brushKey = null, eps = null, x, curBot = 0, geom = null;
@@ -89,9 +89,9 @@ function render() {
   lg.each(function (L) {
     const g = d3.select(this), e = L.e;
     const thinkY = motH + 4, actY = motH + 4 + thinkH + 4;
-    g.select(".ln").attr("x", 4).attr("y", 11).attr("font-weight", 800).attr("font-size", 11.5).attr("fill", L.txt)
+    g.select(".ln").attr("x", 4).attr("y", 10).attr("font-weight", 800).attr("font-size", 11.5).attr("fill", L.txt)
       .text(`${L.which === "ref" ? "baseline" : "candidate"} ${e.success ? "✓" : "✗"}`);
-    g.select(".tk0").attr("x", m.l - 5).attr("y", motH - 2).attr("text-anchor", "end").attr("font-size", 9);
+    g.select(".tk0").attr("x", m.l - 5).attr("y", Math.max(motH - 2, 32)).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".tk1").attr("x", m.l - 5).attr("y", thinkY + 5).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".tk2").attr("x", m.l - 5).attr("y", actY + 9).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".seamBase").attr("x1", m.l).attr("x2", x(e.n)).attr("y1", motH).attr("y2", motH).attr("stroke", "#d4d4da");
@@ -228,6 +228,30 @@ function provenance() {
     .attr("fill", "none").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
   g.select(".cam").attr("cx", (d) => x(d.c.t_obs)).attr("cy", thinkY + thinkH / 2).attr("r", 3.2)
     .attr("fill", "#fff").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
+  usage(data);
+}
+
+// Which of the current chunk's 16 planned moves were used: skipped (their time passed while the
+// policy was thinking; inpaint makes them match the old plan), executed, or discarded.
+// Within a schedule this pattern is the same for every chunk (set by d and h), so it is shown once
+// per lane, in the margin under the lane label, for the chunk at the cursor.
+function usage(data) {
+  const CW = 4.6;
+  const ug = svg.selectAll("g.use").data(data, (d) => d.L.which).join((en) => en.append("g").attr("class", "use").style("cursor", "help"))
+    .attr("transform", (d) => `translate(4,${d.L.y + 14})`);
+  ug.each(function (d) {
+    const js = [...d.c.execJ.keys()], lo = d3.min(js), hi = d3.max(js);
+    const strat = DATA.schedById.get(d.L.which === "ref" ? state.ref : state.cand)?.strategy;
+    const n = d.c.a ? d.c.a.length : 16;
+    const kind = (j) => (j < lo ? "skip" : j <= hi ? "used" : "drop");
+    d3.select(this).selectAll("rect").data(d3.range(n)).join("rect")
+      .attr("x", (j) => j * CW).attr("width", CW - 0.9).attr("height", 8).attr("rx", 0.6)
+      .attr("fill", (j) => (kind(j) === "used" ? d.L.col : kind(j) === "skip" ? "#cfcfd6" : "#fff"))
+      .attr("stroke", (j) => (kind(j) === "drop" ? "#b4b4bc" : "none")).attr("stroke-width", 0.7);
+    const skipTxt = lo > 0 ? `moves 0–${lo - 1} <b>skipped</b>: ${strat === "sync" ? "move 0 is the moment of the camera picture" : `their time passed while the policy was thinking${strat === "inpaint" ? " (inpaint made them match the old plan, so the new plan continues it)" : " (naive async jumps straight to the move planned for now)"}`}` : "";
+    d3.select(this).on("mousemove", (ev) => showTip(ev, `<b>moves of the current chunk</b> (#${d.L.e.chunks.indexOf(d.c)}, ${n} planned)<br>${skipTxt}<br>moves ${lo}–${hi} <b>executed</b> · moves ${hi + 1}–${n - 1} <b>discarded</b><br><span class="k">the same pattern for every chunk of this schedule (set by d and h)</span>`))
+      .on("mouseleave", hideTip);
+  });
 }
 
 export function resizeTimeline() { render(); }

@@ -24,6 +24,7 @@ PASS  C keyboard stepping
 PASS  C fan tooltip
 PASS  C shows what the policy saw (outline at the picture time)
 PASS  D traces the current chunk picture → think → act
+PASS  D shows which of the current chunk's moves were used
 PASS  D chunk hover links to C
 PASS  D brush sets window
 PASS  C draws brushed window path
