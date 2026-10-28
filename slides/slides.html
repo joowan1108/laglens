@@ -32,7 +32,7 @@
   figure.hook { margin:0; flex:1; } figure.hook img { width:100%; display:block; border-radius:6px; }
   figure.hook figcaption { font-size:12.5px; margin-top:3px; line-height:1.3; }
   .q { font-style:italic; color:#1d1d1f; margin-bottom:2px; }
-  table.dense { font-size:12px; } table.dense td, table.dense th { padding:2.5px 5px; line-height:1.25; }
+  table.dense { font-size:12px; } table.dense td, table.dense th { padding:2px 5px; line-height:1.2; }
   ol.steps { columns:3; column-gap:22px; margin:6px 22px 0 40px; padding:0; font-size:11.5px; line-height:1.3; }
   ol.steps li { margin:0 0 3px; break-inside:avoid; font-size:11.5px; line-height:1.3; }
   ol.steps li::marker { color:#6a3d9a; font-weight:bold; }
@@ -89,22 +89,25 @@
     Both plan chunks of 16 moves from random noise, so re-running a schedule can change an outcome; a <i>noise replicate</i> measures how often.
     Per task: 30 start states × (14 schedules + 1 replicate) = 450, in total <b>900 episodes</b> (recorded runs); every planned chunk and every executed move is logged.</h2>
   <div class="cols">
-    <div style="flex:1.75">
-      <table class="dense">
-        <tr><th>Attribute (episode table, 900 items × 23 attributes + task)</th><th>Type · ordering direction</th><th>Order / range / levels</th><th>Meaning</th></tr>
-        <tr><td class="k">task <span class="keyb">KEY</span></td><td>nominal</td><td>PushT · Catch the ball</td><td>what the robot must do (one data folder per task)</td></tr>
-        <tr><td class="k">strategy <span class="keyb">KEY</span></td><td>nominal</td><td>sync · naive · inpaint</td><td>what the robot does while a chunk is computed</td></tr>
+    <div style="flex:2.15">
+      <table class="dense" style="font-size:11px">
+        <tr><th>Attribute (episode table, 900 items × 23 attributes + task)</th><th style="width:118px">Type · ordering direction</th><th style="width:150px">Order / range / levels</th><th>Meaning</th></tr>
+        <tr><td class="k">task <span class="keyb">KEY</span></td><td>nominal (no order)</td><td>PushT · Catch the ball</td><td>what the robot must do (one data folder per task)</td></tr>
+        <tr><td class="k">strategy <span class="keyb">KEY</span></td><td>nominal (no order)</td><td>sync · naive · inpaint</td><td>what the robot does while a chunk is computed</td></tr>
         <tr><td class="k">latency d <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>0 &lt; 2 &lt; 4 steps (0–400 ms)</td><td>inference delay; d = 0 only for sync</td></tr>
         <tr><td class="k">horizon h <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>4 &lt; 8</td><td>moves executed from each chunk before switching</td></tr>
+        <tr><td class="k">schedule</td><td>nominal (ID)</td><td>15 levels, e.g. <code>sync_d4_h4</code></td><td>derived key: strategy × d × h (+ replicate)</td></tr>
         <tr><td class="k">replicate · seed <span class="keyb">KEY</span></td><td>nominal (binary · ID)</td><td>0 · 1 &nbsp;|&nbsp; 1000–1029</td><td>1 = sync d0 h8 re-run with new noise | start state, same in every schedule</td></tr>
         <tr><td>success</td><td>nominal (binary)</td><td>0 = fail, 1 = success</td><td>PushT: coverage &gt; 95 % within 300 steps · Catch: pusher touches the ball within 80 steps</td></tr>
-        <tr><td>coverage_final · dist_final</td><td>quant. ratio, ↑ · ↓</td><td>0.00–0.99 · 32–426 px</td><td>PushT: overlap of block with goal · Catch: pusher–ball distance at the end</td></tr>
+        <tr><td>coverage_final / max · dist_final</td><td>quant. ratio, ↑ · ↓</td><td>0.00–0.99 / 0.00–0.99 · 32–426 px</td><td>PushT: block–goal overlap at the end / best · Catch: pusher–ball distance at the end</td></tr>
+        <tr><td>ball_speed</td><td>quant. ratio</td><td>42–100 px/s</td><td>Catch only: speed of the ball in this start state</td></tr>
         <tr><td>steps_to_success</td><td>quant. ratio, ↓</td><td>74–300 · 12–80 (empty if failed)</td><td>time to finish (PushT · Catch)</td></tr>
         <tr><td>jump_mean / max</td><td>quant. ratio (px), ↓</td><td>0.3–381.9 / 1–949</td><td>jump at a chunk switch: gap between the new chunk's first move and the old chunk's next one</td></tr>
         <tr><td>think_motion_mean / max</td><td>quant. ratio (px), ↓</td><td>0.0–227.8 / 0–499</td><td>how far the robot moved while the policy was thinking (change the new chunk did not see)</td></tr>
         <tr><td>staleness_mean</td><td>quant. ratio (steps)</td><td>1.4–7.5</td><td>age of the picture behind each move (≈ d + (h−1)/2, equal for all strategies)</td></tr>
         <tr><td>idle_frac</td><td>quant. ratio, ↓</td><td>0.00–0.60</td><td>share of steps with nothing to execute</td></tr>
-        <tr><td>jerk · path_len · n_inferences</td><td>quant. ratio</td><td>1.3–232.9 · 111–6158 px · 2–75</td><td>smoothness (2nd difference of moves) · distance travelled · # chunks computed</td></tr>
+        <tr><td>jerk · inner_step · path_len</td><td>quant. ratio (px)</td><td>1.3–232.9 · 2.9–70.6 · 111–6158</td><td>smoothness (2nd difference of moves) · move size inside a chunk · distance travelled</td></tr>
+        <tr><td>n_inferences · n_switches</td><td>quant. ratio (count)</td><td>2–75 · 1–74</td><td># chunks computed · # chunk switches</td></tr>
       </table>
       <div class="muted" style="font-size:11px; margin-top:4px">Ordering direction: ↑ higher is better · ↓ lower is better · no arrow = no preferred direction.</div>
     </div>
