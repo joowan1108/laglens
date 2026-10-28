@@ -5,8 +5,8 @@ The rendered, submitted version is `slides.pdf` (7 pages, built from `slides/sli
 
 ## Problem
 A robot policy (a neural network) looks at the camera once and plans its next 16 moves (an action chunk); the robot performs the first *h* without looking again. Computing a chunk takes time *d* (inference latency). Meanwhile the robot either **waits** (sync: idle time) or **keeps moving** on the old chunk (async: the scene changes meanwhile, so the robot can **jump** when the new chunk takes over, a chunk-boundary discontinuity). Naive async just swaps chunks; inpaint async computes the new chunk to continue the old one.
-Strategy, *d* and *h* are chosen from one success rate per setting, which cannot show which situations broke, when, or why. We found no visualization tool for this.
-Slide 1 shows a real case from our data (start state 1035, d = 4, h = 4): inpaint async succeeds, naive async fails after a 259 px jump at a switch.
+Given their latency *d*, engineers pick a strategy and *h* by comparing one success-rate number per combination; that number cannot show which start states failed, when, or why. We found no visualization tool for this.
+Slide 1 compares the three strategies on a timeline (d = 4, h = 4): think/act timing plus a schematic position trace in which each chunk switch is a red step drawn to the measured mean jump (sync ≈ 5 px, naive ≈ 44 px, inpaint ≈ 8 px). It then shows a real case from our data (start state 1035, d = 4, h = 4): inpaint async succeeds, naive async fails after a 259 px jump at a switch.
 **Idea:** same start, different schedule (paired counterfactual replay). One pretrained policy, the same 50 start states, 46 schedules plus a noise replicate, and every planned chunk logged.
 
 ## 1 What: data abstraction
