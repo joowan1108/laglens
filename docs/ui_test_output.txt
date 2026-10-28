@@ -34,11 +34,11 @@ PASS  candidate picker
 PASS  reset
 PASS  survives resize
 PASS  URL state restores R, C, seed, t and selection
-PASS  task switch loads Reach-in-time
-PASS  Reach: C draws the target and no block
-PASS  Reach: D shows the distance to the target
-PASS  Reach: A and B describe the deadline outcome
-PASS  task switch back to PushT
-PASS  URL ?task=reach opens the Reach data
+PASS  task switch loads Catch the ball
+PASS  Catch: C draws the ball and no T
+PASS  Catch: D shows the pusher–ball distance
+PASS  Catch: A describes the outcome
+PASS  task switch back to PushT (T-goal and T-block again, no ball)
+PASS  URL ?task=catch opens the Catch data
 console errors/warnings: 0
 RESULT: PASS

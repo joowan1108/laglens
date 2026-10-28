@@ -27,7 +27,7 @@ Views: **A** Latency Response (curves per horizon, 95 % intervals) · **B** Pair
 |---|---|
 | `src/` | the interface (HTML/CSS/JS + `data/` it loads) |
 | `src/data/episodes.csv` | PushT: one row per (schedule, seed) episode: 450 items × 22 attributes (14 schedules + re-run × 30 seeds) |
-| `src/data/reach/` | Reach-in-time: same layout (450 episodes), from `scripts/reach_task.py` + `scripts/generate_reach.py` |
+| `src/data/catch/` | Catch the ball: same layout (450 episodes), from `scripts/catch_task.py` + `scripts/generate_catch.py` |
 | `src/data/schedules.json` | per-schedule aggregates |
 | `src/data/runs/<schedule>.json` | per-step / per-chunk logs, lazy-loaded |
 | `data/runs/` | raw rollout logs produced by the simulator |
@@ -43,8 +43,8 @@ Needs Python 3.12, ~2–4 h on a 12-core CPU (no GPU needed).
 python3 -m venv ~/infovis-venv
 ~/infovis-venv/bin/pip install -r scripts/requirements.txt
 ./scripts/run_grid.sh                     # full PushT grid: 46 schedules + 1 noise replicate × 50 paired seeds -> data/runs/*.json
-python scripts/reach_task.py train        # Reach-in-time policy (≈ 4 min CPU) -> models/reach_policy.pt
-python scripts/generate_reach.py --configs sync_d0_h4 sync_d0_h8 sync_d2_h4 sync_d2_h8 sync_d4_h4 sync_d4_h8 naive_d2_h4 naive_d2_h8 naive_d4_h4 naive_d4_h8 inpaint_d2_h4 inpaint_d2_h8 inpaint_d4_h4 inpaint_d4_h8 sync_d0_h8_r1
+python scripts/catch_task.py train        # Catch-the-ball policy (≈ 4 min CPU) -> models/catch_policy.pt
+python scripts/generate_catch.py --configs sync_d0_h4 sync_d0_h8 sync_d2_h4 sync_d2_h8 sync_d4_h4 sync_d4_h8 naive_d2_h4 naive_d2_h8 naive_d4_h4 naive_d4_h8 inpaint_d2_h4 inpaint_d2_h8 inpaint_d4_h4 inpaint_d4_h8 sync_d0_h8_r1
 # build_dataset.py then keeps d ∈ {0,2,4} × h ∈ {4,8} and seeds 1000–1029 for both tasks
 python3 scripts/build_dataset.py          # -> src/data/
 python3 scripts/verify_dataset.py         # requirement check, -> docs/dataset_verification.txt

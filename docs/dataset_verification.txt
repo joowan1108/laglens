@@ -1,4 +1,4 @@
-episodes.csv: 450 items x 22 attributes, 47 KB
+episodes.csv: 450 items x 23 attributes, 47 KB
   schedule           distinct=15
   strategy           levels=['inpaint', 'naive', 'sync']
   latency            levels=[0, 2, 4]  (missing 0)
@@ -10,6 +10,7 @@ episodes.csv: 450 items x 22 attributes, 47 KB
   coverage_final     range=[0, 0.9948]  distinct=347  (missing 0)
   coverage_max       range=[0, 0.9948]  distinct=350  (missing 0)
   dist_final         levels=[]  (missing 450)
+  ball_speed         levels=[]  (missing 450)
   n_inferences       range=[11, 75]  distinct=53  (missing 0)
   n_switches         range=[10, 74]  distinct=53  (missing 0)
   jump_mean          range=[3.15, 90.96]  distinct=376  (missing 0)

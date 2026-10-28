@@ -28,7 +28,7 @@ SHOTS = [
     ("fig_overview.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1017&t=160&win=150,190", None, None),
     ("fig_f1_response.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=success_rate", ["#pA"], None),
     ("fig_f1_seam.png", "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=jump_mean", ["#pA"], None),
-    ("fig_f5_reach.png", "task=reach&ref=sync_d4_h4&cand=inpaint_d4_h4", ["#pA"], None),
+    ("fig_f5_catch.png", "task=catch&ref=sync_d4_h4&cand=inpaint_d4_h4&seed=1010&t=20", ["#pC"], None),
     ("fig_f3_replay.png", "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1017&t=160&win=150,190", ["#pC", "#pD"], None),
     ("fig_f4_shift.png", "ref=naive_d4_h4&cand=inpaint_d4_h4&metric=jump_mean&seed=1017", ["#pB"], None),
 ]

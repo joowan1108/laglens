@@ -55,7 +55,7 @@
         <span><i class="k-dash"></i>planned but thrown away</span>
         <span><i class="k-dot"></i>next chunk, still computing</span>
         <span><i class="k-seam"></i>chunk-boundary discontinuity: jump between old and new plan</span>
-        <span><i class="k-seen"></i>what the policy saw: block &amp; pusher in the camera picture the current chunk was planned from</span>
+        <span><i class="k-seen"></i>what the policy saw: block (or ball) &amp; pusher in the picture the current chunk was planned from</span>
         <span class="muted">“picture N steps old” = age of the camera picture the current move was planned from</span>
       </div>
     </section>
@@ -81,7 +81,7 @@
     <h2>How to read LagLens</h2>
     <p><b>Two tasks</b> (switch at the top left). <b>PushT</b>: one pretrained Diffusion Policy pushed a T-block to a goal from the <b>same 30 initial states</b> under
       <b>14 execution schedules</b> (3 strategies × inference latency <i>d</i> ∈ {0, 2, 4} × execution horizon <i>h</i> ∈ {4, 8}; 1 step = 100 ms) plus one <b>noise replicate</b> of Sync d=0 h=8 that shows how many outcomes flip by chance alone.
-      <b>Reach-in-time</b>: a small Diffusion Policy we trained moves the same pusher to a target disk within a 7 s deadline, under the same schedules and seeds. Nothing else moves, so every step spent waiting costs time: there async's advantage is plain to see.
+      <b>Catch the ball</b>: a small Diffusion Policy we trained moves the same pusher to touch a ball that rolls and bounces at a different speed and direction in every start state, within 8 s, under the same schedules and seeds. The ball keeps rolling while the policy thinks, so a robot that stands still loses it: there async's advantage is plain to see.
       Every predicted action chunk was logged, so you can see which plan every executed action came from.</p>
     <ol>
       <li><b>A Latency Response</b>: how each strategy degrades as inference gets slower (x = latency <i>d</i>, the time the policy needs to compute a chunk), one panel per execution horizon <i>h</i> (how many actions of each chunk are executed before switching to the next).

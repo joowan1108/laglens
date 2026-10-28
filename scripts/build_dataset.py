@@ -1,5 +1,6 @@
 """Turn raw rollout logs into the files the LagLens interface loads, for both tasks:
-PushT (data/runs -> src/data) and Reach-in-time (data/runs_reach -> src/data/reach).
+PushT (data/runs -> src/data) and Catch-the-ball (data/runs_catch -> src/data/catch).
+(An earlier easy task, Reach-in-time, is kept only as code and raw logs: scripts/reach_task.py.)
 
 Outputs (per task folder)
   episodes.csv     one row per (schedule, seed) episode  -> the main tabular dataset
@@ -21,7 +22,7 @@ import csv, glob, json, math, os, statistics as st
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 TASKS = [("pusht", os.path.join(ROOT, "data", "runs"), os.path.join(ROOT, "src", "data")),
-         ("reach", os.path.join(ROOT, "data", "runs_reach"), os.path.join(ROOT, "src", "data", "reach"))]
+         ("catch", os.path.join(ROOT, "data", "runs_catch"), os.path.join(ROOT, "src", "data", "catch"))]
 
 # The interface shows a reduced grid (simpler to read): latency d in {0, 2, 4}, horizon h in {4, 8},
 # the first 30 seeds (1000-1029, fixed before looking at outcomes) and the noise replicate.
@@ -61,13 +62,14 @@ def episode_metrics(ep, j0):
     motion = [dist(pos[min(c["t_avail"], last)], pos[c["t_obs"]]) for c in C if c["exec"]]
     path = sum(dist((S[i]["ax"], S[i]["ay"]), (S[i - 1]["ax"], S[i - 1]["ay"])) for i in range(1, len(S)))
     t_succ = len(S) if ep["success"] else None
-    reach = "goal" in ep  # Reach-in-time has no block: distance to the target instead of coverage
+    own = "dist" in S[0]  # Catch-the-ball has no goal: distance between pusher and ball instead of coverage
     return {
         "success": int(ep["success"]),
         "steps_to_success": t_succ,
-        "coverage_final": None if reach else round(ep["coverage_final"], 4),
-        "coverage_max": None if reach else round(ep["coverage_max"], 4),
-        "dist_final": S[-1]["dist_after"] if reach else None,
+        "coverage_final": None if own else round(ep["coverage_final"], 4),
+        "coverage_max": None if own else round(ep["coverage_max"], 4),
+        "dist_final": S[-1]["dist_after"] if own else None,
+        "ball_speed": ep["ball_speed"] if own else None,
         "n_inferences": len(C),
         "n_switches": len(seams),
         "jump_mean": round(st.mean([x["gap"] for x in seams]), 2) if seams else 0.0,
@@ -92,7 +94,7 @@ def build(task, RAW, OUT):
     for f in files:
         R = json.load(open(f))
         j0 = R["obs_steps"] - 1
-        detail = {k: R.get(k) for k in ("config", "strategy", "latency", "horizon", "ddim_steps", "chunk_len", "obs_steps", "fps", "deadline", "target_r")}
+        detail = {k: R.get(k) for k in ("config", "strategy", "latency", "horizon", "ddim_steps", "chunk_len", "obs_steps", "fps", "deadline", "catch_r", "ball_r")}
         detail["task"] = task
         detail["replicate"] = R.get("replicate", 0)
         detail["episodes"] = []
@@ -109,8 +111,9 @@ def build(task, RAW, OUT):
                   "age": [s["age"] for s in S],
                   "chunks": [{"t_obs": c["t_obs"], "t_avail": c["t_avail"], "exec": c["exec"], "a": c["a"]} for c in ep["chunks"]],
                   "seams": [{"t": x["t"], "gap": round(x["gap"], 2)} for x in seams]}
-            if task == "reach":
-                de.update(goal=ep["goal"], dist=[s["dist"] for s in S] + [S[-1]["dist_after"]])
+            if task == "catch":  # ball position per step (+ after the last step) and pusher-ball distance
+                de.update(bx=[s["bx"] for s in S] + [ep["ball_after"][0]], by=[s["by"] for s in S] + [ep["ball_after"][1]],
+                          dist=[s["dist"] for s in S] + [S[-1]["dist_after"]])
             else:  # coverage at t=0 was not computed by the simulator at reset, so it is stored as null
                 de.update(bx=[s["bx"] for s in S], by=[s["by"] for s in S], bth=[s["bth"] for s in S],
                           cov=[None if s["t"] == 0 else s["cov"] for s in S] + [ep["coverage_final"]])
@@ -121,7 +124,7 @@ def build(task, RAW, OUT):
         schedules.append({"schedule": R["config"], "strategy": R["strategy"], "latency": R["latency"],
                           "horizon": R["horizon"], "replicate": R.get("replicate", 0), "n": len(eps),
                           "success_rate": round(st.mean(r["success"] for r in eps), 4),
-                          "coverage_mean": None if task == "reach" else round(st.mean(r["coverage_final"] for r in eps), 4),
+                          "coverage_mean": None if task == "catch" else round(st.mean(r["coverage_final"] for r in eps), 4),
                           "jump_mean": round(st.mean(r["jump_mean"] for r in eps), 2),
                           "staleness_mean": round(st.mean(r["staleness_mean"] for r in eps), 3),
                           "idle_frac_mean": round(st.mean(r["idle_frac"] for r in eps), 4),

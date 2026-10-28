@@ -79,7 +79,7 @@ function initKeys() {
   });
 }
 
-// URL parameters let a case-study state be reproduced exactly, e.g. ?task=reach&ref=sync_d0_h8&cand=naive_d4_h8&metric=jump_mean&seed=1012&t=80&sel=1001,1002
+// URL parameters let a case-study state be reproduced exactly, e.g. ?task=catch&ref=sync_d0_h8&cand=naive_d4_h8&metric=jump_mean&seed=1012&t=80&sel=1001,1002
 function applyParams() {
   const p = new URLSearchParams(location.search);
   const patch = {};

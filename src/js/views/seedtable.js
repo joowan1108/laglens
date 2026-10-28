@@ -138,7 +138,7 @@ function render() {
     .attr("fill", fillOf).attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
     .on("mousemove", (ev, d) => {
       const e = DATA.ep.get(d.c.id).get(d.seed);
-      showTip(ev, `<b>seed ${d.seed}</b> · ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "reach" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br>
+      showTip(ev, `<b>seed ${d.seed}</b> · ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px · ball speed ${Math.round(e.ball_speed * 10)} px/s` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br>
         <span class="k">discontinuity</span> ${e.jump_mean.toFixed(1)} px · <span class="k">moved while thinking</span> ${e.think_motion_mean.toFixed(1)} px · <span class="k">idle</span> ${Math.round(e.idle_frac * 100)}%<br>
         <span class="k">this seed succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)}% of schedules</span><br><span class="k">click = open this episode (column becomes the candidate)</span>`);
       if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });

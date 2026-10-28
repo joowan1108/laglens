@@ -30,12 +30,12 @@ export const METRICS = {
     epB: "jump_max",
     note: "chunk-boundary discontinuity: distance between the action the old chunk planned next and the first action of the new chunk, at each chunk switch" },
 };
-// Task-specific wording and B's outcome attribute (PushT: coverage of the goal; Reach: distance to the target).
+// Task-specific wording and B's outcome attribute (PushT: coverage of the goal; Catch: distance to the ball).
 export function applyTask(task) {
   const m = METRICS.success_rate;
-  m.epB = task === "reach" ? "dist_final" : "coverage_final";
-  m.note = task === "reach"
-    ? "share of the 30 episodes in which the pusher gets within 20 px of the target before the 7 s deadline"
+  m.epB = task === "catch" ? "dist_final" : "coverage_final";
+  m.note = task === "catch"
+    ? "share of the 30 episodes in which the pusher touches the rolling ball before the 8 s deadline"
     : "share of the 30 episodes that end with more than 95 % of the T-block in the goal";
 }
 
@@ -50,7 +50,7 @@ export function fmtMetric(k, v, signed = false) {
 // per-episode attributes on B's dumbbell axis (one per metric, see METRICS.epB)
 export const EP_ATTRS = {
   coverage_final: "final coverage of the goal",
-  dist_final: "final distance to the target (px)",
+  dist_final: "final pusher–ball distance (px)",
   idle_frac: "idle share",
   think_motion_mean: "mean robot motion while thinking (px)",
   jump_max: "largest boundary discontinuity in the episode (px)",

@@ -3,7 +3,7 @@ with headless Chromium and check the 7-page limit.
 
   LD_LIBRARY_PATH=~/chromelibs/root/usr/lib/x86_64-linux-gnu ~/infovis-venv/bin/python scripts/build_slides.py
 """
-import csv, glob, json, math, os, sys
+import csv, glob, json, math, os, statistics, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -70,7 +70,7 @@ def results_svg(scheds, h=4):
     (same y scale). Async has no d = 0 (nothing to overlap), so its line starts dotted at sync d = 0."""
     W, Hh, ml, mt, pw, ph, gap = 400, 160, 30, 27, 170, 100, 26
     o = [f'<svg viewBox="0 0 {W} {Hh}" width="{W}" height="{Hh}" font-size="10.5" font-family="Ubuntu Sans, Ubuntu, DejaVu Sans">']
-    for k, (task, title) in enumerate([("pusht", "PushT (the block waits)"), ("reach", "Reach-in-time (7 s deadline)")]):
+    for k, (task, title) in enumerate([("pusht", "PushT (the block waits)"), ("catch", "Catch the ball (8 s deadline)")]):
         x0 = ml + k * (pw + gap)
         X = lambda d: x0 + 10 + d / 4 * (pw - 20)
         Y = lambda v: mt + ph - v * ph
@@ -98,7 +98,8 @@ def results_svg(scheds, h=4):
                 else:
                     o.append(f'<rect x="{x-3.2}" y="{y-3.2}" width="6.4" height="6.4" fill="{col}" stroke="#fff" transform="rotate(45 {x} {y})"/>')
         # direct labels at d = 4 (sync vs. best async)
-        for st, dy in (("sync", 13), ("inpaint", -7)):
+        best = max(("naive", "inpaint"), key=lambda q: sr(q, 4))
+        for st, dy in (("sync", 13), (best, -7)):
             v = sr(st, 4)
             if v > 0.9:  # no room above the top gridline
                 dy = 14
@@ -109,12 +110,12 @@ def results_svg(scheds, h=4):
 
 def tokens():
     rows = list(csv.DictReader(open(D / "episodes.csv")))
-    rows_r = list(csv.DictReader(open(D / "reach" / "episodes.csv")))
+    rows_r = list(csv.DictReader(open(D / "catch" / "episodes.csv")))
     sched = {s["schedule"]: s for s in json.load(open(D / "schedules.json"))}
-    sched_r = {s["schedule"]: s for s in json.load(open(D / "reach" / "schedules.json"))}
+    sched_r = {s["schedule"]: s for s in json.load(open(D / "catch" / "schedules.json"))}
     n_steps = n_chunks = 0
     size = 0
-    for f in glob.glob(str(D / "runs" / "*.json")) + glob.glob(str(D / "reach" / "runs" / "*.json")):
+    for f in glob.glob(str(D / "runs" / "*.json")) + glob.glob(str(D / "catch" / "runs" / "*.json")):
         size += os.path.getsize(f)
         for e in json.load(open(f))["episodes"]:
             n_steps += e["n"]; n_chunks += len(e["chunks"])
@@ -136,20 +137,21 @@ def tokens():
         "N_STEPS": f"{n_steps:,}", "N_CHUNKS": f"{n_chunks:,}",
         "CSV_KB": f"{os.path.getsize(D / 'episodes.csv')/1024:.0f}", "DETAIL_MB": f"{size/1e6:.0f}",
         "SR_SYNC_D4_H4": pct("sync_d4_h4"), "SR_INPAINT_D4_H4": pct("inpaint_d4_h4"),
-        "R_SYNC_D4_H4": pct("sync_d4_h4", sched_r), "R_SYNC_D4_H8": pct("sync_d4_h8", sched_r),
-        "R_ASYNC": (lambda m: f"from all {len(seeds)} starts" if m == 1 else f"in ≥ {100*m:.0f} % of starts")(
-            min(v["success_rate"] for v in sched_r.values() if v["strategy"] != "sync")),
+        **{f"C_{st.upper()}_D{d}_H{h}": pct(f"{st}_d{d}_h{h}", sched_r) for st in ("sync", "naive", "inpaint") for d in (0, 2, 4) for h in (4, 8)
+           if st == "sync" or d},
         "P_SYNC_D4_H8": pct("sync_d4_h8"), "P_NAIVE_D4_H8": pct("naive_d4_h8"), "P_INPAINT_D4_H8": pct("inpaint_d4_h8"),
     }
-    # Reach: sync d4 h4 failures vs. start distance (start distance = path the robot must cover)
-    start = {}
-    for e in json.load(open(D / "reach" / "runs" / "sync_d4_h4.json"))["episodes"]:
-        start[e["seed"]] = e["dist"][0]
-    fail = [start[int(r["seed"])] for r in rows_r if r["schedule"] == "sync_d4_h4" and r["success"] == "0"]
-    ok = [start[int(r["seed"])] for r in rows_r if r["schedule"] == "sync_d4_h4" and r["success"] == "1"]
-    tok["R_FAIL_FROM"] = f"{min(fail):.0f}"
-    tok["R_OK_UPTO"] = f"{max(ok):.0f}"
-    tok["R_N_FAIL"] = len(fail)
+    # Catch: paired flips at d = 4, h = 4 and time to the catch
+    by = lambda sid: {int(r["seed"]): r for r in rows_r if r["schedule"] == sid}
+    S4, N4, I4, S0, S0r = by("sync_d4_h4"), by("naive_d4_h4"), by("inpaint_d4_h4"), by("sync_d0_h8"), by("sync_d0_h8_r1")
+    flips = lambda A, B: (sum(A[k]["success"] == "1" and B[k]["success"] == "0" for k in A), sum(A[k]["success"] == "0" and B[k]["success"] == "1" for k in A))
+    tok["C_LOSS_N"], tok["C_GAIN_N"] = flips(S4, N4)
+    tok["C_LOSS_I"], tok["C_GAIN_I"] = flips(S4, I4)
+    tok["C_RERUN"] = sum(flips(S0, S0r))
+    med = lambda A: statistics.median(float(r["steps_to_success"]) for r in A.values() if r["success"] == "1")
+    tok["C_STEPS_SYNC"], tok["C_STEPS_NAIVE"] = f"{med(S4):.0f}", f"{med(N4):.0f}"
+    sp = [float(r["ball_speed"]) for r in rows_r]
+    tok["BALL_SPEED"] = f"{min(sp)*10:.0f}–{max(sp)*10:.0f}"
     # chance flips: sync d0 h8 vs. its noise re-run (PushT), and scalability numbers for slide 6
     sr = {int(r["seed"]): r["success"] for r in rows if r["schedule"] == "sync_d0_h8"}
     rr = {int(r["seed"]): r["success"] for r in rows if r["schedule"] == "sync_d0_h8_r1"}
@@ -157,7 +159,7 @@ def tokens():
     tok["N_POINTS"] = len(sched)
     tok["N_CELLS"] = f"{len(sched) * len(seeds):,}"
     tok["MAX_CHUNKS"] = max(int(r["n_inferences"]) for r in allr)
-    tok["RESULTS_SVG"] = results_svg({"pusht": sched, "reach": sched_r}).replace("{N}", str(len(seeds)))
+    tok["RESULTS_SVG"] = results_svg({"pusht": sched, "catch": sched_r}).replace("{N}", str(len(seeds)))
     grid = lambda st: [r for r in rows if r["strategy"] == st and r["latency"] == "4" and r["horizon"] == "4" and r["replicate"] == "0"]
     mean = lambda st, k: sum(float(r[k]) for r in grid(st) if r[k] != "") / len([r for r in grid(st) if r[k] != ""])
     jump = {st: mean(st, "jump_mean") for st in ("sync", "naive", "inpaint")}

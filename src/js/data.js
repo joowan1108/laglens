@@ -1,14 +1,14 @@
 // Loads the episode table, schedule aggregates and (lazily) per-schedule step/chunk logs.
 import { applyTask } from "./util.js";
 
-const NUM = ["latency", "horizon", "replicate", "seed", "success", "steps_to_success", "coverage_final", "coverage_max", "dist_final",
+const NUM = ["latency", "horizon", "replicate", "seed", "success", "steps_to_success", "coverage_final", "coverage_max", "dist_final", "ball_speed",
   "n_inferences", "n_switches", "jump_mean", "jump_max", "inner_step_mean", "staleness_mean",
   "idle_frac", "jerk_mean", "think_motion_mean", "think_motion_max", "path_len"];
 
 // Two tasks with the same schedules and seeds, one data folder each.
 export const TASKS = {
   pusht: { label: "PushT", dir: "data/", title: "push the T-block onto the T-goal (pretrained policy; the block waits while the robot thinks)" },
-  reach: { label: "Reach-in-time", dir: "data/reach/", title: "touch the target within 7 s (policy trained by us; every idle step costs time)" },
+  catch: { label: "Catch the ball", dir: "data/catch/", title: "touch a rolling ball within 8 s (policy trained by us; the ball keeps moving while the robot thinks)" },
 };
 
 export const DATA = {

@@ -42,7 +42,7 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 | Matrix cell: filled = success, empty = failure (luminance) | Success is binary, so one luminance step suffices. The old four-hue loss/gain scheme reused the candidate orange and vermillion. Flips are now visible as cells that break their band's pattern. | [1][11] |
 | baseline column black, candidate column orange; others grey | Identity hues appear only where baseline and candidate are, as in every other view. | [4] |
 | Rows grouped by baseline→candidate change (lost, gained, both ✓, both ✗), robust seeds first inside a band; no sort or attribute controls | Spatial region is the top-ranked channel for a categorical attribute. Each band directly answers "which seeds flip?". Alternative orders were rarely needed and added controls. | [1] |
-| "re-run" column (same schedule, new noise) | An explicit reference for chance: 8/30 PushT seeds flip with no schedule change (Reach: 0/30). | [5] |
+| "re-run" column (same schedule, new noise) | An explicit reference for chance: 8/30 PushT seeds flip with no schedule change (Catch: 4/30). | [5] |
 | Dumbbell: ● baseline → ● candidate on a common position axis of the attribute that belongs to A's question (final coverage, idle share, motion while thinking, largest discontinuity); symlog for discontinuities; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
 | Vertical brush on the dumbbells, or click a band → selected seeds re-aggregate A | Cross-filtering checks whether a trend holds for a subset ("are the failures driven by these seeds?"). | [12][15] |
 
@@ -67,7 +67,7 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 
 ## 3 Whole-interface decisions
 - **Overview first, then filter, then details on demand**, in reading order: A (overview) → B (filter seeds) → C/D (episode details). [17]
-- **Two tasks, one encoding.** A task switch in the header (PushT · Reach-in-time) reloads all four views with the same marks and channels; only the outcome attribute changes (coverage of the goal ↔ distance to the target) and C draws a target disk instead of the T. Reach-in-time is the easy case in which async's advantage (no idling under a deadline) is plain to see; it calibrates the reader before the harder PushT, where the costs compete.
+- **Two tasks, one encoding.** A task switch in the header (PushT · Catch the ball) reloads all four views with the same marks and channels; only the outcome attribute changes (coverage of the goal ↔ pusher–ball distance) and C draws the ball and its rolled path instead of the T, with the ball's position in the planning picture as the dotted outline. Catch is the case in which async's advantage is plain to see (the ball rolls on while sync waits); PushT is the harder case where the costs compete.
 - **Fewer schedules and seeds.** The interface shows d ∈ {0, 2, 4} × h ∈ {4, 8} and 30 seeds: A has 3 latency points per panel and B 15 columns × 30 rows, readable without scrolling.
 - **Parsimony and consistency** across multiple views. Five views became four, and each hue has a single meaning everywhere. [9]
 - **Hue budget, chosen by job:**

@@ -107,7 +107,7 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .controls .legend .li { display: inline-flex; align-items: center; gap: 3px; color: var(--ink); cursor: default; }
 .brush .selection { fill: #1d1d1f; fill-opacity: 0.06; stroke: #1d1d1f; stroke-opacity: 0.5; stroke-dasharray: 4 3; }
 
-/* task switch (PushT · Reach-in-time) */
+/* task switch (PushT · Catch the ball) */
 .tasksw { display: flex; align-items: center; gap: 6px; }
 .tasksw .lead { color: var(--muted); font-size: 11.5px; }
 .tasksw .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }

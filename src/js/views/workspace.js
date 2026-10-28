@@ -3,7 +3,7 @@
 // planned it, the plan being computed, and the most recent jump at a chunk switch.
 import { state, update, bus } from "../state.js";
 import { DATA, loadRun, activeChunk, pendingChunk, STRAT_LABEL } from "../data.js";
-const TARGET_R = 20; // Reach-in-time: success radius around the target (scripts/reach_task.py)
+const BALL_R = 25; // Catch the ball: ball radius (scripts/catch_task.py)
 import { COLOR, showTip, hideTip, size, teePaths, GOAL, AGENT_R } from "../util.js";
 
 const shortLab = (id) => { const s = DATA.schedById.get(id); return `${STRAT_LABEL[s.strategy]} d${s.latency} h${s.horizon}${s.replicate ? " re-run" : ""}`; };
@@ -54,7 +54,7 @@ async function load() {
 
 // What the robot is doing at t, in the vocabulary of the strategies.
 function status(e, t) {
-  if (t >= e.n) return { k: "done", text: e.success ? (DATA.task === "reach" ? "finished: target reached" : "finished: block in goal") : (DATA.task === "reach" ? "7 s deadline passed" : "time out") };
+  if (t >= e.n) return { k: "done", text: e.success ? (DATA.task === "catch" ? "finished: ball touched" : "finished: block in goal") : (DATA.task === "catch" ? "8 s deadline passed" : "time out") };
   if (e.chunk[t] < 0) return { k: "wait", text: "idle: waiting for inference" };
   const pend = pendingChunk(e, t);
   return { k: "act", text: `acting on chunk #${e.chunk[t]} · picture ${e.age[t]} steps old${pend ? " · thinking" : ""}` };
@@ -97,25 +97,28 @@ function render() {
     const g = d3.select(this), e = p.e;
     const t = Math.min(state.t, e.n - 1);
     const st = status(e, state.t);
-    const reach = DATA.task === "reach";
-    const cov = reach ? null : e.cov[Math.min(state.t, e.n)];
-    const dist = reach ? e.dist[Math.min(state.t, e.n)] : null;
+    const ball = DATA.task === "catch";
+    const cov = ball ? null : e.cov[Math.min(state.t, e.n)];
+    const dist = ball ? e.dist[Math.min(state.t, e.n)] : null;
     g.select(".wt1").attr("y", 13).attr("fill", p.txt)
       .text(`${p.which === "ref" ? "Baseline" : "Candidate"} · ${shortLab(p.id)} · ${e.success ? "✓ success" : "✗ failure"}`);
-    g.select(".wt2").attr("y", 28).text(`${reach ? `distance to target ${Math.round(dist)} px · ` : cov === null || cov === undefined ? "" : `coverage ${Math.round(cov * 100)}% · `}${st.text}`)
+    g.select(".wt2").attr("y", 28).text(`${ball ? `distance to ball ${Math.round(dist)} px · ` : cov === null || cov === undefined ? "" : `coverage ${Math.round(cov * 100)}% · `}${st.text}`)
       .attr("fill", st.k === "wait" ? "#0072B2" : COLOR.muted);
     const b = g.select(".board").attr("transform", `translate(0,${head})`);
     b.select(".bg").attr("width", side).attr("height", side).attr("fill", "#fafafb").attr("stroke", "#d0d0d6").attr("rx", 4);
     const line = d3.line().x((d) => s(d[0])).y((d) => s(d[1]));
     const tee = (x, y, th) => teePaths(x, y, th).map((poly) => line([...poly, poly[0]])).join(" ");
-    // goal: the T-goal (PushT) or the target disk (Reach); only PushT has a block
-    const goalD = reach ? d3.arc()({ innerRadius: 0, outerRadius: s(TARGET_R), startAngle: 0, endAngle: 2 * Math.PI }) : tee(...GOAL);
-    b.select(".goal").selectAll("path").data([0]).join("path").attr("d", goalD)
-      .attr("transform", reach ? `translate(${s(e.goal[0])},${s(e.goal[1])})` : null)
+    // PushT: T-goal and T-block; Catch: the ball (grey disk) and the path it has rolled so far
+    b.select(".goal").selectAll("path.gl").data(ball ? [] : [0]).join("path").attr("class", "gl").attr("d", tee(...GOAL))
       .attr("fill", "#e9e9ee").attr("stroke", COLOR.goal).attr("stroke-dasharray", "4 3").attr("stroke-width", 1.2);
-    b.select(".goal").selectAll("text").data(reach ? [e.goal] : []).join("text").attr("x", (g) => s(g[0])).attr("y", (g) => s(g[1]) + s(TARGET_R) + 12)
-      .attr("text-anchor", "middle").attr("font-size", 10).attr("fill", COLOR.goal).text("target");
-    b.select(".block").selectAll("path").data(reach ? [] : [0]).join("path").attr("d", () => tee(e.bx[t], e.by[t], e.bth[t]))
+    const bt = Math.min(state.t, e.n);
+    b.select(".goal").selectAll("path.bpath").data(ball ? [0] : []).join("path").attr("class", "bpath")
+      .attr("d", () => line(d3.range(bt + 1).map((k) => [e.bx[k], e.by[k]]))).attr("fill", "none")
+      .attr("stroke", COLOR.block).attr("stroke-width", 1.2).attr("stroke-dasharray", "2 3");
+    b.select(".block").selectAll("path.bl").data(ball ? [] : [0]).join("path").attr("class", "bl").attr("d", () => tee(e.bx[t], e.by[t], e.bth[t]))
+      .attr("fill", COLOR.block).attr("fill-opacity", 0.9).attr("stroke", "#7b7f88");
+    b.select(".block").selectAll("circle").data(ball ? [0] : []).join("circle")
+      .attr("cx", s(e.bx[bt])).attr("cy", s(e.by[bt])).attr("r", s(BALL_R))
       .attr("fill", COLOR.block).attr("fill-opacity", 0.9).attr("stroke", "#7b7f88");
 
     const pts = d3.range(e.n).map((k) => [e.ax[k], e.ay[k]]);
@@ -170,7 +173,10 @@ function drawSeen(g, ch, p, s, tee, e, t) {
     k.append("path").attr("class", "sb"); k.append("circle").attr("class", "sa"); k.append("line").attr("class", "sl"); k.append("text").attr("class", "st");
     return k;
   });
-  q.select(".sb").attr("d", (d) => (e.bx ? tee(e.bx[d.to], e.by[d.to], e.bth[d.to]) : null)).attr("fill", "none")
+  // block (PushT) or ball (Catch) where it was in the picture
+  const seenObj = (d) => (e.bth ? tee(e.bx[d.to], e.by[d.to], e.bth[d.to])
+    : d3.arc()({ innerRadius: 0, outerRadius: s(BALL_R), startAngle: 0, endAngle: 2 * Math.PI }));
+  q.select(".sb").attr("d", seenObj).attr("transform", (d) => (e.bth ? null : `translate(${s(e.bx[d.to])},${s(e.by[d.to])})`)).attr("fill", "none")
     .attr("stroke", p.col).attr("stroke-opacity", 0.75).attr("stroke-width", 1.2).attr("stroke-dasharray", "1 2.5").attr("stroke-linecap", "round");
   q.select(".sa").attr("cx", (d) => s(e.ax[d.to])).attr("cy", (d) => s(e.ay[d.to])).attr("r", s(AGENT_R))
     .attr("fill", "none").attr("stroke", p.col).attr("stroke-opacity", 0.7).attr("stroke-width", 1.1).attr("stroke-dasharray", "2 2");

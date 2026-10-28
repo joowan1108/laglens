@@ -11,3 +11,5 @@ report/preview_*.png
 __pycache__/
 data/runs_reach/
 data/pilot_belt/
+data/runs_catch/
+data/calib_catch/
