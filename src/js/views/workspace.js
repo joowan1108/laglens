@@ -54,7 +54,10 @@ async function load() {
 
 // What the robot is doing at t, in the vocabulary of the strategies.
 function status(e, t) {
-  if (t >= e.n) return { k: "done", text: e.success ? (DATA.task === "catch" ? "finished: ball touched" : "finished: block in goal") : (DATA.task === "catch" ? "8 s deadline passed" : "time out") };
+  // a failed run ends at the deadline: say so on its last step too, with the rule it missed
+  const end = e.success ? t >= e.n : t >= e.n - 1;
+  if (end) return { k: "done", text: e.success ? (DATA.task === "catch" ? "finished: ball touched" : "finished: block in goal")
+    : (DATA.task === "catch" ? "8 s deadline passed, ball not touched" : "time out (300 steps)") };
   if (e.chunk[t] < 0) return { k: "wait", text: "idle: waiting for inference" };
   const pend = pendingChunk(e, t);
   return { k: "act", text: `acting on chunk #${e.chunk[t]} · picture ${e.age[t]} steps old${pend ? " · thinking" : ""}` };
@@ -102,7 +105,7 @@ function render() {
     const dist = ball ? e.dist[Math.min(state.t, e.n)] : null;
     g.select(".wt1").attr("y", 13).attr("fill", p.txt)
       .text(`${p.which === "ref" ? "Baseline" : "Candidate"} · ${shortLab(p.id)} · ${e.success ? "✓ success" : "✗ failure"}`);
-    g.select(".wt2").attr("y", 28).text(`${ball ? `distance to ball ${Math.round(dist)} px · ` : cov === null || cov === undefined ? "" : `coverage ${Math.round(cov * 100)}% · `}${st.text}`)
+    g.select(".wt2").attr("y", 28).text(`${ball ? `distance to ball ${Math.round(dist)} px · ` : cov === null || cov === undefined ? "" : `coverage ${Math.round(cov * 100)}%${st.k === "done" ? " (need > 95%)" : ""} · `}${st.text}`)
       .attr("fill", st.k === "wait" ? "#0072B2" : COLOR.muted);
     const b = g.select(".board").attr("transform", `translate(0,${head})`);
     b.select(".bg").attr("width", side).attr("height", side).attr("fill", "#fafafb").attr("stroke", "#d0d0d6").attr("rx", 4);
