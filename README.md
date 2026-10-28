@@ -14,8 +14,8 @@ python3 -m http.server 8000 --directory src     # then open http://localhost:800
 ```
 
 Useful URL parameters (reproduce a case-study view exactly):
-`?ref=sync_d0_h8&cand=naive_d4_h8&seed=1001&t=120&win=100,160&metric=seam_gap_mean&sel=1001,1002`
-(`metric` is one of `success_rate`, `idle_frac_mean`, `think_motion_mean`, `seam_gap_mean`; `noguide` hides the first-visit guide; `sel` pre-selects seeds).
+`?ref=sync_d0_h8&cand=naive_d4_h8&seed=1001&t=120&win=100,160&metric=jump_mean&sel=1001,1002`
+(`metric` is one of `success_rate`, `idle_frac_mean`, `think_motion_mean`, `jump_mean`; `noguide` hides the first-visit guide; `sel` pre-selects seeds).
 
 Controls: the R (baseline) / C (compare) pair and one question bar in A (Success · Idle = cost of sync · Outdated = robot motion while thinking (cost of async) · Discontinuity = cost of naive async) that drives both A and B; everything else is direct manipulation.
 

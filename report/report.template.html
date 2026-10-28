@@ -50,7 +50,7 @@
   the robot either <b>waits</b> (synchronous) or keeps executing an old chunk and switches when a new one arrives (<b>asynchronous</b>).
   Researchers tune the strategy, the latency budget and the execution horizon from aggregate success curves.
   LagLens replays one pretrained policy from the <b>same {{N_SEEDS}} initial states</b> under <b>{{N_SCHED}} execution schedules</b> (plus a noise replicate),
-  logs every predicted chunk, and links four d3.js views so that an analyst can go from “which schedule is robust?” down to “which chunk hand-over pushed the block away?”.
+  logs every predicted chunk, and links four d3.js views so that an analyst can go from “which schedule is robust?” down to “which chunk switch pushed the block away?”.
 </div>
 
 <h2>1 · What: Data Abstraction</h2>
@@ -69,15 +69,15 @@
   <tr><td>latency d <span class="k">KEY</span></td><td>ordinal (ratio)</td><td>0&lt;1&lt;2&lt;4&lt;6 steps</td><td>inference delay</td>
       <td>steps_to_success</td><td>ratio ↓</td><td>{{STS_RANGE}} (null if failed)</td><td>time to finish</td></tr>
   <tr><td>horizon h <span class="k">KEY</span></td><td>ordinal (ratio)</td><td>2&lt;4&lt;6&lt;8 steps</td><td>open-loop actions per chunk</td>
-      <td>seam_gap_mean / max</td><td>ratio (px) ↓</td><td>{{SEAM_RANGE}} / {{SEAMMAX_RANGE}}</td><td>boundary discontinuity (jump at hand-over)</td></tr>
+      <td>jump_mean / max</td><td>ratio (px) ↓</td><td>{{SEAM_RANGE}} / {{SEAMMAX_RANGE}}</td><td>jump at a chunk switch (chunk-boundary discontinuity)</td></tr>
   <tr><td>replicate <span class="k">KEY</span></td><td>nominal (binary)</td><td>0, 1</td><td>noise re-run</td>
       <td>think_motion_mean / max</td><td>ratio (px) ↓</td><td>{{THINK_RANGE}} / {{THINKMAX_RANGE}}</td><td>robot motion while the policy thinks</td></tr>
   <tr><td>seed <span class="k">KEY</span></td><td>nominal</td><td>{{SEED_MIN}}–{{SEED_MAX}} (50)</td><td>paired initial state</td>
       <td>idle_frac</td><td>ratio ↓</td><td>{{IDLE_RANGE}}</td><td>share of steps without action</td></tr>
   <tr><td>success</td><td>nominal (binary)</td><td>0, 1</td><td>coverage ≥ 95 % in 300 steps</td>
-      <td>jerk · path_len · n_inferences · n_seams · inner_step</td><td>ratio</td><td>{{JERK_RANGE}} · {{PATH_RANGE}} · {{NINF_RANGE}} · …</td><td>smoothness (2nd difference) · distance · # chunks · # hand-overs · step size inside a chunk</td></tr>
+      <td>jerk · path_len · n_inferences · n_switches · inner_step</td><td>ratio</td><td>{{JERK_RANGE}} · {{PATH_RANGE}} · {{NINF_RANGE}} · …</td><td>smoothness (2nd difference) · distance · # chunks · # hand-overs · step size inside a chunk</td></tr>
 </table>
-<p class="small"><b>Derived metrics.</b> <i>Chunk-boundary discontinuity</i> (columns <code>seam_gap_*</code>; the position gap at chunk transitions studied in [8,11,12]): at every hand-over from chunk <i>k</i> to <i>k</i>+1, the distance between the first action executed from <i>k</i>+1 and the action <i>k</i> had planned next.
+<p class="small"><b>Derived metrics.</b> <i>Chunk-boundary discontinuity</i> (columns <code>jump_*</code>; the position gap at chunk transitions studied in [8,11,12]): at every switch from chunk <i>k</i> to <i>k</i>+1, the distance between the first action executed from <i>k</i>+1 and the action <i>k</i> had planned next.
   <i>Motion while thinking</i>: for every executed chunk, the distance the robot moved between the camera picture the chunk was planned from and the step the chunk was ready, i.e. how much the scene changed that the plan did not see. <i>Staleness</i> (<code>staleness_mean</code>, {{STALE_RANGE}} steps): age of that picture when each action is executed; it averages <i>d</i> + (<i>h</i>−1)/2 and is identical for all strategies at equal <i>d</i>, <i>h</i>, so it does not separate them. Step values: agent/block x, y (interval, px), block θ (cyclic), action x, y, chunk id, index j (0–15), age (steps since its observation), held (1 = idle step), coverage.</p>
 
 <h2>2 · Who: Personas</h2>

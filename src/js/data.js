@@ -1,6 +1,6 @@
 // Loads the episode table, schedule aggregates and (lazily) per-schedule step/chunk logs.
 const NUM = ["latency", "horizon", "replicate", "seed", "success", "steps_to_success", "coverage_final", "coverage_max",
-  "n_inferences", "n_seams", "seam_gap_mean", "seam_gap_max", "inner_step_mean", "staleness_mean",
+  "n_inferences", "n_switches", "jump_mean", "jump_max", "inner_step_mean", "staleness_mean",
   "idle_frac", "jerk_mean", "think_motion_mean", "think_motion_max", "path_len"];
 
 export const DATA = {
@@ -126,5 +126,5 @@ export function aggregate(id, metric, seeds, ref) {
   return meanCI(vals);
 }
 const METRIC_EP = {
-  success_rate: "success", idle_frac_mean: "idle_frac", think_motion_mean: "think_motion_mean", seam_gap_mean: "seam_gap_mean",
+  success_rate: "success", idle_frac_mean: "idle_frac", think_motion_mean: "think_motion_mean", jump_mean: "jump_mean",
 };

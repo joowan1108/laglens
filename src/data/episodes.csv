@@ -1,4 +1,4 @@
-schedule,strategy,latency,horizon,replicate,seed,success,steps_to_success,coverage_final,coverage_max,n_inferences,n_seams,seam_gap_mean,seam_gap_max,inner_step_mean,staleness_mean,idle_frac,jerk_mean,think_motion_mean,think_motion_max,path_len
+schedule,strategy,latency,horizon,replicate,seed,success,steps_to_success,coverage_final,coverage_max,n_inferences,n_switches,jump_mean,jump_max,inner_step_mean,staleness_mean,idle_frac,jerk_mean,think_motion_mean,think_motion_max,path_len
 inpaint_d1_h2,inpaint,1,2,0,1000,0,,0.908,0.908,150,149,2.95,11.39,6.86,1.498,0.0033,3.8,6.14,29.26,1849.6
 inpaint_d1_h2,inpaint,1,2,0,1001,0,,0.258,0.3831,150,149,4.18,17.3,9.71,1.498,0.0033,4.76,9.32,22.01,2805.3
 inpaint_d1_h2,inpaint,1,2,0,1002,1,296,0.9568,0.9568,148,147,3.48,12.17,8.42,1.498,0.0034,4.34,7.83,20.55,2321.6

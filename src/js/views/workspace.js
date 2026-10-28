@@ -1,6 +1,6 @@
 // View C: juxtaposed replays of the selected seed under R and C (same scale, same seed), showing
 // only what explains the action at time t: the plan being executed, what the policy saw when it
-// planned it, the plan being computed, and the most recent seam (hand-over jump).
+// planned it, the plan being computed, and the most recent jump at a chunk switch.
 import { state, update, bus } from "../state.js";
 import { DATA, loadRun, activeChunk, pendingChunk, STRAT_LABEL } from "../data.js";
 import { COLOR, showTip, hideTip, size, teePaths, GOAL, AGENT_R } from "../util.js";

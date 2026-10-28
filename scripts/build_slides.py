@@ -77,7 +77,7 @@ def tokens():
         "N_SEEDS": len(seeds), "N_SCHED": sum(1 for s in sched.values() if not s.get("replicate")), "N_EP": f"{len(rows):,}",
         "N_ATTR": len(rows[0]), "SEED_MIN": seeds[0], "SEED_MAX": seeds[-1],
         "COV_RANGE": rng(rows, "coverage_final", "{:.2f}"), "STS_RANGE": rng(rows, "steps_to_success", "{:.0f}"),
-        "SEAM_RANGE": rng(rows, "seam_gap_mean", "{:.1f}"), "SEAMMAX_RANGE": rng(rows, "seam_gap_max", "{:.0f}"),
+        "SEAM_RANGE": rng(rows, "jump_mean", "{:.1f}"), "SEAMMAX_RANGE": rng(rows, "jump_max", "{:.0f}"),
         "STALE_RANGE": rng(rows, "staleness_mean", "{:.1f}"),
         "THINK_RANGE": rng(rows, "think_motion_mean", "{:.1f}"), "THINKMAX_RANGE": rng(rows, "think_motion_max", "{:.0f}"), "IDLE_RANGE": rng(rows, "idle_frac", "{:.2f}"),
         "JERK_RANGE": rng(rows, "jerk_mean", "{:.1f}"), "PATH_RANGE": rng(rows, "path_len", "{:.0f}"),
@@ -88,7 +88,7 @@ def tokens():
     }
     grid = lambda st: [r for r in rows if r["strategy"] == st and r["latency"] == "4" and r["horizon"] == "4" and r["replicate"] == "0"]
     mean = lambda st, k: sum(float(r[k]) for r in grid(st) if r[k] != "") / len([r for r in grid(st) if r[k] != ""])
-    jump = {st: mean(st, "seam_gap_mean") for st in ("sync", "naive", "inpaint")}
+    jump = {st: mean(st, "jump_mean") for st in ("sync", "naive", "inpaint")}
     tok["STRATEGY_SVG"] = strategy_svg(jump, mean("sync", "idle_frac"))
     return tok
 

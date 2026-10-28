@@ -18,7 +18,7 @@ const BANDS = [
   { key: "bothFail", name: "both ✗", long: "both fail" },
 ];
 // long-tailed attributes on a symmetric-log axis so that the bulk is not squeezed
-const SYMLOG = new Set(["seam_gap_max"]);
+const SYMLOG = new Set(["jump_max"]);
 const PCT = new Set(["coverage_final", "idle_frac"]);
 
 export function initSeedTable() {
@@ -133,7 +133,7 @@ function render() {
     .on("mousemove", (ev, d) => {
       const e = DATA.ep.get(d.c.id).get(d.seed);
       showTip(ev, `<b>seed ${d.seed}</b> · ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · coverage ${Math.round(e.coverage_final * 100)}%<br>
-        <span class="k">discontinuity</span> ${e.seam_gap_mean.toFixed(1)} px · <span class="k">moved while thinking</span> ${e.think_motion_mean.toFixed(1)} px · <span class="k">idle</span> ${Math.round(e.idle_frac * 100)}%<br>
+        <span class="k">discontinuity</span> ${e.jump_mean.toFixed(1)} px · <span class="k">moved while thinking</span> ${e.think_motion_mean.toFixed(1)} px · <span class="k">idle</span> ${Math.round(e.idle_frac * 100)}%<br>
         <span class="k">this seed succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)}% of schedules</span><br><span class="k">click = open this episode (column becomes C)</span>`);
       if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });
     })

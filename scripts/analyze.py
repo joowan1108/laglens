@@ -24,7 +24,7 @@ for strat in ["sync", "naive", "inpaint"]:
 
 print("\n== mean seam gap / idle / staleness per schedule ==")
 for k, s in sorted(sch.items()):
-    print(f"{k:16s} sr={s['success_rate']:.2f} seam={s['seam_gap_mean']:5.1f} stale={s['staleness_mean']:.2f} idle={s['idle_frac_mean']:.2f} jerk={s['jerk_mean']:.1f}")
+    print(f"{k:16s} sr={s['success_rate']:.2f} seam={s['jump_mean']:5.1f} stale={s['staleness_mean']:.2f} idle={s['idle_frac_mean']:.2f} jerk={s['jerk_mean']:.1f}")
 
 by = defaultdict(dict)
 for r in rows:
@@ -45,8 +45,8 @@ for k in sorted(sch):
 
 print("\n== seam gap vs outcome (all episodes) ==")
 for strat in ["sync", "naive", "inpaint"]:
-    ok = [r["seam_gap_max"] for r in rows if r["strategy"] == strat and r["success"] == 1]
-    bad = [r["seam_gap_max"] for r in rows if r["strategy"] == strat and r["success"] == 0]
+    ok = [r["jump_max"] for r in rows if r["strategy"] == strat and r["success"] == 1]
+    bad = [r["jump_max"] for r in rows if r["strategy"] == strat and r["success"] == 0]
     print(f"{strat:8s} max seam gap: success median={st.median(ok):.1f} (n={len(ok)})  failure median={st.median(bad):.1f} (n={len(bad)})")
 
 # seeds that never/always succeed

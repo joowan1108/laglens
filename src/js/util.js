@@ -26,9 +26,9 @@ export const METRICS = {
   think_motion_mean: { btn: "Outdated", sub: "cost of async", label: "robot motion while thinking (px)", ep: "think_motion_mean",
     epB: "think_motion_mean",
     note: "how far the robot moved between the camera picture a chunk was planned from and the moment that chunk was ready: the plan was made for a scene that has since changed (the price async pays; sync waits, so it moves less)" },
-  seam_gap_mean: { btn: "Discontinuity", sub: "cost of naive async", label: "boundary discontinuity (px)", ep: "seam_gap_mean",
-    epB: "seam_gap_max",
-    note: "chunk-boundary discontinuity: distance between the action the old chunk planned next and the first action of the new chunk, at each hand-over" },
+  jump_mean: { btn: "Discontinuity", sub: "cost of naive async", label: "boundary discontinuity (px)", ep: "jump_mean",
+    epB: "jump_max",
+    note: "chunk-boundary discontinuity: distance between the action the old chunk planned next and the first action of the new chunk, at each chunk switch" },
 };
 export function fmtMetric(k, v, signed = false) {
   if (v === null || v === undefined || Number.isNaN(v)) return "–";
@@ -43,7 +43,7 @@ export const EP_ATTRS = {
   coverage_final: "final coverage of the goal",
   idle_frac: "idle share",
   think_motion_mean: "mean robot motion while thinking (px)",
-  seam_gap_max: "largest boundary discontinuity in the episode (px)",
+  jump_max: "largest boundary discontinuity in the episode (px)",
 };
 
 const tip = () => document.getElementById("tooltip");
