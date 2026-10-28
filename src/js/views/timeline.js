@@ -1,7 +1,9 @@
-// View D: execution timeline on a shared time axis. For R and C, two tracks:
-//   think — when an inference is running (observation → chunk available)
-//   act   — which chunk the executed action came from (hatched = robot idle), with seam
-//           lollipops above it (stem length = seam gap, common scale for R and C).
+// View D: execution timeline on a shared time axis. For R and C, three tracks:
+//   motion — how far the commanded position moved each step (grey area); at a chunk switch the
+//            jump between old and new plan is a magenta bar on the same px scale (shared by R and C),
+//            so a jump reads as a burst of motion far above the robot's normal movement
+//   think  — when an inference is running (observation → chunk available)
+//   act    — which chunk the executed action came from (hatched = robot idle)
 // Sync shows "think" and "act" alternating (idle while thinking); async shows them overlapping.
 // Below: block–goal coverage of both runs.
 import { state, update, bus } from "../state.js";
@@ -46,9 +48,10 @@ function render() {
   const m = { l: 62, r: 12, t: 6, b: 32 };
   const n = Math.max(eps.ref.n, eps.cand.n);
   x = d3.scaleLinear().domain([0, n]).range([m.l, w - m.r]);
-  // lane geometry: seam strip, think track, act track
-  const seamH = 20, thinkH = 5, actH = 12, laneGap = 12;
-  const laneH = seamH + thinkH + 4 + actH;
+  // lane geometry: motion track, think track, act track
+  // the motion track grows with the panel so jumps stay readable next to normal movement
+  const motH = Math.round(Math.max(26, Math.min(70, (h - m.t - m.b) * 0.16))), thinkH = 5, actH = 12, laneGap = 12;
+  const laneH = motH + 4 + thinkH + 4 + actH;
   const lanes = [
     { which: "ref", e: eps.ref, col: COLOR.ref, txt: COLOR.ref, y: m.t },
     { which: "cand", e: eps.cand, col: COLOR.cand, txt: "#9a6a00", y: m.t + laneH + laneGap },
@@ -56,8 +59,9 @@ function render() {
   const covTop = m.t + 2 * laneH + laneGap + 26, covBot = h - m.b;
   curBot = covBot;
   const yc = d3.scaleLinear().domain([0, 1]).range([covBot, covTop]);
-  const gmax = Math.max(50, d3.max([...eps.ref.seams, ...eps.cand.seams], (s) => s.gap) || 0);
-  const ys = d3.scaleLinear().domain([0, gmax]).range([0, seamH - 2]);
+  for (const e of [eps.ref, eps.cand]) if (!e.mot) e.mot = motion(e);
+  const gmax = Math.max(30, d3.max([eps.ref, eps.cand], (e) => Math.max(d3.max(e.mot), d3.max(e.seams, (s) => s.gap) || 0)));
+  const ys = d3.scaleLinear().domain([0, gmax]).range([0, motH - 2]);
 
   // brush below the marks so bars stay hoverable
   const bg = svg.selectAll("g.brush").data([0]).join("g").attr("class", "brush");
@@ -70,8 +74,10 @@ function render() {
   const lg = svg.selectAll("g.lane").data(lanes, (d) => d.which).join((en) => {
     const g = en.append("g").attr("class", "lane");
     g.append("text").attr("class", "ln");
+    g.append("text").attr("class", "tk axis-title tk0").text("motion");
     g.append("text").attr("class", "tk axis-title tk1").text("think");
     g.append("text").attr("class", "tk axis-title tk2").text("act");
+    g.append("path").attr("class", "mot");
     g.append("line").attr("class", "seamBase");
     g.append("g").attr("class", "think");
     g.append("g").attr("class", "idle");
@@ -82,12 +88,16 @@ function render() {
 
   lg.each(function (L) {
     const g = d3.select(this), e = L.e;
-    const thinkY = seamH + 1, actY = seamH + thinkH + 4;
+    const thinkY = motH + 4, actY = motH + 4 + thinkH + 4;
     g.select(".ln").attr("x", 4).attr("y", actY + 10).attr("font-weight", 800).attr("font-size", 12).attr("fill", L.txt)
       .text(`${L.which === "ref" ? "R" : "C"} ${e.success ? "✓" : "✗"}`);
+    g.select(".tk0").attr("x", m.l - 5).attr("y", motH - 2).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".tk1").attr("x", m.l - 5).attr("y", thinkY + 5).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".tk2").attr("x", m.l - 5).attr("y", actY + 9).attr("text-anchor", "end").attr("font-size", 9);
-    g.select(".seamBase").attr("x1", m.l).attr("x2", x(e.n)).attr("y1", seamH).attr("y2", seamH).attr("stroke", "#e4e4e9");
+    g.select(".seamBase").attr("x1", m.l).attr("x2", x(e.n)).attr("y1", motH).attr("y2", motH).attr("stroke", "#d4d4da");
+    // motion: commanded displacement per step (idle = 0)
+    g.select(".mot").datum(e.mot).attr("d", d3.area().curve(d3.curveStepAfter).x((v, t) => x(t)).y0(motH).y1((v) => motH - ys(v))(e.mot.concat([0])))
+      .attr("fill", "#a9a9b2").attr("pointer-events", "none");
 
     // think: inference intervals
     const inf = e.chunks.map((c, i) => ({ c, i })).filter((d) => d.c.t_obs < e.n);
@@ -121,20 +131,22 @@ function render() {
       .on("mousemove", (ev, r) => showTip(ev, `<b>idle</b> t=${r[0]}–${r[1] - 1}: no action available, the robot holds still`))
       .on("mouseleave", hideTip);
 
-    // seams: lollipops, stem length = gap
-    const sm = g.select(".seams").selectAll("g.sp").data(e.seams.filter((s) => s.gap >= 1), (s) => s.t).join((en) => {
-      const q = en.append("g").attr("class", "sp").style("cursor", "pointer"); q.append("line"); q.append("circle"); return q;
-    }).attr("transform", (s) => `translate(${x(s.t)},0)`);
-    sm.select("line").attr("y1", seamH).attr("y2", (s) => seamH - ys(s.gap)).attr("stroke", COLOR.seam).attr("stroke-width", 1.2);
-    sm.select("circle").attr("cy", (s) => seamH - ys(s.gap)).attr("r", 1.7).attr("fill", COLOR.seam);
-    sm.on("mousemove", (ev, s) => showTip(ev, `<b>chunk-boundary discontinuity</b> at t=${s.t}: the new chunk's first action is <b>${s.gap.toFixed(1)} px</b> away from what the old chunk planned next`))
+    // jumps at chunk switches: magenta bars on the motion scale, height = gap between old and new plan
+    const normal = d3.median(e.mot.filter((v, t) => v > 0 && !e.seamAt.has(t))) || 0;
+    const bw = Math.max(1.6, x(1) - x(0) - 0.4);
+    g.select(".seams").selectAll("rect.sp").data(e.seams.filter((s) => s.gap >= 1), (s) => s.t).join("rect").attr("class", "sp")
+      .attr("x", (s) => x(s.t) + (x(1) - x(0) - bw) / 2).attr("width", bw)
+      .attr("y", (s) => motH - ys(s.gap)).attr("height", (s) => Math.max(1, ys(s.gap)))
+      .attr("fill", COLOR.seam).style("cursor", "pointer")
+      .on("mousemove", (ev, s) => showTip(ev, `<b>jump at a chunk switch</b> (boundary discontinuity) at t=${s.t}: the new chunk's first action is <b>${s.gap.toFixed(1)} px</b> away from what the old chunk planned next<br><span class="k">normal motion in this run:</span> ≈ ${normal.toFixed(1)} px per step`))
       .on("mouseleave", hideTip).on("click", (ev, s) => update({ t: s.t }));
   });
 
-  geom = { lanes, thinkY: seamH + 1, thinkH, actY: seamH + thinkH + 4, actH };
+  geom = { lanes, thinkY: motH + 4, thinkH, actY: motH + 4 + thinkH + 4, actH };
 
   svg.selectAll("text.sk").data([0]).join("text").attr("class", "sk axis-title").attr("font-size", 9).attr("fill", COLOR.seam)
-    .attr("x", m.l - 5).attr("y", m.t + 8).attr("text-anchor", "end").text(`${gmax.toFixed(0)} px`);
+    .attr("x", m.l - 5).attr("y", m.t + 8).attr("text-anchor", "end").text(`${gmax.toFixed(0)} px`)
+    .append("title").text("top of the motion tracks (shared by R and C)");
 
   // coverage curves
   const cg = svg.selectAll("g.cov").data([0]).join((en) => {
@@ -158,6 +170,14 @@ function render() {
     .attr("d", (L) => covLine(L.e.cov.map((v, i) => [i, v])))
     .attr("fill", "none").attr("stroke", (L) => L.col).attr("stroke-width", 1.8).attr("pointer-events", "none");
   cursor();
+}
+
+// Commanded displacement per step (px): |a_t − a_{t−1}|; 0 while idle.
+function motion(e) {
+  return d3.range(e.n).map((t) => {
+    const a = e.act[t], b = e.act[t - 1];
+    return t && a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : 0;
+  });
 }
 
 function bindBrush(bg, m, w, covBot, n) {

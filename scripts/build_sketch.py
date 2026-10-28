@@ -221,12 +221,18 @@ txt(cx0 + 20, cy0 + 308, "why: waiting? old picture? jump?", 12, "#555")
 # ---- D execution timeline
 rbox(dx, dy, dw, dh)
 txt(dx + 12, dy + 24, "D · Execution timeline", 15, weight="bold")
-txt(dx + dw - 12, dy + 24, f"time →   ///  = standing still  ·  <tspan fill='{SEAM}'>red tick = jump size</tspan>", 12, "#555", "end")
+txt(dx + dw - 12, dy + 24, f"motion: grey = moving, <tspan fill='{SEAM}'>red = jump</tspan> · time →", 12, "#555", "end")
 t0, Wd = dx + 84, 68
 for k, (lab, col) in enumerate([("R", R), ("C", C)]):
-    yy = dy + 44 + k * 62
+    yy = dy + 58 + k * 66
     txt(dx + 14, yy + 30, lab, 15, "#222" if k == 0 else "#9a6a00")
+    txt(t0 - 8, yy, "motion", 11.5, GREY, "end")
     txt(t0 - 8, yy + 14, "think", 11.5, GREY, "end"); txt(t0 - 8, yy + 34, "act", 11.5, GREY, "end")
+    # motion track: grey movement per step (0 while standing still), red bar = jump at each switch
+    moving = (lambda t: (t // Wd) % 2 == 1) if k == 0 else (lambda t: True)
+    pts = [(t0 + t, yy - (3 + 2.5 * math.sin(t / 9 + k) if moving(t) else 0)) for t in range(0, 8 * Wd - 6, 3)]
+    add(f'<polygon points="{t0},{yy} ' + " ".join(f"{a:.1f},{b:.1f}" for a, b in pts) + f' {t0 + 8 * Wd - 6},{yy}" fill="#b4b4bc"/>')
+    rl(t0, yy, t0 + 8 * Wd - 6, yy, GREY, 1)
     if k == 0:  # sync: think, then act; standing still while thinking
         for c in range(4):
             x = t0 + c * 2 * Wd
@@ -234,37 +240,38 @@ for k, (lab, col) in enumerate([("R", R), ("C", C)]):
             rbox(x, yy + 22, Wd - 6, 16, "#999", 1.2, fill="url(#hatch)")
             rbox(x + Wd, yy + 22, Wd - 6, 16, "#555", 1.3, fill="#bbb")
             if c:
-                rl(x + Wd, yy + 20, x + Wd, yy + 2, SEAM, 2, over=0)
+                add(f'<rect x="{x + Wd - 1.5}" y="{yy - 5}" width="3" height="5" fill="{SEAM}"/>')
     else:  # async: thinks while acting
         for c in range(8):
             x = t0 + c * Wd
             rbox(x, yy + 4, Wd - 6, 12, col, 1.2, fill="#fbe3b0")
             rbox(x, yy + 22, Wd - 6, 16, col, 1.3, fill="#f3c66a")
             if c:
-                rl(x, yy + 20, x, yy + 12, SEAM, 2, over=0)
+                jh = [0, 6, 4, 12, 5, 7, 4, 9][c]
+                add(f'<rect x="{x - 1.5}" y="{yy - jh}" width="3" height="{jh}" fill="{SEAM}"/>')
 # provenance of the current chunk in C: ○ camera picture → think → act
-pc, yy = 3, dy + 106
+pc, yy = 3, dy + 124
 rbox(t0 + (pc - 1) * Wd - 1, yy + 2, Wd - 4, 16, INK, 2.6)
 rbox(t0 + pc * Wd - 1, yy + 20, Wd - 4, 20, INK, 2.6)
 rcirc(t0 + (pc - 1) * Wd - 1, yy + 10, 5, INK, 1.8, fill="#fff")
 curve([(t0 + pc * Wd - 8, yy + 12), (t0 + pc * Wd + 10, yy + 22)], INK, 1.6, None, True)
-badge(t0 + 10, dy + 164, 6)
-txt(t0 + 26, dy + 169, "current chunk: ○ camera picture → think → act", 12.5)
+badge(t0 + 10, dy + 177, 6)
+txt(t0 + 26, dy + 182, "current chunk: ○ camera picture → think → act", 12.5)
 # cursor and brush window
 cur = t0 + (pc + 0.5) * Wd
-rl(cur, dy + 40, cur, dy + 150, INK, 1.6, over=0); rl(cur, dy + 178, cur, dy + 250, INK, 1.6, over=0)
-rbox(t0 + 6 * Wd - 6, dy + 38, 2 * Wd + 6, 112, IA, 1.5, dash="5 4")
-note(t0 + 7 * Wd, dy + 168, "drag = time window", "middle")
+rl(cur, dy + 36, cur, dy + 166, INK, 1.6, over=0); rl(cur, dy + 190, cur, dy + 250, INK, 1.6, over=0)
+rbox(t0 + 6 * Wd - 6, dy + 34, 2 * Wd + 6, 132, IA, 1.5, dash="5 4")
+note(t0 + 7 * Wd, dy + 182, "drag = time window", "middle")
 # block-on-goal coverage
-cb, ct = dy + 240, dy + 186
+cb, ct = dy + 242, dy + 204
 rl(t0, cb, dx + dw - 14, cb, GREY, 1.2)
 rl(t0, ct, dx + dw - 14, ct, GREY, 1.1, "6 5")
 txt(dx + dw - 14, ct - 4, "success line", 11.5, GREY, "end")
 txt(dx + 12, ct + 26, "block on", 12, "#555"); txt(dx + 12, ct + 42, "goal", 12, "#555")
-curve([(t0, cb), (t0 + 150, cb - 18), (t0 + 320, cb - 30), (t0 + 540, cb - 26)], R, 2)
-curve([(t0, cb), (t0 + 120, cb - 26), (t0 + 260, cb - 44), (t0 + 330, cb - 56)], C, 2)
+curve([(t0, cb), (t0 + 150, cb - 12), (t0 + 320, cb - 20), (t0 + 540, cb - 17)], R, 2)
+curve([(t0, cb), (t0 + 120, cb - 16), (t0 + 260, cb - 28), (t0 + 330, cb - 36)], C, 2)
 note(dx + 14, dy + dh - 8, "click = move time cursor (C follows) · hover a chunk = its plan in C · window = that path in C", size=12)
-curve([(cur, dy + 40), (cur - 4, dy + 14), (cx0 + 322, cy0 + 290)], IA, 1.5, "5 4", True)
+curve([(cur, dy + 36), (cur - 4, dy + 14), (cx0 + 322, cy0 + 290)], IA, 1.5, "5 4", True)
 add('</svg>')
 OUT.write_text("\n".join(o))
 print("wrote", OUT, f"{OUT.stat().st_size // 1024} KB")

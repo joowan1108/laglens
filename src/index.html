@@ -63,7 +63,7 @@
       <div class="note key top">
         <span><b>think</b> = inference running</span>
         <span><b>act</b> = executing a chunk (tints alternate per chunk, <i class="k-hatch"></i> = idle)</span>
-        <span><i class="k-lolli"></i>boundary discontinuity</span>
+        <span><b>motion</b> = how far the robot moves each step, <i class="k-jump"></i>= jump at a chunk switch (same scale)</span>
         <span><i class="k-prov"></i>current chunk: ○ camera picture → think → act</span>
         <span class="muted">Sync alternates think → act; async overlaps them.</span>
       </div>
@@ -86,7 +86,7 @@
         The four buttons choose the question: <i>Success</i>, or the cost each strategy pays: <i>Idle</i> (sync), <i>Outdated</i> (async: how far the robot moved while the policy was thinking, so the new plan fits an old scene), <i>Discontinuity</i> (naive async). The same choice sets the attribute in B. Click a mark = <span class="tC">C (compare)</span>, shift-click = <span class="tR">R (baseline)</span>; hovering a mark gives its difference to R on the same seeds.</li>
       <li><b>B Paired Seed Table</b>: one row per initial state. Left: filled cell = success under that column's schedule (R black, C orange). Rows are grouped by how the outcome changes from R to C; the <i>re-run</i> column shows how many outcomes flip by chance alone. Right: the same seed's value under R (●) and C (<span class="tC">●</span>) for the question chosen in A. Drag over the right part to select seeds: A then recomputes on them.</li>
       <li><b>C Workspace Replay</b>: the episode under R and C side by side, with the chunk being executed, the next chunk still being computed and the latest <span class="tSeam">discontinuity</span>.</li>
-      <li><b>D Execution Timeline</b>: when the policy thinks and which chunk each action came from; lollipops are discontinuities. Brush a window, hover a chunk to see its plan in C.</li>
+      <li><b>D Execution Timeline</b>: when the policy thinks and which chunk each action came from; the motion track shows each jump as a magenta bar next to the robot's normal movement. Brush a window, hover a chunk to see its plan in C.</li>
     </ol>
     <p class="muted">Keyboard: ←/→ step, space play/pause, Esc clears the time window and the seed selection.</p>
     <button id="guideClose">Start exploring</button>

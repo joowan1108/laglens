@@ -30,7 +30,7 @@ Slide 1 compares the three strategies on a timeline (d = 4, h = 4): think/act ti
 | T4 | Discover → correlation (boundary discontinuity ↔ outcome) | test the boundary-artifact claim | evidence for or against a strategy |
 
 ## 4 How: idioms
-A Latency Response (line-chart small multiples per horizon, strategies superposed with hue + shape, 95 % intervals, paired Δ vs R on hover, one question bar: Success · Idle · Outdated · Discontinuity) · B Paired Seed Table (outcome matrix grouped by R→C change + R→C dumbbells of the question's attribute on one shared row axis, re-run column for chance, brushing cross-filters A) · C Workspace Replay (juxtaposed maps: current chunk, chunk being computed, latest discontinuity) · D Execution Timeline (think / act tracks, discontinuity lollipops, coverage). Rationale and literature: `docs/design_rationale.md`.
+A Latency Response (line-chart small multiples per horizon, strategies superposed with hue + shape, 95 % intervals, paired Δ vs R on hover, one question bar: Success · Idle · Outdated · Discontinuity) · B Paired Seed Table (outcome matrix grouped by R→C change + R→C dumbbells of the question's attribute on one shared row axis, re-run column for chance, brushing cross-filters A) · C Workspace Replay (juxtaposed maps: current chunk, chunk being computed, latest discontinuity) · D Execution Timeline (think / act tracks, motion track with discontinuity bars, coverage). Rationale and literature: `docs/design_rationale.md`.
 Interactions: select R/C, choose the question (drives A and B), brush and link, filter, tooltip, play and scrub.
 The channel-justification table and the hue budget (Okabe–Ito, CVD-checked) are on slides 5–6.
 
