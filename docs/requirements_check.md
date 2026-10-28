@@ -1,6 +1,6 @@
 # Requirement check against `Term_Project_2026 (2) (1).pdf`
 
-Checked on 2026-10-27 after the redesign build. ✅ = satisfied, with evidence.
+Checked on 2026-10-28 against the current slides (two tasks, reduced grid). ✅ = satisfied, with evidence.
 
 ## General
 | Requirement (PDF) | Status | Evidence |
@@ -42,7 +42,7 @@ Checked on 2026-10-27 after the redesign build. ✅ = satisfied, with evidence.
 |---|---|---|
 | ≥ 3 interactive vis components supporting the primary persona | ✅ | 4 linked views A–D (B is a composite of an outcome matrix and a dumbbell strip) |
 | Justification by task, attribute types, scalability | ✅ | slide 5 idiom table, slide 6 mark/channel table (effectiveness ranking, hue budget, CVD check, scalability), report §4, `docs/design_rationale.md` (20 VIS references) |
-| Interactions per vis | ✅ | select, change (one question bar for A and B), brush, link, filter, tooltip, play/scrub; `docs/ui_test_output.txt` (32/32 checks pass, 0 console errors) |
+| Interactions per vis | ✅ | select, change (one question bar for A and B), brush, link, filter, tooltip, play/scrub; `docs/ui_test_output.txt` (41/41 checks pass, 0 console errors) |
 
 ## 5 Sketch (2 pts)
 | Item | Status | Evidence |
@@ -69,8 +69,8 @@ Checked on 2026-10-27 after the redesign build. ✅ = satisfied, with evidence.
 | Proposal ZIP, files at the ZIP root | ✅ | `proposal_submission.zip` → `slides.pdf` |
 | Implementation: `report.pdf` (name, theme, demo link, screenshots, AI disclosure), Korean or English, ≤ 5 pages | ✅ | `scripts/build_report.py` prints `report.pdf pages = 5 (PASS <= 5)`; English |
 | `src/` and `image.png` | ✅ | `image.png` is a full-interface screenshot (3200 × 1880) |
-| Final ZIP, files at the ZIP root | ✅ | `final_submission.zip` → `report.pdf`, `image.png`, `src/…` (62 files, 25 MB) |
+| Final ZIP, files at the ZIP root | ✅ | `final_submission.zip` → `report.pdf`, `image.png`, `src/…` (47 files, 7 MB) |
 | Presentation slides in English | ✅ | `slides.pdf` is English; the final presentation can use the live demo |
 
 **Unmet items: none.**
-Notes for the student: no author name is printed (as requested). Upload limits on iCampus are not stated in the PDF; the final ZIP is 25 MB because `src/data/runs/` holds the per-step logs the demo needs.
+Notes for the student: no author name is printed (as requested). Upload limits on iCampus are not stated in the PDF; the final ZIP is about 7 MB because `src/data/runs/` holds the per-step logs the demo needs.
