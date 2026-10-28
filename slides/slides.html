@@ -96,7 +96,7 @@
         <tr><td class="k">strategy <span class="keyb">KEY</span></td><td>nominal (no order)</td><td>sync · naive · inpaint</td><td>what the robot does while a chunk is computed</td></tr>
         <tr><td class="k">latency d <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>0 &lt; 2 &lt; 4 steps (0–400 ms)</td><td>inference delay; d = 0 only for sync</td></tr>
         <tr><td class="k">horizon h <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>4 &lt; 8</td><td>moves executed from each chunk before switching</td></tr>
-        <tr><td class="k">schedule</td><td>nominal (ID)</td><td>15 levels, e.g. <code>sync_d4_h4</code></td><td>derived key: strategy × d × h (+ replicate)</td></tr>
+        <tr><td>schedule</td><td>nominal (ID)</td><td>15 levels, e.g. <code>sync_d4_h4</code></td><td>name for one (strategy, d, h, replicate) combination; not an extra key</td></tr>
         <tr><td class="k">replicate · seed <span class="keyb">KEY</span></td><td>nominal (binary · ID)</td><td>0 · 1 &nbsp;|&nbsp; 1000–1029</td><td>1 = sync d0 h8 re-run with new noise | start state, same in every schedule</td></tr>
         <tr><td>success</td><td>nominal (binary)</td><td>0 = fail, 1 = success</td><td>PushT: coverage &gt; 95 % within 300 steps · Catch: pusher touches the ball within 80 steps</td></tr>
         <tr><td>coverage_final / max · dist_final</td><td>quant. ratio, ↑ · ↓</td><td>0.00–0.99 / 0.00–0.99 · 32–426 px</td><td>PushT: block–goal overlap at the end / best · Catch: pusher–ball distance at the end</td></tr>
