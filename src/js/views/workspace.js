@@ -98,7 +98,7 @@ function render() {
     const st = status(e, state.t);
     const cov = e.cov[Math.min(state.t, e.n)];
     g.select(".wt1").attr("y", 13).attr("fill", p.txt)
-      .text(`${p.which === "ref" ? "R" : "C"} · ${shortLab(p.id)} · ${e.success ? "✓ success" : "✗ failure"}`);
+      .text(`${p.which === "ref" ? "Baseline" : "Candidate"} · ${shortLab(p.id)} · ${e.success ? "✓ success" : "✗ failure"}`);
     g.select(".wt2").attr("y", 28).text(`${cov === null || cov === undefined ? "" : `coverage ${Math.round(cov * 100)}% · `}${st.text}`)
       .attr("fill", st.k === "wait" ? "#0072B2" : COLOR.muted);
     const b = g.select(".board").attr("transform", `translate(0,${head})`);
@@ -192,7 +192,7 @@ function drawFan(g, ch, p, s, line, e) {
     .attr("fill", (d) => (d.tExec !== undefined ? p.col : "#fff")).attr("stroke", (d) => (d.tExec !== undefined ? "#fff" : p.col)).attr("stroke-width", (d) => (d.tExec !== undefined ? 0.7 : 1.2))
     .style("cursor", "help")
     .on("mousemove", (ev, d) => {
-      showTip(ev, `<b>${p.which === "ref" ? "R" : "C"} chunk #${e.chunks.indexOf(ch)}</b>, action ${d.j} of 16<br>
+      showTip(ev, `<b>${p.which === "ref" ? "baseline" : "candidate"} chunk #${e.chunks.indexOf(ch)}</b>, action ${d.j} of 16<br>
         <span class="k">planned from the observation at</span> t=${ch.t_obs} · <span class="k">available at</span> t=${ch.t_avail}<br>
         ${d.tExec !== undefined ? `<b>executed</b> at t=${d.tExec} (${d.tExec - ch.t_obs} steps after its observation)` : "<b>never executed</b>: replaced by the next chunk"}<br>
         <span class="k">click = jump to that step</span>`);

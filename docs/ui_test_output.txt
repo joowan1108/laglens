@@ -7,10 +7,10 @@ PASS  A shift-click sets reference
 PASS  A question button sets the metric
 PASS  the same question sets B's dumbbell attribute
 PASS  A shows exactly four questions, no dropdown
-PASS  A tooltip gives the paired difference to R
+PASS  A tooltip gives the paired difference to the baseline
 PASS  A legend hover highlights one strategy
 PASS  B has no controls of its own
-PASS  B groups rows by R→C change
+PASS  B groups rows by baseline→candidate change
 PASS  B column header click sets candidate
 PASS  B cell click selects seed
 PASS  B dumbbells follow the question (idle share)

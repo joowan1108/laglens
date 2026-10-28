@@ -89,14 +89,14 @@ bx, by, bw, bh = 8, 316, 512, 336  # B
 cx0, cy0, cw0, ch0 = 528, 56, 664, 318  # C
 dx, dy, dw, dh = 528, 382, 664, 270  # D
 
-# ---- header: R and C pickers
+# ---- header: baseline and candidate pickers
 rbox(8, 8, 1184, 40)
 txt(22, 36, "LagLens", 20, weight="bold")
 rbox(640, 15, 228, 26, R, 2.2)
-txt(652, 34, "R = baseline:  Sync, d=4, h=4  ▾", 12.5)
+txt(652, 34, "Baseline:  Sync, d=4, h=4  ▾", 12.5)
 txt(882, 34, "⇄", 15)
 rbox(906, 15, 236, 26, C, 2.2)
-txt(918, 34, f'<tspan fill="{C}">C</tspan> = compare:  Inpaint, d=4, h=4  ▾', 12.5)
+txt(918, 34, f'<tspan fill="{C}">Candidate</tspan>:  Inpaint, d=4, h=4  ▾', 12.5)
 txt(1166, 34, "?", 14)
 badge(612, 28, 1)
 note(596, 33, "pick the two schedules to compare (or click a point in A)", "end")
@@ -125,8 +125,8 @@ lines = {"sync": ([0, .35, .7, 1], [.95, .7, .35, .12], None),
 for s, (ts, vs, dash) in lines.items():
     curve([(X(t), Y(v)) for t, v in zip(ts, vs)], "#444", 1.8, dash)
     txt(X(ts[-1]) + (16 if ts[-1] == 1 else 8), Y(vs[-1]) + 5, s, 12, "#444")
-rcirc(X(1), Y(.66), 7, C, 2.2); txt(X(1) - 10, Y(.66) - 7, "C", 12.5, "#9a6a00", "end")
-rcirc(X(1), Y(.12), 7, R, 2.2); txt(X(1) - 10, Y(.12) - 4, "R", 12.5, R, "end")
+rcirc(X(1), Y(.66), 7, C, 2.2); txt(X(1), Y(.66) - 13, "candidate", 12, "#9a6a00", "middle")
+rcirc(X(1), Y(.12), 7, R, 2.2); txt(X(1), Y(.12) - 13, "baseline", 12, R, "middle")
 rl(X(.7), Y(.35) - 12, X(.7), Y(.35) + 12, GREY, 1.2, over=0)
 # small multiples hint
 for i, h in enumerate([6, 4, 2]):
@@ -137,7 +137,7 @@ for i, h in enumerate([6, 4, 2]):
 txt(ax + 340, ay + 172, "same chart per horizon h", 12, "#555")
 txt(ax + 340, ay + 190, "one line per strategy", 12, "#555")
 txt(ax + 340, ay + 208, "| = 95 % interval", 12, "#555")
-note(ax + 12, ay + ah - 10, "click a point = make it C · shift-click = make it R · hover = value")
+note(ax + 12, ay + ah - 10, "click a point = candidate · shift-click = baseline · hover = value")
 
 # ---- B paired seed table
 rbox(bx, by, bw, bh)
@@ -146,9 +146,9 @@ txt(bx + 12, by + 46, "row = one start state (50) · column = one schedule (52)"
 gx0, cs, rh = bx + 132, 18, 15
 ncol, Rc, Cc = 9, 2, 7
 txt(gx0 + ncol * cs / 2, by + 68, "schedules → (sync | naive | inpaint)", 11.5, GREY, "middle")
-txt(gx0 + Rc * cs + cs / 2, by + 84, "R", 12.5, R, "middle"); txt(gx0 + Cc * cs + cs / 2, by + 84, "C", 12.5, "#9a6a00", "middle")
-txt(bx + 352, by + 84, "R vs C (question)", 12, "#555")
-bands = [("R ok, C fails", (1, 0)), ("R fails, C ok", (0, 1)), ("both ok", (1, 1))]
+txt(gx0 + Rc * cs + cs / 2, by + 84, "baseline", 11.5, R, "middle"); txt(gx0 + Cc * cs + cs / 2, by + 84, "candidate", 11.5, "#9a6a00", "middle")
+txt(bx + 352, by + 84, "baseline vs candidate", 12, "#555")
+bands = [("only baseline ok", (1, 0)), ("only candidate ok", (0, 1)), ("both ok", (1, 1))]
 y = by + 92
 rows = []
 for name, (rok, cok) in bands:
@@ -158,7 +158,7 @@ for name, (rok, cok) in bands:
         for c in range(ncol):
             ok = rok if c == Rc else cok if c == Cc else random.random() < 0.5
             rbox(gx0 + c * cs, y, cs - 3, rh - 3, "#999", 1, fill="#888" if ok else None)
-        rv, cv = (random.uniform(80, 120), random.uniform(10, 40)) if name != "R fails, C ok" else (random.uniform(110, 130), random.uniform(15, 35))
+        rv, cv = (random.uniform(80, 120), random.uniform(10, 40)) if name != "only candidate ok" else (random.uniform(110, 130), random.uniform(15, 35))
         yy = y + rh / 2 - 1
         rl(bx + 350 + cv, yy, bx + 350 + rv, yy, "#999", 1.2, over=0)
         rcirc(bx + 350 + rv, yy, 3.2, R, 1, fill=R); rcirc(bx + 350 + cv, yy, 3.2, C, 1, fill=C)
@@ -168,12 +168,12 @@ for name, (rok, cok) in bands:
 txt(gx0 + ncol * cs / 2, y + 2, "⋮", 14, GREY, "middle")
 for c, col in [(Rc, R), (Cc, C)]:
     rbox(gx0 + c * cs - 2, by + 88, cs + 1, y - by - 98, col, 2)
-txt(bx + 12, y + 24, "filled cell = success · rows grouped by where R and C disagree", 12, "#555")
+txt(bx + 12, y + 24, "filled cell = success · rows grouped by where the two disagree", 12, "#555")
 # brush over dumbbells (band 2), clicked row (band 1)
 rbox(bx + 344, rows[2] - 5, 150, 2 * rh + 6, IA, 1.5, dash="5 4")
 badge(bx + 494, rows[2] - 8, 3)
 rbox(gx0 - 6, rows[1] - 3, 376, rh + 2, IA, 1.8)
-badge(gx0 - 20, rows[1] + 4, 4)
+badge(gx0 + ncol * cs + 16, rows[1] + 4, 4)
 note(bx + 14, y + 60, "③ drag over rows = select those start states → A recomputes")
 note(bx + 14, y + 84, "④ click a row → C and D replay that start state")
 curve([(bx + 470, rows[2] - 6), (bx + 486, by + 60), (bx + 470, ay + ah - 4)], IA, 1.5, "5 4", True)
@@ -183,9 +183,9 @@ curve([(gx0 + 372, rows[1] + 4), (bx + 518, rows[1] + 60), (dx + 30, dy + 100)],
 # ---- C workspace replay
 rbox(cx0, cy0, cw0, ch0)
 txt(cx0 + 12, cy0 + 24, "C · Workspace replay", 15, weight="bold")
-txt(cx0 + 200, cy0 + 24, "the table seen from above · R and C side by side, same moment", 12, "#555")
-for k, (lab, col, good) in enumerate([("R: standing still, waiting for a new plan", R, False),
-                                      ("C: moving, its plan is k steps old", C, True)]):
+txt(cx0 + 200, cy0 + 24, "the table seen from above · both schedules side by side, same moment", 12, "#555")
+for k, (lab, col, good) in enumerate([("Baseline: standing still, waiting for a new plan", R, False),
+                                      ("Candidate: moving, its plan is k steps old", C, True)]):
     x0 = cx0 + 20 + k * 324
     txt(x0, cy0 + 48, lab, 12.5, "#222" if not good else "#9a6a00")
     rbox(x0, cy0 + 56, 300, 178, "#999", 1.3)
@@ -222,10 +222,10 @@ txt(cx0 + 20, cy0 + 308, "why: waiting? old picture? jump?", 12, "#555")
 rbox(dx, dy, dw, dh)
 txt(dx + 12, dy + 24, "D · Execution timeline", 15, weight="bold")
 txt(dx + dw - 12, dy + 24, f"motion: grey = moving, <tspan fill='{SEAM}'>red = jump</tspan> · time →", 12, "#555", "end")
-t0, Wd = dx + 84, 68
-for k, (lab, col) in enumerate([("R", R), ("C", C)]):
+t0, Wd = dx + 130, 62
+for k, (lab, col) in enumerate([("baseline", R), ("candidate", C)]):
     yy = dy + 58 + k * 66
-    txt(dx + 14, yy + 30, lab, 15, "#222" if k == 0 else "#9a6a00")
+    txt(dx + 12, yy + 30, lab, 13, "#222" if k == 0 else "#9a6a00", weight="bold")
     txt(t0 - 8, yy, "motion", 11.5, GREY, "end")
     txt(t0 - 8, yy + 14, "think", 11.5, GREY, "end"); txt(t0 - 8, yy + 34, "act", 11.5, GREY, "end")
     # motion track: grey movement per step (0 while standing still), red bar = jump at each switch
@@ -268,7 +268,7 @@ rl(t0, cb, dx + dw - 14, cb, GREY, 1.2)
 rl(t0, ct, dx + dw - 14, ct, GREY, 1.1, "6 5")
 txt(dx + dw - 14, ct - 4, "success line", 11.5, GREY, "end")
 txt(dx + 12, ct + 26, "block on", 12, "#555"); txt(dx + 12, ct + 42, "goal", 12, "#555")
-curve([(t0, cb), (t0 + 150, cb - 12), (t0 + 320, cb - 20), (t0 + 540, cb - 17)], R, 2)
+curve([(t0, cb), (t0 + 150, cb - 12), (t0 + 320, cb - 20), (t0 + 480, cb - 17)], R, 2)
 curve([(t0, cb), (t0 + 120, cb - 16), (t0 + 260, cb - 28), (t0 + 330, cb - 36)], C, 2)
 note(dx + 14, dy + dh - 8, "click = move time cursor (C follows) · hover a chunk = its plan in C · window = that path in C", size=12)
 curve([(cur, dy + 36), (cur - 4, dy + 14), (cx0 + 322, cy0 + 290)], IA, 1.5, "5 4", True)

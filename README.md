@@ -17,9 +17,9 @@ Useful URL parameters (reproduce a case-study view exactly):
 `?ref=sync_d0_h8&cand=naive_d4_h8&seed=1001&t=120&win=100,160&metric=jump_mean&sel=1001,1002`
 (`metric` is one of `success_rate`, `idle_frac_mean`, `think_motion_mean`, `jump_mean`; `noguide` hides the first-visit guide; `sel` pre-selects seeds).
 
-Controls: the R (baseline) / C (compare) pair and one question bar in A (Success · Idle = cost of sync · Outdated = robot motion while thinking (cost of async) · Discontinuity = cost of naive async) that drives both A and B; everything else is direct manipulation.
+Controls: the baseline / candidate pair and one question bar in A (Success · Idle = cost of sync · Outdated = robot motion while thinking (cost of async) · Discontinuity = cost of naive async) that drives both A and B; everything else is direct manipulation.
 
-Views: **A** Latency Response (curves per horizon, 95 % intervals) · **B** Paired Seed Table (outcome matrix + R→C dumbbells, cross-filters A) · **C** Workspace Replay · **D** Execution Timeline (think / act tracks, motion track with discontinuity bars). Design rationale with references: `docs/design_rationale.md`.
+Views: **A** Latency Response (curves per horizon, 95 % intervals) · **B** Paired Seed Table (outcome matrix + baseline→candidate dumbbells, cross-filters A) · **C** Workspace Replay · **D** Execution Timeline (think / act tracks, motion track with discontinuity bars). Design rationale with references: `docs/design_rationale.md`.
 
 ## Folder layout
 

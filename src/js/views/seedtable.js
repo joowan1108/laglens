@@ -12,8 +12,8 @@ import { COLOR, STRAT_COLOR, METRICS, EP_ATTRS, showTip, hideTip, size } from ".
 let root, svg, ctrSel, cols, groupsPresent, brush, brushKey = null;
 const GROUP_LABEL = { replicate: "Re-run", ...STRAT_LABEL };
 const BANDS = [
-  { key: "loss", name: "R ✓ → C ✗", long: "C fails where R succeeded" },
-  { key: "gain", name: "R ✗ → C ✓", long: "C succeeds where R failed" },
+  { key: "loss", name: "baseline ✓ → candidate ✗", long: "the candidate fails where the baseline succeeded" },
+  { key: "gain", name: "baseline ✗ → candidate ✓", long: "the candidate succeeds where the baseline failed" },
   { key: "bothOk", name: "both ✓", long: "both succeed" },
   { key: "bothFail", name: "both ✗", long: "both fail" },
 ];
@@ -69,11 +69,11 @@ function render() {
   const base = rep && DATA.schedById.get(rep.id.replace(/_r\d+$/, ""));
   const nFlip = rep && base ? DATA.seeds.filter((s) => outcome(rep.id, s) !== outcome(base.schedule, s)).length : null;
   const cnt = d3.rollup(DATA.seeds, (v) => v.length, band);
-  d3.select("#seedNote").html(`C vs R: <b>${cnt.get("loss") || 0} lost</b>, <b>${cnt.get("gain") || 0} gained</b> of ${DATA.seeds.length} seeds.
+  d3.select("#seedNote").html(`Candidate vs baseline: <b>${cnt.get("loss") || 0} lost</b>, <b>${cnt.get("gain") || 0} gained</b> of ${DATA.seeds.length} seeds.
     ${nFlip !== null ? `Chance level: re-running ${STRAT_LABEL[base.strategy]} d${base.latency} h${base.horizon} with new noise flips <b>${nFlip}</b> (column “re-run”).` : ""}`);
   // key: every encoding of B is named here, not only in the guide
-  ctrSel.html(`<span>one row per initial state (seed) · <b>left</b>: one column per schedule, <span class="sw ok"></span> success ✓ <span class="sw fail"></span> failure ✗ (R's column black, C's orange)
-    · <b>right</b>: ${EP_ATTRS[METRICS[state.metric].epB]} under R and C (set by the question in A)</span>`);
+  ctrSel.html(`<span>one row per initial state (seed) · <b>left</b>: one column per schedule, <span class="sw ok"></span> success ✓ <span class="sw fail"></span> failure ✗ (baseline column black, candidate orange)
+    · <b>right</b>: ${EP_ATTRS[METRICS[state.metric].epB]} under baseline and candidate (set by the question in A)</span>`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const top = 34, bottom = 30, left = 32;
@@ -117,7 +117,7 @@ function render() {
     .on("click", (ev, d) => (ev.shiftKey ? update({ ref: d.id }) : update({ cand: d.id })))
     .on("mousemove", (ev, d) => {
       const k = d3.sum(DATA.seeds, (s) => outcome(d.id, s));
-      showTip(ev, `<b>${label(d.id)}</b><br>${k}/${DATA.seeds.length} seeds succeed<br><span class="k">click = candidate C · shift-click = reference R</span>`);
+      showTip(ev, `<b>${label(d.id)}</b><br>${k}/${DATA.seeds.length} seeds succeed<br><span class="k">click = candidate · shift-click = baseline</span>`);
     })
     .on("mouseleave", hideTip);
 
@@ -134,7 +134,7 @@ function render() {
       const e = DATA.ep.get(d.c.id).get(d.seed);
       showTip(ev, `<b>seed ${d.seed}</b> · ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · coverage ${Math.round(e.coverage_final * 100)}%<br>
         <span class="k">discontinuity</span> ${e.jump_mean.toFixed(1)} px · <span class="k">moved while thinking</span> ${e.think_motion_mean.toFixed(1)} px · <span class="k">idle</span> ${Math.round(e.idle_frac * 100)}%<br>
-        <span class="k">this seed succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)}% of schedules</span><br><span class="k">click = open this episode (column becomes C)</span>`);
+        <span class="k">this seed succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)}% of schedules</span><br><span class="k">click = open this episode (column becomes the candidate)</span>`);
       if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });
     })
     .on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
@@ -145,10 +145,17 @@ function render() {
     })
     .transition().duration(300).attr("y", (d) => rows.get(d.seed).y);
 
-  // R / C column letters under the matrix
-  const marks = [{ id: state.ref, col: COLOR.ref, t: "R" }, { id: state.cand, col: "#9a6a00", t: "C" }].filter((m) => xpos.has(m.id));
-  svg.selectAll("text.colmark").data(marks, (d) => d.t).join("text").attr("class", "colmark").attr("font-weight", 800).attr("font-size", 10)
-    .attr("x", (d) => xpos.get(d.id) + cw / 2).attr("y", L.bottom + 11).attr("text-anchor", "middle").attr("fill", (d) => d.col).text((d) => d.t);
+  // baseline / candidate words under their columns, each extending away from the other
+  const marks = [{ id: state.ref, col: COLOR.ref, t: "baseline" }, { id: state.cand, col: "#9a6a00", t: "candidate" }].filter((m) => xpos.has(m.id));
+  const other = (d) => marks.find((m) => m !== d);
+  const fits = (d, a) => (a === "start" ? xpos.get(d.id) + d.t.length * 5.6 < matR : xpos.get(d.id) + cw - d.t.length * 5.6 > left);
+  const anchor = (d) => {
+    const want = !other(d) ? "middle" : xpos.get(d.id) < xpos.get(other(d).id) ? "end" : "start";
+    return want === "middle" || fits(d, want) ? want : want === "start" ? "end" : "start";  // never run into the row labels or the dumbbell axis
+  };
+  svg.selectAll("text.colmark").data(marks, (d) => d.t).join("text").attr("class", "colmark").attr("font-weight", 800).attr("font-size", 9.5)
+    .attr("x", (d) => xpos.get(d.id) + (anchor(d) === "end" ? cw : anchor(d) === "start" ? 0 : cw / 2)).attr("y", L.bottom + 11)
+    .attr("text-anchor", anchor).attr("fill", (d) => d.col).text((d) => d.t);
 
   // row labels
   svg.selectAll("text.rl").data(order, (d) => d.seed).join("text").attr("class", "rl axis-title")
@@ -175,7 +182,7 @@ function render() {
   svg.selectAll("text.dxt").data([0]).join("text").attr("class", "axis-title dxt").attr("x", dr).attr("y", L.bottom + 26).attr("text-anchor", "end")
     .text(`${EP_ATTRS[k]}${SYMLOG.has(k) ? ", log" : ""} →`);
   svg.selectAll("text.dht").data([0]).join("text").attr("class", "dht").attr("x", dl).attr("y", top - 18).attr("font-size", 10.5).attr("font-weight", 700)
-    .html(`<tspan fill="${COLOR.ref}">●</tspan> R → <tspan fill="${COLOR.cand}">●</tspan> C`);
+    .html(`<tspan fill="${COLOR.ref}">●</tspan> baseline → <tspan fill="${COLOR.cand}">●</tspan> candidate`);
   svg.selectAll("text.dht2").data([0]).join("text").attr("class", "dht2 axis-title").attr("x", dl).attr("y", top - 5).attr("font-size", 9)
     .text("same seed under both schedules");
 
@@ -213,7 +220,7 @@ function render() {
       .attr("stroke", col).attr("stroke-width", 2.5);
   }
   bh.on("click", (ev, g) => update({ brushed: new Set(g.seeds) }))
-    .on("mousemove", (ev, g) => showTip(ev, `<b>${g.long}</b>: ${g.seeds.length} seeds<br><span class="k">median ${EP_ATTRS[k]}:</span> R ${fmt(med(g, state.ref), k)} → C ${fmt(med(g, state.cand), k)} (ticks)<br><span class="k">click = select these seeds (A recomputes on them)</span>`))
+    .on("mousemove", (ev, g) => showTip(ev, `<b>${g.long}</b>: ${g.seeds.length} seeds<br><span class="k">median ${EP_ATTRS[k]}:</span> baseline ${fmt(med(g, state.ref), k)} → candidate ${fmt(med(g, state.cand), k)} (ticks)<br><span class="k">click = select these seeds (A recomputes on them)</span>`))
     .on("mouseleave", hideTip);
 
   const focus = (s) => s === state.seed || s === state.hoverSeed;
@@ -235,7 +242,7 @@ function render() {
   db.on("mousemove", (ev, r) => {
     const a = DATA.ep.get(state.ref).get(r.seed), c = DATA.ep.get(state.cand).get(r.seed);
     showTip(ev, `<b>seed ${r.seed}</b> · ${BANDS.find((b) => b.key === band(r.seed)).long}<br>
-      <span class="k">R</span> ${fmt(a[k], k)} ${a.success ? "✓" : "✗"} → <span class="k">C</span> ${fmt(c[k], k)} ${c.success ? "✓" : "✗"}
+      <span class="k">baseline</span> ${fmt(a[k], k)} ${a.success ? "✓" : "✗"} → <span class="k">candidate</span> ${fmt(c[k], k)} ${c.success ? "✓" : "✗"}
       <span class="k">(${EP_ATTRS[k]})</span><br><span class="k">click = open episode · drag vertically = select seeds</span>`);
     if (state.hoverSeed !== r.seed) update({ hoverSeed: r.seed });
   }).on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })

@@ -15,12 +15,12 @@
   </div>
   <div class="pickers">
     <span class="lead">compare two schedules</span>
-    <label class="chip ref" title="R = the baseline schedule you compare against (or shift-click a mark in A / a column header in B)">
-      <span class="dot"></span>R <span class="role">= baseline</span>&nbsp;<select id="refSel"></select>
+    <label class="chip ref" title="Baseline = the schedule you compare against (or shift-click a mark in A / a column header in B)">
+      <span class="dot"></span>Baseline&nbsp;<select id="refSel"></select>
     </label>
-    <button id="swapBtn" class="icon" title="Swap reference and candidate">⇄</button>
-    <label class="chip cand" title="C = the schedule you are testing (or click a mark in A / a column header in B)">
-      <span class="dot"></span>C <span class="role">= compared</span>&nbsp;<select id="candSel"></select>
+    <button id="swapBtn" class="icon" title="Swap baseline and candidate">⇄</button>
+    <label class="chip cand" title="Candidate = the schedule you are testing (or click a mark in A / a column header in B)">
+      <span class="dot"></span>Candidate&nbsp;<select id="candSel"></select>
     </label>
   </div>
   <div class="actions">
@@ -83,10 +83,10 @@
     <ol>
       <li><b>A Latency Response</b>: how each strategy degrades as inference gets slower (x = latency <i>d</i>, the time the policy needs to compute a chunk), one panel per execution horizon <i>h</i> (how many actions of each chunk are executed before switching to the next).
         <span class="tS">Sync</span> waits while the policy thinks, <span class="tN">naive async</span> keeps acting on the old chunk and switches abruptly, <span class="tI">inpaint async</span> keeps acting and makes the new chunk continue the old one.
-        The four buttons choose the question: <i>Success</i>, or the cost each strategy pays: <i>Idle</i> (sync), <i>Outdated</i> (async: how far the robot moved while the policy was thinking, so the new plan fits an old scene), <i>Discontinuity</i> (naive async). The same choice sets the attribute in B. Click a mark = <span class="tC">C (compare)</span>, shift-click = <span class="tR">R (baseline)</span>; hovering a mark gives its difference to R on the same seeds.</li>
-      <li><b>B Paired Seed Table</b>: one row per initial state. Left: filled cell = success under that column's schedule (R black, C orange). Rows are grouped by how the outcome changes from R to C; the <i>re-run</i> column shows how many outcomes flip by chance alone. Right: the same seed's value under R (●) and C (<span class="tC">●</span>) for the question chosen in A. Drag over the right part to select seeds: A then recomputes on them.</li>
-      <li><b>C Workspace Replay</b>: the episode under R and C side by side, with the chunk being executed, the next chunk still being computed and the latest <span class="tSeam">discontinuity</span>.</li>
-      <li><b>D Execution Timeline</b>: when the policy thinks and which chunk each action came from; the motion track shows each jump as a magenta bar next to the robot's normal movement. Brush a window, hover a chunk to see its plan in C.</li>
+        The four buttons choose the question: <i>Success</i>, or the cost each strategy pays: <i>Idle</i> (sync), <i>Outdated</i> (async: how far the robot moved while the policy was thinking, so the new plan fits an old scene), <i>Discontinuity</i> (naive async). The same choice sets the attribute in B. Click a mark = <span class="tC">candidate</span>, shift-click = <span class="tR">baseline</span>; hovering a mark gives its difference to the baseline on the same seeds.</li>
+      <li><b>B Paired Seed Table</b>: one row per initial state. Left: filled cell = success under that column's schedule (baseline black, candidate orange). Rows are grouped by how the outcome changes from baseline to candidate; the <i>re-run</i> column shows how many outcomes flip by chance alone. Right: the same seed's value under the baseline (●) and the candidate (<span class="tC">●</span>) for the question chosen in A. Drag over the right part to select seeds: A then recomputes on them.</li>
+      <li><b>C Workspace Replay</b>: the episode under the baseline and the candidate side by side, with the chunk being executed, the next chunk still being computed and the latest <span class="tSeam">discontinuity</span>.</li>
+      <li><b>D Execution Timeline</b>: when the policy thinks and which chunk each action came from; the motion track shows each jump as a magenta bar next to the robot's normal movement. Brush a window, hover a chunk to see its plan in view C.</li>
     </ol>
     <p class="muted">Keyboard: ←/→ step, space play/pause, Esc clears the time window and the seed selection.</p>
     <button id="guideClose">Start exploring</button>

@@ -45,7 +45,7 @@ function render() {
   if (!eps) return;
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
-  const m = { l: 62, r: 12, t: 6, b: 32 };
+  const m = { l: 80, r: 12, t: 6, b: 32 };
   const n = Math.max(eps.ref.n, eps.cand.n);
   x = d3.scaleLinear().domain([0, n]).range([m.l, w - m.r]);
   // lane geometry: motion track, think track, act track
@@ -89,8 +89,8 @@ function render() {
   lg.each(function (L) {
     const g = d3.select(this), e = L.e;
     const thinkY = motH + 4, actY = motH + 4 + thinkH + 4;
-    g.select(".ln").attr("x", 4).attr("y", actY + 10).attr("font-weight", 800).attr("font-size", 12).attr("fill", L.txt)
-      .text(`${L.which === "ref" ? "R" : "C"} ${e.success ? "✓" : "✗"}`);
+    g.select(".ln").attr("x", 4).attr("y", 11).attr("font-weight", 800).attr("font-size", 11.5).attr("fill", L.txt)
+      .text(`${L.which === "ref" ? "baseline" : "candidate"} ${e.success ? "✓" : "✗"}`);
     g.select(".tk0").attr("x", m.l - 5).attr("y", motH - 2).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".tk1").attr("x", m.l - 5).attr("y", thinkY + 5).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".tk2").attr("x", m.l - 5).attr("y", actY + 9).attr("text-anchor", "end").attr("font-size", 9);
@@ -120,7 +120,7 @@ function render() {
         if (!hov(d)) update({ hoverChunk: { which: L.which, id: d.i } });
         const seamGap = e.seamAt.get(d.c.t0);
         const js = [...d.c.execJ.keys()];
-        showTip(ev, `<b>${L.which === "ref" ? "R" : "C"} chunk #${d.i}</b> (plan shown in C)<br><span class="k">think</span> t=${d.c.t_obs} → ${d.c.t_avail} · <span class="k">act</span> t=${d.c.t0}–${d.c.t1}<br>
+        showTip(ev, `<b>${L.which === "ref" ? "baseline" : "candidate"} chunk #${d.i}</b> (plan shown in view C)<br><span class="k">think</span> t=${d.c.t_obs} → ${d.c.t_avail} · <span class="k">act</span> t=${d.c.t0}–${d.c.t1}<br>
           <span class="k">executed actions</span> ${d3.min(js)}–${d3.max(js)} of 16 · <span class="k">picture age</span> ${d.c.t0 - d.c.t_obs}–${d.c.t1 - d.c.t_obs} steps<br>
           ${seamGap !== undefined ? `<span class="k">boundary discontinuity at its start:</span> <b>${seamGap.toFixed(1)} px</b>` : ""}<br><span class="k">click = jump to its first action</span>`);
       })
@@ -145,8 +145,8 @@ function render() {
   geom = { lanes, thinkY: motH + 4, thinkH, actY: motH + 4 + thinkH + 4, actH };
 
   svg.selectAll("text.sk").data([0]).join("text").attr("class", "sk axis-title").attr("font-size", 9).attr("fill", COLOR.seam)
-    .attr("x", m.l - 5).attr("y", m.t + 8).attr("text-anchor", "end").text(`${gmax.toFixed(0)} px`)
-    .append("title").text("top of the motion tracks (shared by R and C)");
+    .attr("x", m.l + 3).attr("y", m.t + 8).attr("text-anchor", "start").attr("pointer-events", "none").text(`${gmax.toFixed(0)} px`)
+    .append("title").text("top of the motion tracks (shared by baseline and candidate)");
 
   // coverage curves
   const cg = svg.selectAll("g.cov").data([0]).join((en) => {

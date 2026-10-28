@@ -31,25 +31,25 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 | Strategies superposed in each panel | Superposition supports direct, close comparison of a few series, here sync vs. the two async variants. Async lines start from the sync *d* = 0 point with a dotted segment because the strategies are identical without latency. | [4][6] |
 | Strategy = hue + shape (circle, square, diamond) | Hue is the strongest identity channel after region. Shape is added redundantly so identity never depends on hue alone (Okabe–Ito hues; colour-vision-deficiency check below). | [1][13][14] |
 | Thin 95 % interval lines (Wilson for success, t for means) | With 50 seeds a 10-point difference can be chance. Points with thin interval lines avoid the "within-the-bar" bias of bar + error-bar charts. | [7][16] |
-| Δ vs R = paired difference over the same seeds, in the hover | Explicit encoding of the difference (Gleicher's third comparison strategy), with a paired interval that matches the paired design. Shown on demand instead of as a separate mode, so there is one less control to learn. | [4][5][17] |
+| Δ vs baseline = paired difference over the same seeds, in the hover | Explicit encoding of the difference (Gleicher's third comparison strategy), with a paired interval that matches the paired design. Shown on demand instead of as a separate mode, so there is one less control to learn. | [4][5][17] |
 | One always-visible question bar (4 buttons, each named after who pays the cost) instead of a 6-item dropdown | The choice is the main question of the tool, so it is shown, not hidden in a menu; dropping final coverage and jerk removed metrics that repeated success and boundary discontinuity. The same choice sets B's dumbbell attribute, so A and B never disagree. | [9][15] |
-| R and C as letter-labelled rings | The selection is shown without recolouring marks: colour follows the entity, not the selection. | [4] |
+| Baseline and candidate as word-labelled rings | The selection is shown without recolouring marks: colour follows the entity, not the selection. | [4] |
 
 ### B Paired Seed Table (T2 locate flips, T4 discover correlation)
 | Decision | Why | Source |
 |---|---|---|
 | One row per seed shared by an outcome matrix and a dumbbell strip (composite view, Table-Lens style) | The old flip matrix (B) and the dumbbell plot (E) were two views over the same 50 seeds and forced the eye to match rows across panels. Juxtaposed components on one shared row axis remove that matching step and one view. | [8][9][10] |
-| Matrix cell: filled = success, empty = failure (luminance) | Success is binary, so one luminance step suffices. The old four-hue loss/gain scheme reused the C orange and vermillion. Flips are now visible as cells that break their band's pattern. | [1][11] |
-| R column black, C column orange; others grey | Identity hues appear only where R and C are, as in every other view. | [4] |
-| Rows grouped by R→C change (lost, gained, both ✓, both ✗), robust seeds first inside a band; no sort or attribute controls | Spatial region is the top-ranked channel for a categorical attribute. Each band directly answers "which seeds flip?". Alternative orders were rarely needed and added controls. | [1] |
+| Matrix cell: filled = success, empty = failure (luminance) | Success is binary, so one luminance step suffices. The old four-hue loss/gain scheme reused the candidate orange and vermillion. Flips are now visible as cells that break their band's pattern. | [1][11] |
+| baseline column black, candidate column orange; others grey | Identity hues appear only where baseline and candidate are, as in every other view. | [4] |
+| Rows grouped by baseline→candidate change (lost, gained, both ✓, both ✗), robust seeds first inside a band; no sort or attribute controls | Spatial region is the top-ranked channel for a categorical attribute. Each band directly answers "which seeds flip?". Alternative orders were rarely needed and added controls. | [1] |
 | "re-run" column (same schedule, new noise) | An explicit reference for chance: 11/50 seeds flip with no schedule change. | [5] |
-| Dumbbell: ● R → ● C on a common position axis of the attribute that belongs to A's question (final coverage, idle share, motion while thinking, largest discontinuity); symlog for discontinuities; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
+| Dumbbell: ● baseline → ● candidate on a common position axis of the attribute that belongs to A's question (final coverage, idle share, motion while thinking, largest discontinuity); symlog for discontinuities; band medians as ticks | Position on a common scale. Rows never cross (unlike the earlier paired scatter). | [1][2] |
 | Vertical brush on the dumbbells, or click a band → selected seeds re-aggregate A | Cross-filtering checks whether a trend holds for a subset ("are the failures driven by these seeds?"). | [12][15] |
 
 ### C Workspace Replay (T3 identify where)
 | Decision | Why | Source |
 |---|---|---|
-| R and C side by side at the same scale and seed | Juxtaposition of two spatial states. True geometry is used because the data is spatial. | [4][6] |
+| baseline and candidate side by side at the same scale and seed | Juxtaposition of two spatial states. True geometry is used because the data is spatial. | [4][6] |
 | Four overlays: executed part of the current chunk (filled dots, solid), thrown-away part (hollow, dashed), the chunk still being computed (grey, dotted), plus the latest discontinuity (magenta) for 10 steps | Removes the full-path trace, the previous-chunk tail, per-index luminance and the start-pose ghost: data-ink that did not serve T3. Details (when planned, when executed, staleness) are on demand via hover. | [17][18] |
 | What the policy saw: dotted outline of block and pusher at the time of the camera picture the shown chunk was planned from (t_obs), with an arrow to the pusher now and the label "seen at t=… · moved N px since" | Makes the cost of async visible in space, in the same frame as the plan: sync waits, so the outline and the robot nearly coincide; under async the robot keeps moving and the plan is made for a scene that no longer exists. Also makes the claim "every executed move is traced back to the picture it came from" literal. | [4] |
 | Status line in the strategy vocabulary ("idle: waiting for inference", "acting … picture 4 steps old · thinking") | States the sync vs. async situation at t in words, so it never has to be decoded from marks. | |
@@ -57,34 +57,34 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 ### D Execution Timeline (T3 identify when)
 | Decision | Why | Source |
 |---|---|---|
-| Gantt lanes on a linear, chronological time axis; R and C on one shared axis | A linear representation with a chronological scale suits "when" questions, and aligned lanes enable comparison. | [19][20] |
+| Gantt lanes on a linear, chronological time axis; baseline and candidate on one shared axis | A linear representation with a chronological scale suits "when" questions, and aligned lanes enable comparison. | [19][20] |
 | Two tracks per run: *think* (inference intervals) and *act* (executed chunk spans, alternating tints; hatched = idle) | Shows the defining difference between the strategies: alternation (sync) vs. overlap (async). | [19] |
-| Discontinuity = magenta bar in D's motion track, on the same px scale as the grey movement-per-step area (shared R/C scale) | Height on a common baseline is a top magnitude channel, and the grey area gives the reference: a jump is judged against how far the robot normally moves per step. It replaced lollipops above the act track, which showed the jump without that reference. The magenta hue means "discontinuity" here and in C only. | [1] |
+| Discontinuity = magenta bar in D's motion track, on the same px scale as the grey movement-per-step area (shared baseline/candidate scale) | Height on a common baseline is a top magnitude channel, and the grey area gives the reference: a jump is judged against how far the robot normally moves per step. It replaced lollipops above the act track, which showed the jump without that reference. The magenta hue means "discontinuity" here and in C only. | [1] |
 | Provenance of the chunk at the cursor (or hovered): ○ at the time of its camera picture, its think interval and its act span outlined in ink and linked | In async, think and act bars overlap and it is not obvious which inference produced which span; the link shows picture → think → act for one chunk without adding a hue. | |
-| Coverage lines (R black, C orange) with the 95 % success threshold | Position channel for the outcome over time. Shares the x-axis with the tracks. | [1] |
+| Coverage lines (baseline black, candidate orange) with the 95 % success threshold | Position channel for the outcome over time. Shares the x-axis with the tracks. | [1] |
 | Brush a window → C highlights that part of the path; hover a chunk → its plan in C; click → cursor | Linked navigation from time to space. | [12][15] |
 
 ## 3 Whole-interface decisions
 - **Overview first, then filter, then details on demand**, in reading order: A (overview) → B (filter seeds) → C/D (episode details). [17]
 - **Parsimony and consistency** across multiple views. Five views became four, and each hue has a single meaning everywhere. [9]
 - **Hue budget, chosen by job:**
-  - identity: R `#222222`, C `#E69F00`
+  - identity: baseline `#222222`, candidate `#E69F00`
   - strategy: sync `#0072B2`, naive `#D55E00`, inpaint `#009E73`
   - event: discontinuity `#c2185b`
   - everything else neutral grey; selection is drawn in ink
 - **Colour-vision-deficiency check.** Colour differences were computed with Machado et al.'s simulation [13] in OKLab (×100):
   - Strategy hues: smallest difference 9 (tritan, blue–green) and 11 (deutan, vermillion–green). Shape is redundant there.
-  - R vs C: ≥ 48 for every deficiency.
-  - C vs naive: 13–17. These two only meet in A, where C is additionally marked by a lettered ring.
+  - baseline vs candidate: ≥ 48 for every deficiency.
+  - candidate vs naive: 13–17. These two only meet in A, where the candidate is additionally marked by a labelled ring.
 - **Interaction set**, after Heer & Shneiderman's taxonomy [15]:
-  - *select* (R/C, seed)
+  - *select* (baseline/candidate, seed)
   - *filter* (seed brush → A)
-  - *derive* (Δ vs R, on hover)
+  - *derive* (Δ vs baseline, on hover)
   - *navigate* (time brush, play)
   - *coordinate* (one shared state; every view listens)
   - *record* (URL parameters reproduce any state)
-- **Self-explaining encodings.** Every term is defined where it is encoded, not only in the guide: "compare two schedules: R = baseline, C = compared" in the header; *h*, *d*, the three strategies and the y metric under A; rows, cells (✓/✗), R/C columns and the dumbbell attribute above B; line styles, the discontinuity and "steps stale" under C; think/act/idle and the motion track (jump bars) above D. [15][18]
-- **Few controls.** The student found ten technically named controls (metric list, Δ mode, three sort orders, an 8-item attribute list, playback speed) hard to understand. The interface now has only the R/C pair and the question bar; everything else is direct manipulation (click, shift-click, brush, hover).
+- **Self-explaining encodings.** Every term is defined where it is encoded, not only in the guide: "compare two schedules: Baseline / Candidate" in the header; *h*, *d*, the three strategies and the y metric under A; rows, cells (✓/✗), baseline/candidate columns and the dumbbell attribute above B; line styles, the discontinuity and "steps stale" under C; think/act/idle and the motion track (jump bars) above D. [15][18]
+- **Few controls.** The student found ten technically named controls (metric list, Δ mode, three sort orders, an 8-item attribute list, playback speed) hard to understand. The interface now has only the baseline/candidate pair and the question bar; everything else is direct manipulation (click, shift-click, brush, hover).
 
 ## References
 1. T. Munzner. *Visualization Analysis and Design*. CRC Press, 2014.

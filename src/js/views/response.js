@@ -136,15 +136,15 @@ function render() {
       .on("mousemove", (ev, p) => showTip(ev, tipHtml(p)))
       .on("mouseleave", () => { hideTip(); hoverStrat = null; render(); });
 
-    // R and C: rings with a letter (identity is never carried by hue alone)
-    const rings = [{ id: state.ref, t: "R", col: COLOR.ref }, { id: state.cand, t: "C", col: COLOR.cand }]
+    // baseline and candidate: rings with a word (identity is never carried by hue alone)
+    const rings = [{ id: state.ref, k: "ref", t: "baseline", col: COLOR.ref }, { id: state.cand, k: "cand", t: "candidate", col: COLOR.cand }]
       .map((r) => ({ ...r, p: all.find((p) => p.id === r.id) })).filter((r) => r.p);
     g.select(".rings").selectAll("g.rg").data(rings, (r) => r.t).join((en) => {
       const q = en.append("g").attr("class", "rg").attr("pointer-events", "none"); q.append("circle"); q.append("text"); return q;
     }).attr("transform", (r) => `translate(${r.p.rep ? x(r.p.d) + 12 : lx(r.p)},${y(r.p.v)})`)
       .call((q) => q.select("circle").attr("r", 7.5).attr("fill", "none").attr("stroke", (r) => r.col).attr("stroke-width", 2.2))
-      .call((q) => q.select("text").attr("y", (r) => (r.t === "R" ? -11 : 19)).attr("text-anchor", "middle").attr("font-size", 10.5)
-        .attr("font-weight", 800).attr("fill", (r) => (r.t === "C" ? "#9a6a00" : COLOR.ref)).text((r) => r.t));
+      .call((q) => q.select("text").attr("y", (r) => (r.k === "ref" ? -11 : 19)).attr("text-anchor", "middle").attr("font-size", 10.5)
+        .attr("font-weight", 800).attr("fill", (r) => (r.k === "cand" ? "#9a6a00" : COLOR.ref)).text((r) => r.t));
   });
 
   svg.selectAll("text.xt").data([0]).join("text").attr("class", "axis-title xt").attr("x", w - m.r).attr("y", h - 4)
@@ -159,10 +159,10 @@ function tipHtml(p) {
   // the difference to R on the same seeds (paired), so R vs C never has to be read off two intervals
   if (p.id !== state.ref) {
     const dlt = aggregate(p.id, state.metric, state.brushed, state.ref);
-    if (dlt && dlt.v !== null) html += `<br><span class="k">vs R:</span> <b>${fmtMetric(state.metric, dlt.v, true)}</b> ${iv({ ...dlt, signed: true })} <span class="k">paired, same seeds</span>`;
+    if (dlt && dlt.v !== null) html += `<br><span class="k">vs baseline:</span> <b>${fmtMetric(state.metric, dlt.v, true)}</b> ${iv({ ...dlt, signed: true })} <span class="k">paired, same seeds</span>`;
   }
   if (p.strat !== "sync" && p.d === 0) html += `<br><span class="k">${missingReason(p.strat, 0, p.h)}</span>`;
-  return `${html}<br><span class="k">95 % interval over ${p.n} seeds · click = C · shift-click = R</span>`;
+  return `${html}<br><span class="k">95 % interval over ${p.n} seeds · click = candidate · shift-click = baseline</span>`;
 }
 
 export function resizeResponse() { render(); }

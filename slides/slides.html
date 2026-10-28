@@ -90,7 +90,7 @@
   <div class="cols">
     <div style="flex:1.75">
       <table class="dense">
-        <tr><th>Attribute (episode table, 2,350 items × 21 attributes)</th><th>Type</th><th>Order / range / levels</th><th>Meaning</th></tr>
+        <tr><th>Attribute (episode table, 2,350 items × 21 attributes)</th><th>Type · ordering direction</th><th>Order / range / levels</th><th>Meaning</th></tr>
         <tr><td class="k">strategy <span class="keyb">KEY</span></td><td>nominal</td><td>sync · naive · inpaint</td><td>what the robot does while a chunk is computed</td></tr>
         <tr><td class="k">latency d <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>0 &lt; 1 &lt; 2 &lt; 4 &lt; 6 steps (0–600 ms)</td><td>inference delay; d = 0 only for sync</td></tr>
         <tr><td class="k">horizon h <span class="keyb">KEY</span></td><td>ordinal (ratio, steps)</td><td>2 &lt; 4 &lt; 6 &lt; 8</td><td>moves executed from each chunk before switching</td></tr>
@@ -105,10 +105,11 @@
         <tr><td>idle_frac</td><td>quant. ratio, ↓</td><td>0.00–0.75</td><td>share of steps with nothing to execute</td></tr>
         <tr><td>jerk_mean · path_len · n_inferences</td><td>quant. ratio</td><td>1.2–221.3 · 205–12828 px · 8–150</td><td>smoothness (jerk = 2nd difference of actions) · distance travelled · # chunks computed</td></tr>
       </table>
+      <div class="muted" style="font-size:11px; margin-top:4px">Ordering direction: ↑ higher is better · ↓ lower is better · no arrow = no preferred direction.</div>
     </div>
     <div style="flex:1">
       <div class="card">
-        <b>Dataset type</b>: multidimensional <b>table</b> of episodes, each linked to two <b>temporal</b> tables and to a <b>spatial</b> field (512 × 512 px workspace).
+        <b>Dataset type</b>: multidimensional <b>table</b> of episodes, each linked to two <b>temporal</b> tables and to a <b>spatial</b> field (512 × 512 px workspace).<br><b>Data types</b>: <b>items</b> (episodes, steps, chunks) with <b>attributes</b>; <b>positions</b> (x, y of pusher, block and planned moves).
         <ul class="small">
           <li><b>Step table</b> (598,117 items) · keys: schedule, seed, t (ordinal, 10 Hz) · values: agent x, y; block x, y (interval, px); block θ (cyclic, rad); action x, y (interval, px); chunk id (ordinal); index j 0–15 (ordinal); age (ratio, steps since its camera picture); held (binary, 1 = idle step); coverage (ratio 0–1, block–goal overlap).</li>
           <li><b>Chunk table</b> (119,373 items) · keys: schedule, seed, chunk id · values: t_obs (time of the camera picture), t_avail (time the chunk was ready), executed window, 16 predicted (x, y) actions.</li>
@@ -170,7 +171,7 @@
 
 <!-- 4. Why: tasks -->
 <section class="slide">
-  <div class="kicker">3 · Why — Task Abstraction (action + target, Munzner)</div>
+  <div class="kicker">3 · Why — Task Abstraction (action + target)</div>
   <h1>Four tasks, from all schedules down to a single chunk switch</h1>
   <table style="margin-top:10px; font-size:15px">
     <tr><th style="width:38px">#</th><th style="width:250px">Action + target</th><th>Concrete question (Mara)</th><th style="width:250px">Why</th><th style="width:260px">Expected outcome</th></tr>
@@ -178,23 +179,23 @@
       <td>“How fast does success fall with latency for each strategy, and which horizon is most robust?”</td>
       <td>Choose a candidate schedule for the latency the lab actually has.</td>
       <td>A shortlist of robust schedules and a latency budget per strategy.</td></tr>
-    <tr><td class="k">T2</td><td><b>Locate</b> → <b>outliers</b>: initial states whose outcome <b>flips</b> between a reference and a candidate schedule</td>
+    <tr><td class="k">T2</td><td><b>Locate</b> → <b>outliers</b>: initial states whose outcome <b>flips</b> between a baseline and a candidate schedule</td>
       <td>“Going from sync d=0 to naive async d=4, <i>which</i> seeds start failing, and which are rescued?”</td>
       <td>Aggregate rates hide which situations break; paired seeds isolate the schedule's effect.</td>
       <td>A small set of fragile seeds to inspect (and to add to a regression test set).</td></tr>
     <tr><td class="k">T3</td><td><b>Identify</b> → <b>features</b> in time &amp; space: where idling, outdated plans and jumps occur in a flipped episode</td>
-      <td>“At which step does the candidate diverge from the reference, and did the robot wait, act on an outdated plan, or jump?”</td>
+      <td>“At which step does the candidate diverge from the baseline, and did the robot wait, act on an outdated plan, or jump?”</td>
       <td>Diagnose the mechanism of failure, not just its rate.</td>
       <td>A causal hypothesis, e.g. “a 30 px discontinuity right at block contact makes the push slip.”</td></tr>
     <tr><td class="k">T4</td><td><b>Discover</b> → <b>correlation</b> between jumps at chunk switches (boundary discontinuities) and task outcome (coverage) over paired episodes</td>
-      <td>“When a seed moves from R to C, do larger discontinuities go with lower coverage? Does inpainting shrink the discontinuities?”</td>
+      <td>“When a seed moves from the baseline to the candidate, do larger discontinuities go with lower coverage? Does inpainting shrink the discontinuities?”</td>
       <td>If jumps are what breaks episodes, a strategy that shrinks them should rescue seeds; check it on our policy.</td>
       <td>Evidence for or against a strategy (direction and size of shift per seed).</td></tr>
   </table>
   <div class="card" style="margin-top:16px; font-size:15px">
     <b>Arjun</b> mainly needs <b>T1</b> (latency budget) and <b>T2</b> (is the drop driven by a few seeds?). <b>Mara</b> chains T1 → T2 → T3 → T4 in one session: overview first, then drill down to a single chunk switch (details on demand).
   </div>
-  <div class="foot"><span>Task vocabulary: Munzner, Visualization Analysis &amp; Design (2014), Ch. 3</span><span>4 / 7</span></div>
+  <div class="foot"><span>Actions: compare · locate · identify · discover — targets: trends · outliers · features · correlation; from overview (T1) to a single chunk switch (T3)</span><span>4 / 7</span></div>
 </section>
 
 <!-- 5. How: idioms -->
@@ -203,10 +204,10 @@
   <h1>Each view answers one task with the most effective idiom</h1>
   <table style="margin-top:8px; font-size:15px">
     <tr><th style="width:170px">View</th><th style="width:60px">Task</th><th>Idiom &amp; why (VIS literature)</th><th style="width:300px">Interaction</th></tr>
-    <tr><td class="k">A · Latency Response</td><td>T1</td><td><div class="q">“How fast does each strategy get worse as the policy gets slower?”</div><b>Line chart small multiples</b>: one panel per horizon h, x = latency d on its true scale, y = metric, strategies <b>superposed</b> (hue + shape). Position on a common scale beats the luminance of a heatmap [Cleveland &amp; McGill 84; Heer &amp; Bostock 10]; superposition for direct sync-vs-async comparison, juxtaposition across h [Gleicher 11]. <b>95 % interval</b> lines instead of bars [Correll &amp; Gleicher 14]; hover = paired difference to R.</td><td>Click mark = C (compare), shift-click = R (baseline); <b>one question bar</b>: Success · Idle (cost of sync) · Outdated (cost of async) · Discontinuity (cost of naive async), drives A <i>and</i> B; recomputes on seeds selected in B.</td></tr>
-    <tr><td class="k">B · Paired Seed Table</td><td>T2, T4</td><td><div class="q">“Which start states flip between R and C, and is that more than chance?”</div><b>Composite Table-Lens view</b> [Rao &amp; Card 94; Javed &amp; Elmqvist 12]: one row per seed shared by (left) an outcome matrix — filled = success, R column black, C column orange — and (right) <b>dumbbells</b> R → C of the attribute that belongs to A's question. Rows are <b>grouped by R→C change</b> (spatial region), so flips break their band's pattern; a <b>re-run</b> column shows chance flips (11/50).</td><td>No controls of its own. Click column header = C; click cell = open episode; <b>brush</b> dumbbells or click a band → <b>cross-filter</b> A [Weaver 10].</td></tr>
-    <tr><td class="k">C · Workspace Replay</td><td>T3</td><td><div class="q">“Watch both runs side by side: what was planned, what was done, where it jumped.”</div>Juxtaposed R | C maps at identical scale (true geometry). Overlays: current chunk, executed (solid) and thrown away (dashed); next chunk being computed (dotted); latest <b>discontinuity</b> (magenta); <b>what the policy saw</b> (dotted outline of block &amp; pusher in the chunk's camera picture, arrow to the robot now: the gap = how outdated the plan is).</td><td>Play / scrub / ← → (<b>navigate</b> t); hover a planned point → when planned / executed; click → jump.</td></tr>
-    <tr><td class="k">D · Execution Timeline</td><td>T3</td><td><div class="q">“When was the policy thinking, which plan did each move come from, where were the jumps?”</div><b>Gantt lanes</b> on a shared linear time axis [Plaisant 96; Brehmer 17]: per run a <b>think</b> track (inference) and an <b>act</b> track (chunk spans, hatched = idle), a <b>motion</b> track (movement per step, jumps as magenta bars on the same scale), coverage lines below. Sync shows think/act <i>alternating</i>, async <i>overlapping</i>. The chunk at the cursor is traced <b>picture ○ → think → act</b>.</td><td><b>Brush</b> a time window → highlighted path in C; hover chunk → its plan in C; click → cursor.</td></tr>
+    <tr><td class="k">A · Latency Response</td><td>T1</td><td><div class="q">“How fast does each strategy get worse as the policy gets slower?”</div><b>Line chart small multiples</b>: one panel per horizon h, x = latency d on its true scale, y = metric, strategies <b>superposed</b> (hue + shape). Position on a common scale beats the luminance of a heatmap [Cleveland &amp; McGill 84; Heer &amp; Bostock 10]; superposition for direct sync-vs-async comparison, juxtaposition across h [Gleicher 11]. <b>95 % interval</b> lines instead of bars [Correll &amp; Gleicher 14]; hover = paired difference to the baseline.</td><td>Click mark = candidate, shift-click = baseline; <b>one question bar</b>: Success · Idle (cost of sync) · Outdated (cost of async) · Discontinuity (cost of naive async), drives A <i>and</i> B; recomputes on seeds selected in B.</td></tr>
+    <tr><td class="k">B · Paired Seed Table</td><td>T2, T4</td><td><div class="q">“Which start states flip between baseline and candidate, and is that more than chance?”</div><b>Composite Table-Lens view</b> [Rao &amp; Card 94; Javed &amp; Elmqvist 12]: one row per seed shared by (left) an outcome matrix — filled = success, baseline column black, candidate column orange — and (right) <b>dumbbells</b> baseline → candidate of the attribute that belongs to A's question. Rows are <b>grouped by baseline→candidate change</b> (spatial region), so flips break their band's pattern; a <b>re-run</b> column shows chance flips (11/50).</td><td>No controls of its own. Click column header = candidate; click cell = open episode; <b>brush</b> dumbbells or click a band → <b>cross-filter</b> A [Weaver 10].</td></tr>
+    <tr><td class="k">C · Workspace Replay</td><td>T3</td><td><div class="q">“Watch both runs side by side: what was planned, what was done, where it jumped.”</div>Juxtaposed baseline | candidate maps at identical scale (true geometry). Overlays: current chunk, executed (solid) and thrown away (dashed); next chunk being computed (dotted); latest <b>discontinuity</b> (magenta); <b>what the policy saw</b> (dotted outline of block &amp; pusher in the chunk's camera picture, arrow to the robot now: the gap = how outdated the plan is).</td><td>Play / scrub / ← → (<b>navigate</b> t); hover a planned point → when planned / executed; click → jump.</td></tr>
+    <tr><td class="k">D · Execution Timeline</td><td>T3</td><td><div class="q">“When was the policy thinking, which plan did each move come from, where were the jumps?”</div><b>Gantt lanes</b> on a shared linear time axis [Plaisant 96; Brehmer 17]: per run a <b>think</b> track (inference) and an <b>act</b> track (chunk spans, hatched = idle), a <b>motion</b> track (movement per step, jumps as magenta bars on the same scale), coverage lines below. Sync shows think/act <i>alternating</i>, async <i>overlapping</i>. The chunk at the cursor is traced <b>picture ○ → think → act</b>.</td><td><b>Brush</b> a time window → highlighted path in view C; hover chunk → its plan in view C; click → cursor.</td></tr>
   </table>
   <div class="card" style="margin-top:10px; font-size:14px">
     <b>Why this is not a generic dashboard</b>: C and D trace every executed move back to the plan (chunk) and the camera frame it came from, which no chart tool offers; A and B compare two schedules <i>start state by start state</i> against a chance baseline (re-run), not just averages.
@@ -229,13 +230,13 @@
         <tr><td>strategy (nominal, 3)</td><td>A, B</td><td>line, point</td><td>hue + shape (●■◆)</td><td>redundant: never hue alone</td></tr>
         <tr><td>uncertainty (95 % interval)</td><td>A</td><td>thin line</td><td>position (extent)</td><td>avoids within-the-bar bias</td></tr>
         <tr><td>success per seed (binary)</td><td>B</td><td>cell</td><td>luminance (filled / empty)</td><td>2 levels → 1 luminance step</td></tr>
-        <tr><td>R→C change (nominal, 4)</td><td>B</td><td>row band</td><td>spatial region</td><td>top categorical channel</td></tr>
-        <tr><td>attribute under R and C (ratio)</td><td>B</td><td>dumbbell</td><td>position x (symlog if long-tailed)</td><td>aligned shift, no crossing</td></tr>
+        <tr><td>baseline→candidate change (nominal, 4)</td><td>B</td><td>row band</td><td>spatial region</td><td>top categorical channel</td></tr>
+        <tr><td>attribute under baseline and candidate (ratio)</td><td>B</td><td>dumbbell</td><td>position x (symlog if long-tailed)</td><td>aligned shift, no crossing</td></tr>
         <tr><td>agent / block / plan (interval, px)</td><td>C</td><td>line, point, polygon</td><td>position (x, y)</td><td>spatial data, true geometry</td></tr>
         <tr><td>executed / discarded / computing</td><td>C</td><td>line, point</td><td>line style + fill</td><td>separable, keeps hue for identity</td></tr>
         <tr><td>think, act intervals (time)</td><td>D</td><td>bar</td><td>position + length on time axis</td><td>alternation vs overlap visible</td></tr>
         <tr><td>movement per step; boundary discontinuity (ratio, px)</td><td>D, C</td><td>grey area + magenta bar; segment</td><td>height on a common baseline + magenta hue</td><td>a jump is read against normal motion</td></tr>
-        <tr><td>coverage (ratio)</td><td>D</td><td>line</td><td>position y</td><td>R vs C on a common scale</td></tr>
+        <tr><td>coverage (ratio)</td><td>D</td><td>line</td><td>position y</td><td>baseline vs candidate on a common scale</td></tr>
         <tr><td>scene in the picture vs. now (interval, px)</td><td>C</td><td>dotted outline, arrow</td><td>position (x, y), same map</td><td>gap = outdated plan, read in place</td></tr>
         <tr><td>chunk provenance (picture → think → act)</td><td>D</td><td>○ + outlines + link</td><td>position on time axis</td><td>connects one chunk's three moments</td></tr>
       </table>
@@ -244,14 +245,14 @@
       <div class="card" style="font-size:13.5px">
         <b>Hue budget — one meaning per hue</b>
         <div style="margin-top:6px; line-height:1.9">
-          <span style="display:inline-block;width:12px;height:12px;background:#222;vertical-align:-1px;"></span> Reference R &nbsp; <span style="display:inline-block;width:12px;height:12px;background:#E69F00;vertical-align:-1px;"></span> Candidate C<br>
+          <span style="display:inline-block;width:12px;height:12px;background:#222;vertical-align:-1px;"></span> Baseline &nbsp; <span style="display:inline-block;width:12px;height:12px;background:#E69F00;vertical-align:-1px;"></span> Candidate<br>
           <span style="display:inline-block;width:12px;height:12px;background:#0072B2;vertical-align:-1px;border-radius:50%"></span> Sync <span style="display:inline-block;width:12px;height:12px;background:#D55E00;vertical-align:-1px;"></span> Naive async <span style="display:inline-block;width:12px;height:12px;background:#009E73;vertical-align:-1px;transform:rotate(45deg) scale(.8)"></span> Inpaint<br>
-          <span style="display:inline-block;width:12px;height:12px;background:#c2185b;vertical-align:-1px;"></span> Discontinuity (C, D) &nbsp; grey: everything else
+          <span style="display:inline-block;width:12px;height:12px;background:#c2185b;vertical-align:-1px;"></span> Discontinuity (views C, D) &nbsp; grey: everything else
         </div>
-        <div class="muted" style="font-size:12px; margin-top:4px">Okabe–Ito hues. CVD-checked with Machado et al. (VIS 2009) in OKLab: R vs C ΔE ≥ 48; strategy hues ≥ 9 plus redundant shape.</div>
+        <div class="muted" style="font-size:12px; margin-top:4px">Okabe–Ito hues. CVD-checked with Machado et al. (VIS 2009) in OKLab: baseline vs candidate ΔE ≥ 48; strategy hues ≥ 9 plus redundant shape.</div>
       </div>
       <div class="card" style="margin-top:8px; font-size:13px">
-        <b>Ranking used</b> (Munzner, Ch. 5):<br>
+        <b>Effectiveness ranking used</b> (most important attribute → most effective channel):<br>
         magnitude: position on common scale &gt; length &gt; angle/area &gt; luminance<br>
         identity: spatial region &gt; hue &gt; shape<br><br>
         <b>Scalability</b>: A 47 points · B 2,350 cells + 50 dumbbells · C/D one episode (≤ 300 steps, ≤ 150 chunks) — SVG at interactive rates.
@@ -266,10 +267,10 @@
   <div class="kicker">5 · Sketch (low-fidelity wireframe) — purple = interaction &amp; linking, ①–⑥ = steps below</div>
   <img src="assets/sketch.svg" style="width:1030px; height:auto; display:block; margin:2px auto 0; border:1px solid var(--line)">
   <ol class="steps">
-    <li><b>Pick R and C</b>: in the header, or click / shift-click a mark in A.</li>
+    <li><b>Pick a baseline and a candidate</b> schedule: in the header, or click / shift-click a mark in A.</li>
     <li><b>Choose the question</b> (Success · Idle · Outdated · Discontinuity): A's y-axis and B's dumbbells follow.</li>
     <li><b>Find flipped start states</b> in B; drag over the dumbbells to select some, and A recomputes on them.</li>
-    <li><b>Click a start state</b>: C replays it under R and C side by side (▶ play, ← →).</li>
+    <li><b>Click a start state</b>: view C replays it under both schedules side by side (▶ play, ← →).</li>
     <li><b>See why</b> in C: what the policy saw (dotted) vs. where the robot is now, and the jump at each chunk switch.</li>
     <li><b>See when</b> in D: the current chunk is traced picture → think → act; drag a window to highlight its path in C.</li>
   </ol>
