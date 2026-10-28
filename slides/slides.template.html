@@ -129,7 +129,7 @@
       </div>
     </div>
   </div>
-  <div class="foot"><span>PushT: Diffusion Policy (Chi et al. 2023), LeRobot checkpoint, gym-pusht · Catch: our task and policy (<code>scripts/catch_task.py</code>); ball size and deadline set so that sync <i>without</i> latency succeeds ≈ 90 % (separate seeds) before any latency was tested</span><span>2 / 7</span></div>
+  <div class="foot"><span>PushT: pretrained policy <code>lerobot/diffusion_pusht</code> (LeRobot), simulator gym-pusht · Catch: our task and policy (<code>scripts/catch_task.py</code>); ball size and deadline set so that sync <i>without</i> latency succeeds ≈ 90 % (separate seeds) before any latency was tested</span><span>2 / 7</span></div>
 </section>
 
 <!-- 3. Who: personas -->
@@ -210,18 +210,18 @@
   <div class="kicker">4 · How — Vis Idiom Design (4 linked views, overview → filter → details)</div>
   <h1>Each view answers one task with the most effective idiom</h1>
   <table style="margin-top:8px; font-size:15px">
-    <tr><th style="width:170px">View</th><th style="width:60px">Task</th><th>Idiom &amp; why (VIS literature)</th><th style="width:300px">Interaction</th></tr>
-    <tr><td class="k">A · Latency Response</td><td>T1</td><td><div class="q">“How fast does each strategy get worse as the policy gets slower?”</div><b>Line chart small multiples</b>: one panel per horizon h, x = latency d on its true scale, y = metric, strategies <b>superposed</b> (hue + shape). Position on a common scale beats the luminance of a heatmap [Cleveland &amp; McGill 84; Heer &amp; Bostock 10]; superposition for direct sync-vs-async comparison, juxtaposition across h [Gleicher 11]. <b>95 % interval</b> lines instead of bars [Correll &amp; Gleicher 14]; hover = paired difference to the baseline.</td><td>Click mark = candidate, shift-click = baseline; <b>one question bar</b>: Success · Idle (cost of sync) · Outdated (cost of async) · Discontinuity (cost of naive async), drives A <i>and</i> B; recomputes on seeds selected in B.</td></tr>
-    <tr><td class="k">B · Paired Seed Table</td><td>T2, T4</td><td><div class="q">“Which start states flip between baseline and candidate, and is that more than chance?”</div><b>Composite Table-Lens view</b> [Rao &amp; Card 94; Javed &amp; Elmqvist 12]: one row per seed shared by (left) an outcome matrix — filled = success, baseline column black, candidate column orange — and (right) <b>dumbbells</b> baseline → candidate of the attribute that belongs to A's question. Rows are <b>grouped by baseline→candidate change</b> (spatial region), so flips break their band's pattern; a <b>re-run</b> column shows chance flips (PushT {{RERUN_FLIPS}}).</td><td>No controls of its own. Click column header = candidate; click cell = open episode; <b>brush</b> dumbbells or click a band → <b>cross-filter</b> A [Weaver 10].</td></tr>
+    <tr><th style="width:170px">View</th><th style="width:60px">Task</th><th>Idiom &amp; why</th><th style="width:300px">Interaction</th></tr>
+    <tr><td class="k">A · Latency Response</td><td>T1</td><td><div class="q">“How fast does each strategy get worse as the policy gets slower?”</div><b>Line chart small multiples</b>: one panel per horizon h, x = latency d on its true scale, y = metric, strategies <b>superposed</b> (hue + shape). Position on a common scale beats the luminance of a heatmap; superposition for direct sync-vs-async comparison, juxtaposition across h. <b>95 % interval</b> lines instead of bars; hover = paired difference to the baseline.</td><td>Click mark = candidate, shift-click = baseline; <b>one question bar</b>: Success · Idle (cost of sync) · Outdated (cost of async) · Discontinuity (cost of naive async), drives A <i>and</i> B; recomputes on seeds selected in B.</td></tr>
+    <tr><td class="k">B · Paired Seed Table</td><td>T2, T4</td><td><div class="q">“Which start states flip between baseline and candidate, and is that more than chance?”</div><b>Composite Table-Lens view</b>: one row per seed shared by (left) an outcome matrix — filled = success, baseline column black, candidate column orange — and (right) <b>dumbbells</b> baseline → candidate of the attribute that belongs to A's question. Rows are <b>grouped by baseline→candidate change</b> (spatial region), so flips break their band's pattern; a <b>re-run</b> column shows chance flips (PushT {{RERUN_FLIPS}}).</td><td>No controls of its own. Click column header = candidate; click cell = open episode; <b>brush</b> dumbbells or click a band → <b>cross-filter</b> A.</td></tr>
     <tr><td class="k">C · Workspace Replay</td><td>T3</td><td><div class="q">“Watch both runs side by side: what was planned, what was done, where it jumped.”</div>Juxtaposed baseline | candidate maps at identical scale (true geometry). Overlays: current chunk, executed (solid) and thrown away (dashed); next chunk being computed (dotted); latest <b>discontinuity</b> (magenta); <b>what the policy saw</b> (dotted outline of block or ball &amp; pusher in the chunk's picture, arrow to the robot now: the gap = how outdated the plan is).</td><td>Play / scrub / ← → (<b>navigate</b> t); hover a planned point → when planned / executed; click → jump.</td></tr>
-    <tr><td class="k">D · Execution Timeline</td><td>T3</td><td><div class="q">“When was the policy thinking, which plan did each move come from, where were the jumps?”</div><b>Gantt lanes</b> on a shared linear time axis [Plaisant 96; Brehmer 17]: per run a <b>think</b> track (inference) and an <b>act</b> track (chunk spans, hatched = idle), a <b>motion</b> track (movement per step, jumps as magenta bars on the same scale), coverage (PushT) or ball distance (Catch) below. Sync shows think/act <i>alternating</i>, async <i>overlapping</i>. The chunk at the cursor is traced <b>picture ○ → think → act</b>, with a 16-cell strip of its planned moves: skipped while thinking · executed · discarded.</td><td><b>Brush</b> a time window → highlighted path in view C; hover chunk → its plan in view C; click → cursor.</td></tr>
+    <tr><td class="k">D · Execution Timeline</td><td>T3</td><td><div class="q">“When was the policy thinking, which plan did each move come from, where were the jumps?”</div><b>Gantt lanes</b> on a shared linear time axis: per run a <b>think</b> track (inference) and an <b>act</b> track (chunk spans, hatched = idle), a <b>motion</b> track (movement per step, jumps as magenta bars on the same scale), coverage (PushT) or ball distance (Catch) below. Sync shows think/act <i>alternating</i>, async <i>overlapping</i>. The chunk at the cursor is traced <b>picture ○ → think → act</b>, with a 16-cell strip of its planned moves: skipped while thinking · executed · discarded.</td><td><b>Brush</b> a time window → highlighted path in view C; hover chunk → its plan in view C; click → cursor.</td></tr>
   </table>
   <div class="card" style="margin-top:6px; font-size:13px; padding:9px 14px">
     <b>Why this is not a generic dashboard</b>: C and D trace every executed move back to the plan (chunk) and the camera frame it came from, which no chart tool offers; A and B compare two schedules <i>start state by start state</i> against a chance baseline (re-run), not just averages.
     <b>Two tasks, one tool</b>: a task switch in the header shows the same four views for <b>Catch the ball</b>, where async's advantage is plain to see (sync stands still while the ball rolls away), next to <b>PushT</b>, where the costs compete.
-    <b>Less is more</b>: the first draft had 5 views and ~10 hues; following parsimony and consistency [Wang Baldonado 00] we merged two views, gave every hue one meaning and cut ten controls to <b>one question bar</b>.
+    <b>Less is more</b>: the first draft had 5 views and ~10 hues; following parsimony and consistency we merged two views, gave every hue one meaning and cut ten controls to <b>one question bar</b>.
   </div>
-  <div class="foot"><span>Shneiderman's mantra (1996): overview first (A), zoom &amp; filter (B), details on demand (C, D) · interactions after Heer &amp; Shneiderman (2012)</span><span>5 / 7</span></div>
+  <div class="foot"><span>Overview first (A), then filter (B), then details on demand (C, D)</span><span>5 / 7</span></div>
 </section>
 
 <!-- 6. How: marks & channels -->
@@ -244,7 +244,7 @@
         <tr><td>executed / discarded / computing</td><td>C</td><td>line, point</td><td>line style + fill</td><td>separable, keeps hue for identity</td></tr>
         <tr><td>think, act intervals (time)</td><td>D</td><td>bar</td><td>position + length on time axis</td><td>alternation vs overlap visible</td></tr>
         <tr><td>movement per step; boundary discontinuity (ratio, px)</td><td>D, C</td><td>grey area + magenta bar; segment</td><td>height on a common baseline + magenta hue</td><td>a jump is read against normal motion</td></tr>
-        <tr><td>coverage or distance to target (ratio)</td><td>D</td><td>line</td><td>position y</td><td>baseline vs candidate on a common scale</td></tr>
+        <tr><td>coverage or distance to the ball (ratio)</td><td>D</td><td>line</td><td>position y</td><td>baseline vs candidate on a common scale</td></tr>
         <tr><td>scene in the picture vs. now (interval, px)</td><td>C</td><td>dotted outline, arrow</td><td>position (x, y), same map</td><td>gap = outdated plan, read in place</td></tr>
         <tr><td>chunk provenance (picture → think → act)</td><td>D</td><td>○ + outlines + link</td><td>position on time axis</td><td>connects one chunk's three moments</td></tr>
         <tr><td>use of the 16 planned moves (ordinal, 3 levels)</td><td>D</td><td>16 cells</td><td>position (index) + luminance</td><td>skipped / executed / discarded at a glance</td></tr>
@@ -258,7 +258,7 @@
           <span style="display:inline-block;width:12px;height:12px;background:#0072B2;vertical-align:-1px;border-radius:50%"></span> Sync <span style="display:inline-block;width:12px;height:12px;background:#D55E00;vertical-align:-1px;"></span> Naive async <span style="display:inline-block;width:12px;height:12px;background:#009E73;vertical-align:-1px;transform:rotate(45deg) scale(.8)"></span> Inpaint<br>
           <span style="display:inline-block;width:12px;height:12px;background:#c2185b;vertical-align:-1px;"></span> Discontinuity (views C, D) &nbsp; grey: everything else
         </div>
-        <div class="muted" style="font-size:12px; margin-top:4px">Okabe–Ito hues. CVD-checked with Machado et al. (VIS 2009) in OKLab: baseline vs candidate ΔE ≥ 48; strategy hues ≥ 9 plus redundant shape.</div>
+        <div class="muted" style="font-size:12px; margin-top:4px">Colour-blind-safe hues, checked by simulating colour-vision deficiency: baseline vs candidate ΔE ≥ 48; strategy hues ≥ 9 plus redundant shape.</div>
       </div>
       <div class="card" style="margin-top:8px; font-size:13px">
         <b>Effectiveness ranking used</b> (most important attribute → most effective channel):<br>
@@ -268,7 +268,7 @@
       </div>
     </div>
   </div>
-  <div class="foot"><span>Cleveland &amp; McGill (1984) · Heer &amp; Bostock (CHI 2010) · Gleicher et al. (2011) · Correll &amp; Gleicher (VIS 2014) · full list: docs/design_rationale.md</span><span>6 / 7</span></div>
+  <div class="foot"><span>Most important attribute → most effective channel; every hue has one meaning</span><span>6 / 7</span></div>
 </section>
 
 <!-- 7. Sketch -->
