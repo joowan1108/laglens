@@ -16,7 +16,7 @@ Slide 1 compares the three strategies on a timeline (d = 4, h = 4): think/act ti
 * **Values:** success (binary), coverage_final (ratio, 0–0.99), steps_to_success (ratio, 68–300), jump_mean / max (ratio, px), think_motion_mean / max (ratio, px: robot motion while the policy thinks), staleness_mean (ratio, steps; ≈ d + (h−1)/2 for every strategy), idle_frac (ratio), jerk_mean, path_len, n_inferences, n_switches, inner_step_mean. Per step: agent / block position (interval, px), block angle (cyclic), action, chunk id, index *j*, age, held, coverage.
 
 ## 2 Who: personas
-* **Primary: Mara Jensen.** 28, PhD student in a robot-learning lab in Copenhagen. Deploys diffusion policies on a real arm with a remote GPU server (60–250 ms). Needs per-episode evidence of *why* schedules fail. Pain points: only success tables and videos; cannot separate stale actions from discontinuities.
+* **Primary: Mara Jensen.** 28, PhD student in a robot-learning lab in Copenhagen. Deploys diffusion policies on a real arm with a remote GPU server (sending frames and computing a chunk ≈ 200–400 ms, d ≈ 2–4). Needs per-episode evidence of *why* schedules fail. Pain points: only success tables and videos; cannot separate stale actions from discontinuities.
 * **Secondary: Arjun Mehta.** 37, ML platform engineer at a robotics start-up in Seoul. Owns the async serving stack and sets latency budgets. Needs aggregate trends and to know whether drops are real.
 * Differences: policy vs. systems expertise; episode-level (T3, T4) vs. aggregate (T1, T2) questions.
 * Portraits: public-domain StyleGAN images (Wikimedia Commons).

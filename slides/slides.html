@@ -144,7 +144,7 @@
         <div style="font-size:20px;font-weight:bold">Mara Jensen</div>
         <div class="muted">28 · 4th-year PhD student, robot learning lab · Copenhagen, Denmark</div>
         <ul class="small">
-          <li><b>Context</b>: trains diffusion / flow-matching policies (generative models that output action chunks); deploys them on a real arm while the GPU server sits across the building (60–250 ms Wi-Fi latency).</li>
+          <li><b>Context</b>: trains diffusion / flow-matching policies (generative models that output action chunks); deploys them on a real arm while the GPU server sits across the building: sending the camera frames and computing a chunk takes ≈ 200–400 ms (d ≈ 2–4 steps).</li>
           <li><b>Goals</b>: pick an execution strategy and horizon that keep success high at the latency she actually has; explain <i>why</i> in a paper.</li>
           <li><b>Needs</b>: per-episode evidence of what failed, aligned with what the policy planned at that moment.</li>
           <li><b>Pain points</b>: only success-rate tables and video; cannot tell whether a failure came from waiting, an outdated plan or a jump; re-running real robot trials is costly; matplotlib debug plots show one episode at a time.</li>
