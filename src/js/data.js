@@ -1,9 +1,18 @@
 // Loads the episode table, schedule aggregates and (lazily) per-schedule step/chunk logs.
-const NUM = ["latency", "horizon", "replicate", "seed", "success", "steps_to_success", "coverage_final", "coverage_max",
+import { applyTask } from "./util.js";
+
+const NUM = ["latency", "horizon", "replicate", "seed", "success", "steps_to_success", "coverage_final", "coverage_max", "dist_final",
   "n_inferences", "n_switches", "jump_mean", "jump_max", "inner_step_mean", "staleness_mean",
   "idle_frac", "jerk_mean", "think_motion_mean", "think_motion_max", "path_len"];
 
+// Two tasks with the same schedules and seeds, one data folder each.
+export const TASKS = {
+  pusht: { label: "PushT", dir: "data/", title: "push the T-block onto the T-goal (pretrained policy; the block waits while the robot thinks)" },
+  reach: { label: "Reach-in-time", dir: "data/reach/", title: "touch the target within 7 s (policy trained by us; every idle step costs time)" },
+};
+
 export const DATA = {
+  task: "pusht",
   episodes: [],
   schedules: [],
   schedById: new Map(),
@@ -14,8 +23,8 @@ export const DATA = {
 
 export const STRATEGIES = ["sync", "naive", "inpaint"];
 export const STRAT_LABEL = { sync: "Sync", naive: "Naive async", inpaint: "Inpaint async" };
-export const LATENCIES = [0, 1, 2, 4, 6];
-export const HORIZONS = [8, 6, 4, 2];
+export const LATENCIES = [0, 2, 4];
+export const HORIZONS = [8, 4];
 
 export function label(id) {
   const s = DATA.schedById.get(id);
@@ -27,8 +36,14 @@ export function shortLabel(id) {
   return s ? `${s.strategy} d${s.latency} h${s.horizon}${s.replicate ? " rep" : ""}` : id;
 }
 
-export async function loadBase() {
-  const [eps, sch] = await Promise.all([d3.csv("data/episodes.csv"), d3.json("data/schedules.json")]);
+export async function loadBase(task = "pusht") {
+  const dir = TASKS[task].dir;
+  const [eps, sch] = await Promise.all([d3.csv(`${dir}episodes.csv`), d3.json(`${dir}schedules.json`)]);
+  DATA.task = task;
+  DATA.schedById = new Map();
+  DATA.ep = new Map();
+  DATA.runs = new Map();
+  applyTask(task);
   for (const r of eps) for (const k of NUM) r[k] = r[k] === "" ? null : +r[k];
   DATA.episodes = eps;
   DATA.schedules = sch;
@@ -52,7 +67,7 @@ export function missingReason(strat, d, h) {
 
 export function loadRun(id) {
   if (!DATA.runs.has(id)) {
-    DATA.runs.set(id, d3.json(`data/runs/${id}.json`).then(prepareRun));
+    DATA.runs.set(id, d3.json(`${TASKS[DATA.task].dir}runs/${id}.json`).then(prepareRun));
   }
   return DATA.runs.get(id);
 }

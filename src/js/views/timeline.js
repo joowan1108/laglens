@@ -20,7 +20,7 @@ export function initTimeline() {
     .attr("patternUnits", "userSpaceOnUse").attr("patternTransform", "rotate(45)")
     .append("line").attr("y2", 4).attr("stroke", "#a9a9b1").attr("stroke-width", 1.2);
   bus.on("change.timeline", async (keys) => {
-    if (keys.has("seed") || keys.has("ref") || keys.has("cand")) await load();
+    if (keys.has("task") || keys.has("seed") || keys.has("ref") || keys.has("cand")) await load();
     else if (keys.has("t")) cursor();
     else if (keys.has("win") || keys.has("hoverChunk")) render();
   });
@@ -58,7 +58,12 @@ function render() {
   ];
   const covTop = m.t + 2 * laneH + laneGap + 26, covBot = h - m.b;
   curBot = covBot;
-  const yc = d3.scaleLinear().domain([0, 1]).range([covBot, covTop]);
+  // outcome track: block–goal coverage (PushT) or pusher–target distance (Reach), with its success line
+  const reach = DATA.task === "reach";
+  const yc = reach
+    ? d3.scaleLinear().domain([0, d3.max([eps.ref, eps.cand], (e) => d3.max(e.dist))]).nice().range([covBot, covTop])
+    : d3.scaleLinear().domain([0, 1]).range([covBot, covTop]);
+  const thr = reach ? 20 : 0.95;
   for (const e of [eps.ref, eps.cand]) if (!e.mot) e.mot = motion(e);
   const gmax = Math.max(30, d3.max([eps.ref, eps.cand], (e) => Math.max(d3.max(e.mot), d3.max(e.seams, (s) => s.gap) || 0)));
   const ys = d3.scaleLinear().domain([0, gmax]).range([0, motH - 2]);
@@ -158,16 +163,16 @@ function render() {
     return g;
   });
   cg.select(".grid").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(yc).ticks(2).tickSize(-(w - m.l - m.r)).tickFormat("")).call((q) => q.select(".domain").remove());
-  cg.select(".yax").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(yc).ticks(2).tickSize(3).tickFormat(d3.format(".0%"))).call((q) => q.select(".domain").remove());
+  cg.select(".yax").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(yc).ticks(2).tickSize(3).tickFormat(reach ? (v) => `${v} px` : d3.format(".0%"))).call((q) => q.select(".domain").remove());
   cg.select(".xax").attr("transform", `translate(0,${covBot})`).call(d3.axisBottom(x).ticks(10).tickSize(3)).call((q) => q.select(".domain").attr("stroke", "#c9c9cf"));
-  cg.select(".thr").attr("x1", m.l).attr("x2", w - m.r).attr("y1", yc(0.95)).attr("y2", yc(0.95)).attr("stroke", "#77777f").attr("stroke-dasharray", "4 3");
-  cg.select(".thrt").attr("x", w - m.r).attr("y", yc(0.95) - 3).attr("text-anchor", "end").text("success threshold 95 %");
-  cg.select(".yt").attr("x", 4).attr("y", covTop - 8).text("block–goal coverage");
+  cg.select(".thr").attr("x1", m.l).attr("x2", w - m.r).attr("y1", yc(thr)).attr("y2", yc(thr)).attr("stroke", "#77777f").attr("stroke-dasharray", "4 3");
+  cg.select(".thrt").attr("x", w - m.r).attr("y", yc(thr) - 3).attr("text-anchor", "end").text(reach ? "success: within 20 px" : "success threshold 95 %");
+  cg.select(".yt").attr("x", 4).attr("y", covTop - 8).text(reach ? "pusher–target distance" : "block–goal coverage");
   svg.selectAll("text.xt").data([0]).join("text").attr("class", "xt axis-title").attr("x", w - m.r).attr("y", h - 2).attr("text-anchor", "end")
     .text("time step t (10 Hz) · drag = select window · click = move cursor");
   const covLine = d3.line().defined((d) => d[1] !== null).x((d) => x(d[0])).y((d) => yc(d[1]));
   cg.selectAll("path.cl").data(lanes, (d) => d.which).join("path").attr("class", "cl")
-    .attr("d", (L) => covLine(L.e.cov.map((v, i) => [i, v])))
+    .attr("d", (L) => covLine((reach ? L.e.dist : L.e.cov).map((v, i) => [i, v])))
     .attr("fill", "none").attr("stroke", (L) => L.col).attr("stroke-width", 1.8).attr("pointer-events", "none");
   cursor();
 }

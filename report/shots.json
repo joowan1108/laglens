@@ -1,9 +1,9 @@
 {
- "image.png": "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140",
- "fig_overview.png": "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140",
+ "image.png": "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1017&t=160&win=150,190",
+ "fig_overview.png": "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1017&t=160&win=150,190",
  "fig_f1_response.png": "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=success_rate",
  "fig_f1_seam.png": "ref=sync_d0_h8&cand=inpaint_d4_h4&metric=jump_mean",
  "fig_f2_noise.png": "ref=sync_d0_h8&cand=sync_d0_h8_r1",
- "fig_f3_replay.png": "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1035&t=116&win=100,140",
- "fig_f4_shift.png": "ref=naive_d4_h4&cand=inpaint_d4_h4&metric=jump_mean&seed=1035"
+ "fig_f3_replay.png": "ref=inpaint_d4_h4&cand=naive_d4_h4&seed=1017&t=160&win=150,190",
+ "fig_f4_shift.png": "ref=naive_d4_h4&cand=inpaint_d4_h4&metric=jump_mean&seed=1017"
 }

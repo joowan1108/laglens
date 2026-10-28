@@ -1,6 +1,7 @@
 // Single shared selection state. Views call update({...}); every view listens to "change"
 // and re-renders only what depends on the changed keys.
 export const DEFAULTS = {
+  task: "pusht",           // which task's data: "pusht" | "reach" (data.TASKS)
   ref: "sync_d4_h4",       // reference schedule R (opens on: same 400 ms latency, wait vs. act-while-thinking)
   cand: "inpaint_d4_h4",   // candidate schedule C
   metric: "success_rate",  // the one question asked: y of A and the dumbbell attribute of B (util.METRICS)

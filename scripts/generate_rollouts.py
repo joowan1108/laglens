@@ -89,7 +89,22 @@ class Policy:
         return self.unnorm_a(x).numpy()
 
 
-def run_config(pol, cid, n_seeds):
+def add_belt(env, belt):
+    """Moving-belt variant: the table under the block moves at `belt` = (vx, vy) px/s, so the block
+    drifts whenever nothing holds it. PushT uses space damping 0 (a body keeps no velocity between
+    physics steps), so the belt is applied as the force that gives the block exactly this velocity in
+    every physics step; contacts with the pusher and the walls are then resolved by pymunk as usual."""
+    u = env.unwrapped
+    space, block = u.space, u.block
+    step0 = space.step
+
+    def step(dt):
+        block.force = (block.mass * belt[0] / dt, block.mass * belt[1] / dt)
+        step0(dt)
+    space.step = step
+
+
+def run_config(pol, cid, n_seeds, belt=None):
     strat, d, h, rep = parse_cfg(cid)
     H, n_obs = pol.H, pol.n_obs
     j0 = n_obs - 1  # chunk index aligned with the observation time
@@ -99,6 +114,9 @@ def run_config(pol, cid, n_seeds):
     envs = [gym.make("gym_pusht/PushT-v0", obs_type="pixels_agent_pos", max_episode_steps=T_MAX)
             for _ in range(n_seeds)]
     obs = [e.reset(seed=SEED_BASE + i)[0] for i, e in enumerate(envs)]
+    if belt:  # reset() rebuilds the pymunk space, so the belt is attached after it
+        for e in envs:
+            add_belt(e, belt)
     infos = [e.unwrapped._get_info() for e in envs]
     prev_obs = list(obs)
     done = [False] * n_seeds
@@ -214,7 +232,7 @@ def run_config(pol, cid, n_seeds):
     for e in envs:
         e.close()
     return {"config": cid, "strategy": strat, "latency": d, "horizon": h, "replicate": rep,
-            "ddim_steps": DDIM_STEPS, "chunk_len": H, "obs_steps": n_obs, "fps": 10,
+            "belt": list(belt) if belt else None, "ddim_steps": DDIM_STEPS, "chunk_len": H, "obs_steps": n_obs, "fps": 10,
             "episodes": episodes}
 
 
@@ -224,6 +242,8 @@ def main():
     ap.add_argument("--seeds", type=int, default=32)
     ap.add_argument("--out", default="data/runs")
     ap.add_argument("--threads", type=int, default=12)
+    ap.add_argument("--belt", type=float, nargs=2, default=None, metavar=("VX", "VY"),
+                    help="moving-belt variant: belt velocity in px/s (default: static PushT)")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
     os.makedirs(args.out, exist_ok=True)
@@ -233,7 +253,7 @@ def main():
         if os.path.exists(path):
             print("skip", cid, flush=True); continue
         t0 = time.time()
-        res = run_config(pol, cid, args.seeds)
+        res = run_config(pol, cid, args.seeds, args.belt)
         with open(path, "w") as f:
             json.dump(res, f, separators=(",", ":"))
         sr = np.mean([e["success"] for e in res["episodes"]])

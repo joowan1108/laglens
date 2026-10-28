@@ -62,30 +62,102 @@ def strategy_svg(jump, idle):
     return "".join(o)
 
 
+RESULT_COL = {"sync": ("#0072B2", "circle"), "naive": ("#D55E00", "square"), "inpaint": ("#009E73", "diamond")}
+
+
+def results_svg(scheds, h=4):
+    """Slide-2 first look: success rate vs. latency per strategy at one h, one small panel per task
+    (same y scale). Async has no d = 0 (nothing to overlap), so its line starts dotted at sync d = 0."""
+    W, Hh, ml, mt, pw, ph, gap = 400, 160, 30, 27, 170, 100, 26
+    o = [f'<svg viewBox="0 0 {W} {Hh}" width="{W}" height="{Hh}" font-size="10.5" font-family="Ubuntu Sans, Ubuntu, DejaVu Sans">']
+    for k, (task, title) in enumerate([("pusht", "PushT (the block waits)"), ("reach", "Reach-in-time (7 s deadline)")]):
+        x0 = ml + k * (pw + gap)
+        X = lambda d: x0 + 10 + d / 4 * (pw - 20)
+        Y = lambda v: mt + ph - v * ph
+        o.append(f'<text x="{x0 + pw/2}" y="12" text-anchor="middle" font-weight="bold" font-size="11.5">{title}</text>')
+        for v in (0, 0.5, 1):
+            o.append(f'<line x1="{x0}" x2="{x0+pw}" y1="{Y(v)}" y2="{Y(v)}" stroke="#e3e3e8"/>')
+            if k == 0:
+                o.append(f'<text x="{x0-4}" y="{Y(v)+3.5}" text-anchor="end" fill="#666">{v*100:.0f}%</text>')
+        for d in (0, 2, 4):
+            o.append(f'<text x="{X(d)}" y="{mt+ph+13}" text-anchor="middle" fill="#666">{d}</text>')
+        S = scheds[task]
+        sr = lambda st, d: S[f"{st}_d{d}_h{h}"]["success_rate"]
+        for st in ("sync", "naive", "inpaint"):
+            col, shape = RESULT_COL[st]
+            ds = [0, 2, 4] if st == "sync" else [2, 4]
+            pts = [(X(d), Y(sr(st, d))) for d in ds]
+            if st != "sync":
+                o.append(f'<line x1="{X(0)}" y1="{Y(sr("sync", 0))}" x2="{pts[0][0]}" y2="{pts[0][1]}" stroke="{col}" stroke-width="1.6" stroke-dasharray="1.5 3"/>')
+            o.append('<polyline points="' + " ".join(f"{x:.1f},{y:.1f}" for x, y in pts) + f'" fill="none" stroke="{col}" stroke-width="2"/>')
+            for x, y in pts:
+                if shape == "circle":
+                    o.append(f'<circle cx="{x}" cy="{y}" r="3.6" fill="{col}" stroke="#fff"/>')
+                elif shape == "square":
+                    o.append(f'<rect x="{x-3.3}" y="{y-3.3}" width="6.6" height="6.6" fill="{col}" stroke="#fff"/>')
+                else:
+                    o.append(f'<rect x="{x-3.2}" y="{y-3.2}" width="6.4" height="6.4" fill="{col}" stroke="#fff" transform="rotate(45 {x} {y})"/>')
+        # direct labels at d = 4 (sync vs. best async)
+        for st, dy in (("sync", 13), ("inpaint", -7)):
+            v = sr(st, 4)
+            if v > 0.9:  # no room above the top gridline
+                dy = 14
+            o.append(f'<text x="{X(4)-6}" y="{Y(v)+dy}" text-anchor="end" font-weight="bold" fill="#333">{v*100:.0f}%</text>')
+    o.append(f'<text x="{ml + pw + gap/2}" y="{Hh-3}" text-anchor="middle" fill="#555">latency d (steps of 100 ms) · h = {h} · {{N}} start states each</text></svg>')
+    return "".join(o)
+
+
 def tokens():
     rows = list(csv.DictReader(open(D / "episodes.csv")))
+    rows_r = list(csv.DictReader(open(D / "reach" / "episodes.csv")))
     sched = {s["schedule"]: s for s in json.load(open(D / "schedules.json"))}
+    sched_r = {s["schedule"]: s for s in json.load(open(D / "reach" / "schedules.json"))}
     n_steps = n_chunks = 0
     size = 0
-    for f in glob.glob(str(D / "runs" / "*.json")):
+    for f in glob.glob(str(D / "runs" / "*.json")) + glob.glob(str(D / "reach" / "runs" / "*.json")):
         size += os.path.getsize(f)
         for e in json.load(open(f))["episodes"]:
             n_steps += e["n"]; n_chunks += len(e["chunks"])
     seeds = sorted({int(r["seed"]) for r in rows})
-    pct = lambda k: f"{100*sched[k]['success_rate']:.0f} %" if k in sched else "n/a"
+    assert seeds == sorted({int(r["seed"]) for r in rows_r}), "both tasks use the same seeds"
+    allr = rows + rows_r
+    pct = lambda k, S=sched: f"{100*S[k]['success_rate']:.0f} %" if k in S else "n/a"
     tok = {
-        "N_SEEDS": len(seeds), "N_SCHED": sum(1 for s in sched.values() if not s.get("replicate")), "N_EP": f"{len(rows):,}",
+        "N_SEEDS": len(seeds), "N_SCHED": sum(1 for s in sched.values() if not s.get("replicate")),
+        "N_EP_TASK": f"{len(rows):,}", "N_EP": f"{len(allr):,}",
         "N_ATTR": len(rows[0]), "SEED_MIN": seeds[0], "SEED_MAX": seeds[-1],
-        "COV_RANGE": rng(rows, "coverage_final", "{:.2f}"), "STS_RANGE": rng(rows, "steps_to_success", "{:.0f}"),
-        "SEAM_RANGE": rng(rows, "jump_mean", "{:.1f}"), "SEAMMAX_RANGE": rng(rows, "jump_max", "{:.0f}"),
-        "STALE_RANGE": rng(rows, "staleness_mean", "{:.1f}"),
-        "THINK_RANGE": rng(rows, "think_motion_mean", "{:.1f}"), "THINKMAX_RANGE": rng(rows, "think_motion_max", "{:.0f}"), "IDLE_RANGE": rng(rows, "idle_frac", "{:.2f}"),
-        "JERK_RANGE": rng(rows, "jerk_mean", "{:.1f}"), "PATH_RANGE": rng(rows, "path_len", "{:.0f}"),
-        "NINF_RANGE": rng(rows, "n_inferences", "{:.0f}"),
+        "COV_RANGE": rng(rows, "coverage_final", "{:.2f}"), "DIST_RANGE": rng(rows_r, "dist_final", "{:.0f}"),
+        "STS_RANGE": rng(rows, "steps_to_success", "{:.0f}"), "STS_RANGE_R": rng(rows_r, "steps_to_success", "{:.0f}"),
+        "SEAM_RANGE": rng(allr, "jump_mean", "{:.1f}"), "SEAMMAX_RANGE": rng(allr, "jump_max", "{:.0f}"),
+        "STALE_RANGE": rng(allr, "staleness_mean", "{:.1f}"),
+        "THINK_RANGE": rng(allr, "think_motion_mean", "{:.1f}"), "THINKMAX_RANGE": rng(allr, "think_motion_max", "{:.0f}"), "IDLE_RANGE": rng(allr, "idle_frac", "{:.2f}"),
+        "JERK_RANGE": rng(allr, "jerk_mean", "{:.1f}"), "PATH_RANGE": rng(allr, "path_len", "{:.0f}"),
+        "NINF_RANGE": rng(allr, "n_inferences", "{:.0f}"),
         "N_STEPS": f"{n_steps:,}", "N_CHUNKS": f"{n_chunks:,}",
         "CSV_KB": f"{os.path.getsize(D / 'episodes.csv')/1024:.0f}", "DETAIL_MB": f"{size/1e6:.0f}",
-        "SR_NAIVE_D4_H8": pct("naive_d4_h8"), "SR_SYNC_D0_H8": pct("sync_d0_h8"),
+        "SR_SYNC_D4_H4": pct("sync_d4_h4"), "SR_INPAINT_D4_H4": pct("inpaint_d4_h4"),
+        "R_SYNC_D4_H4": pct("sync_d4_h4", sched_r), "R_SYNC_D4_H8": pct("sync_d4_h8", sched_r),
+        "R_ASYNC": (lambda m: f"from all {len(seeds)} starts" if m == 1 else f"in ≥ {100*m:.0f} % of starts")(
+            min(v["success_rate"] for v in sched_r.values() if v["strategy"] != "sync")),
+        "P_SYNC_D4_H8": pct("sync_d4_h8"), "P_NAIVE_D4_H8": pct("naive_d4_h8"), "P_INPAINT_D4_H8": pct("inpaint_d4_h8"),
     }
+    # Reach: sync d4 h4 failures vs. start distance (start distance = path the robot must cover)
+    start = {}
+    for e in json.load(open(D / "reach" / "runs" / "sync_d4_h4.json"))["episodes"]:
+        start[e["seed"]] = e["dist"][0]
+    fail = [start[int(r["seed"])] for r in rows_r if r["schedule"] == "sync_d4_h4" and r["success"] == "0"]
+    ok = [start[int(r["seed"])] for r in rows_r if r["schedule"] == "sync_d4_h4" and r["success"] == "1"]
+    tok["R_FAIL_FROM"] = f"{min(fail):.0f}"
+    tok["R_OK_UPTO"] = f"{max(ok):.0f}"
+    tok["R_N_FAIL"] = len(fail)
+    # chance flips: sync d0 h8 vs. its noise re-run (PushT), and scalability numbers for slide 6
+    sr = {int(r["seed"]): r["success"] for r in rows if r["schedule"] == "sync_d0_h8"}
+    rr = {int(r["seed"]): r["success"] for r in rows if r["schedule"] == "sync_d0_h8_r1"}
+    tok["RERUN_FLIPS"] = f"{sum(sr[k] != rr[k] for k in sr)}/{len(sr)}"
+    tok["N_POINTS"] = len(sched)
+    tok["N_CELLS"] = f"{len(sched) * len(seeds):,}"
+    tok["MAX_CHUNKS"] = max(int(r["n_inferences"]) for r in allr)
+    tok["RESULTS_SVG"] = results_svg({"pusht": sched, "reach": sched_r}).replace("{N}", str(len(seeds)))
     grid = lambda st: [r for r in rows if r["strategy"] == st and r["latency"] == "4" and r["horizon"] == "4" and r["replicate"] == "0"]
     mean = lambda st, k: sum(float(r[k]) for r in grid(st) if r[k] != "") / len([r for r in grid(st) if r[k] != ""])
     jump = {st: mean(st, "jump_mean") for st in ("sync", "naive", "inpaint")}

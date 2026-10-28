@@ -1,6 +1,6 @@
 PASS  guide shown on first visit
 PASS  guide closes
-rendered marks: {'#response g.pm': 47, '#seedtable rect.c': 2350, '#seedtable g.db': 50, '#workspace g.wp': 2, '#timeline .bars rect': 99, '#timeline .think rect': 99}
+rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 450, '#seedtable g.db': 30, '#workspace g.wp': 2, '#timeline .bars rect': 98, '#timeline .think rect': 98}
 PASS  all four views rendered (A curves, B matrix + dumbbells, C boards, D tracks)
 PASS  A click sets candidate
 PASS  A shift-click sets reference
@@ -34,5 +34,11 @@ PASS  candidate picker
 PASS  reset
 PASS  survives resize
 PASS  URL state restores R, C, seed, t and selection
+PASS  task switch loads Reach-in-time
+PASS  Reach: C draws the target and no block
+PASS  Reach: D shows the distance to the target
+PASS  Reach: A and B describe the deadline outcome
+PASS  task switch back to PushT
+PASS  URL ?task=reach opens the Reach data
 console errors/warnings: 0
 RESULT: PASS

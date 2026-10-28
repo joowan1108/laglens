@@ -21,10 +21,8 @@ const BANDS = [
 const SYMLOG = new Set(["jump_max"]);
 const PCT = new Set(["coverage_final", "idle_frac"]);
 
-export function initSeedTable() {
-  ctrSel = d3.select("#seedControls");
-  root = d3.select("#seedtable");
-  svg = root.append("svg");
+// One column per schedule present in the loaded task (re-run first).
+export function rebuildColumns() {
   cols = [];
   for (const sc of DATA.schedules.filter((x) => x.replicate)) cols.push({ id: sc.schedule, s: "replicate", h: sc.horizon, d: sc.latency });
   for (const s of STRATEGIES) for (const h of HORIZONS) for (const d of LATENCIES) {
@@ -32,9 +30,17 @@ export function initSeedTable() {
     if (DATA.schedById.has(id)) cols.push({ id, s, h, d });
   }
   groupsPresent = ["replicate", ...STRATEGIES].filter((g) => cols.some((c) => c.s === g));
+  brushKey = null;
+}
+
+export function initSeedTable() {
+  ctrSel = d3.select("#seedControls");
+  root = d3.select("#seedtable");
+  svg = root.append("svg");
+  rebuildColumns();
   render();
   bus.on("change.seedtable", (keys) => {
-    if (["ref", "cand", "metric", "seed", "brushed", "hoverSeed"].some((k) => keys.has(k))) render();
+    if (["task", "ref", "cand", "metric", "seed", "brushed", "hoverSeed"].some((k) => keys.has(k))) render();
   });
 }
 
@@ -132,7 +138,7 @@ function render() {
     .attr("fill", fillOf).attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
     .on("mousemove", (ev, d) => {
       const e = DATA.ep.get(d.c.id).get(d.seed);
-      showTip(ev, `<b>seed ${d.seed}</b> · ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · coverage ${Math.round(e.coverage_final * 100)}%<br>
+      showTip(ev, `<b>seed ${d.seed}</b> · ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "reach" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br>
         <span class="k">discontinuity</span> ${e.jump_mean.toFixed(1)} px · <span class="k">moved while thinking</span> ${e.think_motion_mean.toFixed(1)} px · <span class="k">idle</span> ${Math.round(e.idle_frac * 100)}%<br>
         <span class="k">this seed succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)}% of schedules</span><br><span class="k">click = open this episode (column becomes the candidate)</span>`);
       if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });

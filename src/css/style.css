@@ -20,7 +20,7 @@ button:hover { border-color: #999; }
 button.icon { padding: 3px 8px; font-size: 14px; }
 button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 
-#topbar { height: 48px; display: flex; align-items: center; gap: 24px; padding: 0 14px; background: #fff; border-bottom: 1px solid var(--line); }
+#topbar { height: 48px; display: flex; align-items: center; gap: 16px; padding: 0 14px; background: #fff; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
 .subtitle { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -106,3 +106,13 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .controls .legend { display: inline-flex; gap: 10px; margin-left: auto; }
 .controls .legend .li { display: inline-flex; align-items: center; gap: 3px; color: var(--ink); cursor: default; }
 .brush .selection { fill: #1d1d1f; fill-opacity: 0.06; stroke: #1d1d1f; stroke-opacity: 0.5; stroke-dasharray: 4 3; }
+
+/* task switch (PushT · Reach-in-time) */
+.tasksw { display: flex; align-items: center; gap: 6px; }
+.tasksw .lead { color: var(--muted); font-size: 11.5px; }
+.tasksw .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.tasksw .seg button { border: none; border-radius: 0; padding: 3px 9px; border-right: 1px solid var(--line); font-weight: 600; }
+.tasksw .seg button:last-child { border-right: none; }
+.tasksw .seg button.on { background: #1d1d1f; color: #fff; }
+.tasksw .seg button, #topbar .actions button { white-space: nowrap; }
+.tasksw { flex: none; } .pickers, .actions { flex: none; }

@@ -92,6 +92,10 @@ dx, dy, dw, dh = 528, 382, 664, 270  # D
 # ---- header: baseline and candidate pickers
 rbox(8, 8, 1184, 40)
 txt(22, 36, "LagLens", 20, weight="bold")
+rbox(118, 15, 170, 26)
+rbox(118, 15, 70, 26, fill="#444")
+txt(153, 33, "PushT", 12.5, "#fff", "middle"); txt(238, 33, "Reach-in-time", 12.5, INK, "middle")
+
 rbox(640, 15, 228, 26, R, 2.2)
 txt(652, 34, "Baseline:  Sync, d=4, h=4  ▾", 12.5)
 txt(882, 34, "⇄", 15)
@@ -99,7 +103,7 @@ rbox(906, 15, 236, 26, C, 2.2)
 txt(918, 34, f'<tspan fill="{C}">Candidate</tspan>:  Inpaint, d=4, h=4  ▾', 12.5)
 txt(1166, 34, "?", 14)
 badge(612, 28, 1)
-note(596, 33, "pick the two schedules to compare (or click a point in A)", "end")
+note(596, 33, "pick two schedules (or click a point in A)", "end")
 
 # ---- A latency response
 rbox(ax, ay, aw, ah)
@@ -119,22 +123,22 @@ txt(x0 - 6, y0 + 6, "y", 12.5, GREY, "end")
 txt(x0 + W, y0 + H + 18, "latency d →", 12.5, GREY, "end")
 X = lambda t: x0 + 10 + t * (W - 20)
 Y = lambda v: y0 + H - 8 - v * (H - 16)
-lines = {"sync": ([0, .35, .7, 1], [.95, .7, .35, .12], None),
-         "naive": ([0, .35, .7], [.95, .8, .55], "7 4"),
-         "inpaint": ([0, .35, .7, 1], [.95, .88, .8, .66], "2 4")}
+lines = {"sync": ([0, .5, 1], [.95, .6, .12], None),
+         "naive": ([0, .5, 1], [.95, .7, .45], "7 4"),
+         "inpaint": ([0, .5, 1], [.95, .85, .66], "2 4")}
 for s, (ts, vs, dash) in lines.items():
     curve([(X(t), Y(v)) for t, v in zip(ts, vs)], "#444", 1.8, dash)
     txt(X(ts[-1]) + (16 if ts[-1] == 1 else 8), Y(vs[-1]) + 5, s, 12, "#444")
 rcirc(X(1), Y(.66), 7, C, 2.2); txt(X(1), Y(.66) - 13, "candidate", 12, "#9a6a00", "middle")
 rcirc(X(1), Y(.12), 7, R, 2.2); txt(X(1), Y(.12) - 13, "baseline", 12, R, "middle")
-rl(X(.7), Y(.35) - 12, X(.7), Y(.35) + 12, GREY, 1.2, over=0)
+rl(X(.5), Y(.6) - 12, X(.5), Y(.6) + 12, GREY, 1.2, over=0)
 # small multiples hint
-for i, h in enumerate([6, 4, 2]):
+for i, h in enumerate([4]):
     sx, sy = ax + 352 + i * 54, ay + 104
     rl(sx, sy + 46, sx, sy, GREY, 1.2); rl(sx, sy + 46, sx + 44, sy + 46, GREY, 1.2)
     curve([(sx + 4, sy + 8), (sx + 20, sy + 18 + i * 4), (sx + 40, sy + 28 + i * 5)], GREY, 1.3)
     txt(sx + 22, sy - 6, f"h={h}", 11.5, GREY, "middle")
-txt(ax + 340, ay + 172, "same chart per horizon h", 12, "#555")
+txt(ax + 340, ay + 172, "same chart for h = 4", 12, "#555")
 txt(ax + 340, ay + 190, "one line per strategy", 12, "#555")
 txt(ax + 340, ay + 208, "| = 95 % interval", 12, "#555")
 note(ax + 12, ay + ah - 10, "click a point = candidate · shift-click = baseline · hover = value")
@@ -142,7 +146,7 @@ note(ax + 12, ay + ah - 10, "click a point = candidate · shift-click = baseline
 # ---- B paired seed table
 rbox(bx, by, bw, bh)
 txt(bx + 12, by + 24, "B · Paired seed table", 15, weight="bold")
-txt(bx + 12, by + 46, "row = one start state (50) · column = one schedule (52)", 12, "#555")
+txt(bx + 12, by + 46, "row = one start state (30) · column = one schedule (15)", 12, "#555")
 gx0, cs, rh = bx + 132, 18, 15
 ncol, Rc, Cc = 9, 2, 7
 txt(gx0 + ncol * cs / 2, by + 68, "schedules → (sync | naive | inpaint)", 11.5, GREY, "middle")

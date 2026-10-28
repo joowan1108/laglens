@@ -3,6 +3,7 @@
 // planned it, the plan being computed, and the most recent jump at a chunk switch.
 import { state, update, bus } from "../state.js";
 import { DATA, loadRun, activeChunk, pendingChunk, STRAT_LABEL } from "../data.js";
+const TARGET_R = 20; // Reach-in-time: success radius around the target (scripts/reach_task.py)
 import { COLOR, showTip, hideTip, size, teePaths, GOAL, AGENT_R } from "../util.js";
 
 const shortLab = (id) => { const s = DATA.schedById.get(id); return `${STRAT_LABEL[s.strategy]} d${s.latency} h${s.horizon}${s.replicate ? " re-run" : ""}`; };
@@ -23,7 +24,7 @@ export function initWorkspace() {
     .on("input", (ev) => update({ t: +ev.target.value }));
   tval = pl.append("span").attr("class", "tval");
   bus.on("change.workspace", (keys) => {
-    if (keys.has("seed") || keys.has("ref") || keys.has("cand")) load();
+    if (keys.has("task") || keys.has("seed") || keys.has("ref") || keys.has("cand")) load();
     else if (["t", "win", "hoverChunk"].some((k) => keys.has(k))) render();
   });
   load();
@@ -53,7 +54,7 @@ async function load() {
 
 // What the robot is doing at t, in the vocabulary of the strategies.
 function status(e, t) {
-  if (t >= e.n) return { k: "done", text: e.success ? "finished: block in goal" : "time out" };
+  if (t >= e.n) return { k: "done", text: e.success ? (DATA.task === "reach" ? "finished: target reached" : "finished: block in goal") : (DATA.task === "reach" ? "7 s deadline passed" : "time out") };
   if (e.chunk[t] < 0) return { k: "wait", text: "idle: waiting for inference" };
   const pend = pendingChunk(e, t);
   return { k: "act", text: `acting on chunk #${e.chunk[t]} · picture ${e.age[t]} steps old${pend ? " · thinking" : ""}` };
@@ -96,18 +97,25 @@ function render() {
     const g = d3.select(this), e = p.e;
     const t = Math.min(state.t, e.n - 1);
     const st = status(e, state.t);
-    const cov = e.cov[Math.min(state.t, e.n)];
+    const reach = DATA.task === "reach";
+    const cov = reach ? null : e.cov[Math.min(state.t, e.n)];
+    const dist = reach ? e.dist[Math.min(state.t, e.n)] : null;
     g.select(".wt1").attr("y", 13).attr("fill", p.txt)
       .text(`${p.which === "ref" ? "Baseline" : "Candidate"} · ${shortLab(p.id)} · ${e.success ? "✓ success" : "✗ failure"}`);
-    g.select(".wt2").attr("y", 28).text(`${cov === null || cov === undefined ? "" : `coverage ${Math.round(cov * 100)}% · `}${st.text}`)
+    g.select(".wt2").attr("y", 28).text(`${reach ? `distance to target ${Math.round(dist)} px · ` : cov === null || cov === undefined ? "" : `coverage ${Math.round(cov * 100)}% · `}${st.text}`)
       .attr("fill", st.k === "wait" ? "#0072B2" : COLOR.muted);
     const b = g.select(".board").attr("transform", `translate(0,${head})`);
     b.select(".bg").attr("width", side).attr("height", side).attr("fill", "#fafafb").attr("stroke", "#d0d0d6").attr("rx", 4);
     const line = d3.line().x((d) => s(d[0])).y((d) => s(d[1]));
     const tee = (x, y, th) => teePaths(x, y, th).map((poly) => line([...poly, poly[0]])).join(" ");
-    b.select(".goal").selectAll("path").data([0]).join("path").attr("d", tee(...GOAL))
+    // goal: the T-goal (PushT) or the target disk (Reach); only PushT has a block
+    const goalD = reach ? d3.arc()({ innerRadius: 0, outerRadius: s(TARGET_R), startAngle: 0, endAngle: 2 * Math.PI }) : tee(...GOAL);
+    b.select(".goal").selectAll("path").data([0]).join("path").attr("d", goalD)
+      .attr("transform", reach ? `translate(${s(e.goal[0])},${s(e.goal[1])})` : null)
       .attr("fill", "#e9e9ee").attr("stroke", COLOR.goal).attr("stroke-dasharray", "4 3").attr("stroke-width", 1.2);
-    b.select(".block").selectAll("path").data([0]).join("path").attr("d", tee(e.bx[t], e.by[t], e.bth[t]))
+    b.select(".goal").selectAll("text").data(reach ? [0] : []).join("text").attr("x", s(e.goal[0])).attr("y", s(e.goal[1]) + s(TARGET_R) + 12)
+      .attr("text-anchor", "middle").attr("font-size", 10).attr("fill", COLOR.goal).text("target");
+    b.select(".block").selectAll("path").data(reach ? [] : [0]).join("path").attr("d", () => tee(e.bx[t], e.by[t], e.bth[t]))
       .attr("fill", COLOR.block).attr("fill-opacity", 0.9).attr("stroke", "#7b7f88");
 
     const pts = d3.range(e.n).map((k) => [e.ax[k], e.ay[k]]);
@@ -162,16 +170,24 @@ function drawSeen(g, ch, p, s, tee, e, t) {
     k.append("path").attr("class", "sb"); k.append("circle").attr("class", "sa"); k.append("line").attr("class", "sl"); k.append("text").attr("class", "st");
     return k;
   });
-  q.select(".sb").attr("d", (d) => tee(e.bx[d.to], e.by[d.to], e.bth[d.to])).attr("fill", "none")
+  q.select(".sb").attr("d", (d) => (e.bx ? tee(e.bx[d.to], e.by[d.to], e.bth[d.to]) : null)).attr("fill", "none")
     .attr("stroke", p.col).attr("stroke-opacity", 0.75).attr("stroke-width", 1.2).attr("stroke-dasharray", "1 2.5").attr("stroke-linecap", "round");
   q.select(".sa").attr("cx", (d) => s(e.ax[d.to])).attr("cy", (d) => s(e.ay[d.to])).attr("r", s(AGENT_R))
     .attr("fill", "none").attr("stroke", p.col).attr("stroke-opacity", 0.7).attr("stroke-width", 1.1).attr("stroke-dasharray", "2 2");
   q.select(".sl").attr("x1", (d) => s(e.ax[d.to])).attr("y1", (d) => s(e.ay[d.to])).attr("x2", s(e.ax[t])).attr("y2", s(e.ay[t]))
     .attr("stroke", p.col).attr("stroke-opacity", 0.8).attr("stroke-width", 1.2).attr("marker-end", null)
     .attr("visibility", (d) => (d.moved >= 3 ? "visible" : "hidden"));
-  q.select(".st").attr("x", (d) => s(e.ax[d.to]) - s(AGENT_R) - 4).attr("y", (d) => s(e.ay[d.to]) + 4).attr("text-anchor", "end")
+  const seenText = (d) => `seen at t=${d.to}${d.moved >= 3 ? ` · moved ${d.moved.toFixed(0)} px since` : ""}`;
+  // label left of the outline, else right of it, else above it, always inside the panel
+  const place = (d) => {
+    const x = s(e.ax[d.to]), y = s(e.ay[d.to]), r = s(AGENT_R) + 4, w = seenText(d).length * 5.2;
+    if (x - r - w >= 2) return [x - r - w, y + 4];
+    if (x + r + w <= s(512) - 2) return [x + r, y + 4];
+    return [Math.max(2, Math.min(s(512) - w - 2, x - w / 2)), y - r - 2];
+  };
+  q.select(".st").attr("x", (d) => place(d)[0]).attr("y", (d) => place(d)[1]).attr("text-anchor", "start")
     .attr("font-size", 10).attr("fill", p.which === "ref" ? COLOR.ref : "#9a6a00").attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
-    .text((d) => `seen at t=${d.to}${d.moved >= 3 ? ` · moved ${d.moved.toFixed(0)} px since` : ""}`);
+    .text(seenText);
 }
 
 // The chunk "fan": 16 planned targets; filled = executed, hollow = never executed (thrown away).

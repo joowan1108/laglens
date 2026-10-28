@@ -9,3 +9,5 @@ raw/
 slides/preview_*.png
 report/preview_*.png
 __pycache__/
+data/runs_reach/
+data/pilot_belt/

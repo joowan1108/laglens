@@ -1,9 +1,10 @@
-"""Turn raw rollout logs (data/runs/*.json) into the files the LagLens interface loads.
+"""Turn raw rollout logs into the files the LagLens interface loads, for both tasks:
+PushT (data/runs -> src/data) and Reach-in-time (data/runs_reach -> src/data/reach).
 
-Outputs
-  src/data/episodes.csv     one row per (schedule, seed) episode  -> the main tabular dataset
-  src/data/schedules.json   one record per schedule (aggregates)
-  src/data/runs/<cfg>.json  compact per-step / per-chunk detail for one schedule (lazy-loaded)
+Outputs (per task folder)
+  episodes.csv     one row per (schedule, seed) episode  -> the main tabular dataset
+  schedules.json   one record per schedule (aggregates)
+  runs/<cfg>.json  compact per-step / per-chunk detail for one schedule (lazy-loaded)
 
 Derived metrics (per episode)
   seam gap      at every hand-over from chunk k to chunk k+1: distance (px) between the first action
@@ -19,8 +20,16 @@ Derived metrics (per episode)
 import csv, glob, json, math, os, statistics as st
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
-RAW = os.path.join(ROOT, "data", "runs")
-OUT = os.path.join(ROOT, "src", "data")
+TASKS = [("pusht", os.path.join(ROOT, "data", "runs"), os.path.join(ROOT, "src", "data")),
+         ("reach", os.path.join(ROOT, "data", "runs_reach"), os.path.join(ROOT, "src", "data", "reach"))]
+
+# The interface shows a reduced grid (simpler to read): latency d in {0, 2, 4}, horizon h in {4, 8},
+# the first 30 seeds (1000-1029, fixed before looking at outcomes) and the noise replicate.
+# data/runs holds the full generated grid (46 schedules x 50 seeds); it is not changed.
+LATENCIES, HORIZONS, N_SEEDS = (0, 2, 4), (4, 8), 30
+GRID = [f"{s}_d{d}_h{h}" for s in ("sync", "naive", "inpaint") for d in LATENCIES for h in HORIZONS
+        if s == "sync" or d > 0] + ["sync_d0_h8_r1"]
+SEED_MAX = 1000 + N_SEEDS - 1
 
 
 def dist(p, q):
@@ -52,11 +61,13 @@ def episode_metrics(ep, j0):
     motion = [dist(pos[min(c["t_avail"], last)], pos[c["t_obs"]]) for c in C if c["exec"]]
     path = sum(dist((S[i]["ax"], S[i]["ay"]), (S[i - 1]["ax"], S[i - 1]["ay"])) for i in range(1, len(S)))
     t_succ = len(S) if ep["success"] else None
+    reach = "goal" in ep  # Reach-in-time has no block: distance to the target instead of coverage
     return {
         "success": int(ep["success"]),
         "steps_to_success": t_succ,
-        "coverage_final": round(ep["coverage_final"], 4),
-        "coverage_max": round(ep["coverage_max"], 4),
+        "coverage_final": None if reach else round(ep["coverage_final"], 4),
+        "coverage_max": None if reach else round(ep["coverage_max"], 4),
+        "dist_final": S[-1]["dist_after"] if reach else None,
         "n_inferences": len(C),
         "n_switches": len(seams),
         "jump_mean": round(st.mean([x["gap"] for x in seams]), 2) if seams else 0.0,
@@ -71,41 +82,46 @@ def episode_metrics(ep, j0):
     }, seams
 
 
-def main():
+def build(task, RAW, OUT):
     os.makedirs(os.path.join(OUT, "runs"), exist_ok=True)
-    files = sorted(glob.glob(os.path.join(RAW, "*.json")))
+    files = sorted(os.path.join(RAW, f"{c}.json") for c in GRID)
+    for f in glob.glob(os.path.join(OUT, "runs", "*.json")):  # drop detail files of schedules no longer shown
+        if os.path.basename(f)[:-5] not in GRID:
+            os.remove(f)
     rows, schedules = [], []
     for f in files:
         R = json.load(open(f))
         j0 = R["obs_steps"] - 1
-        detail = {k: R[k] for k in ("config", "strategy", "latency", "horizon", "ddim_steps", "chunk_len", "obs_steps", "fps")}
+        detail = {k: R.get(k) for k in ("config", "strategy", "latency", "horizon", "ddim_steps", "chunk_len", "obs_steps", "fps", "deadline", "target_r")}
+        detail["task"] = task
         detail["replicate"] = R.get("replicate", 0)
         detail["episodes"] = []
-        for ep in R["episodes"]:
+        for ep in [e for e in R["episodes"] if e["seed"] <= SEED_MAX]:
             m, seams = episode_metrics(ep, j0)
             row = {"schedule": R["config"], "strategy": R["strategy"], "latency": R["latency"],
                    "horizon": R["horizon"], "replicate": R.get("replicate", 0), "seed": ep["seed"], **m}
             rows.append(row)
             S = ep["steps"]
-            # column-oriented, compact per-step arrays; coverage at t=0 was not computed by the
-            # simulator at reset, so it is stored as null
-            detail["episodes"].append({
-                "seed": ep["seed"], "success": ep["success"], "n": len(S),
-                "ax": [s["ax"] for s in S], "ay": [s["ay"] for s in S],
-                "bx": [s["bx"] for s in S], "by": [s["by"] for s in S], "bth": [s["bth"] for s in S],
-                "act": [s["a"] for s in S], "chunk": [s["chunk"] for s in S], "j": [s["j"] for s in S],
-                "age": [s["age"] for s in S],
-                "cov": [None if s["t"] == 0 else s["cov"] for s in S] + [ep["coverage_final"]],
-                "chunks": [{"t_obs": c["t_obs"], "t_avail": c["t_avail"], "exec": c["exec"], "a": c["a"]} for c in ep["chunks"]],
-                "seams": [{"t": x["t"], "gap": round(x["gap"], 2)} for x in seams],
-            })
+            # column-oriented, compact per-step arrays
+            de = {"seed": ep["seed"], "success": ep["success"], "n": len(S),
+                  "ax": [s["ax"] for s in S], "ay": [s["ay"] for s in S],
+                  "act": [s["a"] for s in S], "chunk": [s["chunk"] for s in S], "j": [s["j"] for s in S],
+                  "age": [s["age"] for s in S],
+                  "chunks": [{"t_obs": c["t_obs"], "t_avail": c["t_avail"], "exec": c["exec"], "a": c["a"]} for c in ep["chunks"]],
+                  "seams": [{"t": x["t"], "gap": round(x["gap"], 2)} for x in seams]}
+            if task == "reach":
+                de.update(goal=ep["goal"], dist=[s["dist"] for s in S] + [S[-1]["dist_after"]])
+            else:  # coverage at t=0 was not computed by the simulator at reset, so it is stored as null
+                de.update(bx=[s["bx"] for s in S], by=[s["by"] for s in S], bth=[s["bth"] for s in S],
+                          cov=[None if s["t"] == 0 else s["cov"] for s in S] + [ep["coverage_final"]])
+            detail["episodes"].append(de)
         with open(os.path.join(OUT, "runs", f"{R['config']}.json"), "w") as fo:
             json.dump(detail, fo, separators=(",", ":"))
         eps = [r for r in rows if r["schedule"] == R["config"]]
         schedules.append({"schedule": R["config"], "strategy": R["strategy"], "latency": R["latency"],
                           "horizon": R["horizon"], "replicate": R.get("replicate", 0), "n": len(eps),
                           "success_rate": round(st.mean(r["success"] for r in eps), 4),
-                          "coverage_mean": round(st.mean(r["coverage_final"] for r in eps), 4),
+                          "coverage_mean": None if task == "reach" else round(st.mean(r["coverage_final"] for r in eps), 4),
                           "jump_mean": round(st.mean(r["jump_mean"] for r in eps), 2),
                           "staleness_mean": round(st.mean(r["staleness_mean"] for r in eps), 3),
                           "idle_frac_mean": round(st.mean(r["idle_frac"] for r in eps), 4),
@@ -116,7 +132,12 @@ def main():
         w.writeheader(); w.writerows(rows)
     with open(os.path.join(OUT, "schedules.json"), "w") as fo:
         json.dump(schedules, fo, indent=0)
-    print(f"{len(files)} schedules, {len(rows)} episodes written to {OUT}")
+    print(f"{task}: {len(files)} schedules, {len(rows)} episodes written to {OUT}")
+
+
+def main():
+    for task, raw, out in TASKS:
+        build(task, raw, out)
 
 
 if __name__ == "__main__":

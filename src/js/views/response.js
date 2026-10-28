@@ -1,7 +1,7 @@
 // View A: latency-response curves. One small multiple per execution horizon h; within a panel,
 // x = inference latency d (true spacing, 100 ms per step), y = the chosen metric, one line per
 // strategy so that sync and the two async strategies are compared on a common position scale.
-// Whiskers are 95 % intervals over the 50 seeds; the paired difference to R is given on hover.
+// Whiskers are 95 % intervals over the 30 seeds; the paired difference to R is given on hover.
 import { state, update, bus } from "../state.js";
 import { DATA, STRATEGIES, STRAT_LABEL, LATENCIES, HORIZONS, label, aggregate, missingReason } from "../data.js";
 import { COLOR, STRAT_COLOR, STRAT_SYMBOL, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
@@ -37,7 +37,7 @@ export function initResponse() {
   noteSel = d3.select("#responseNote");
   render();
   bus.on("change.response", (keys) => {
-    if (["ref", "cand", "metric", "brushed"].some((k) => keys.has(k))) render();
+    if (["task", "ref", "cand", "metric", "brushed"].some((k) => keys.has(k))) render();
   });
 }
 
