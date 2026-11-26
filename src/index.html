@@ -15,7 +15,7 @@
   </div>
   <div class="tasksw"><span class="lead">task</span><span class="seg" id="taskSeg"></span></div>
   <div class="pickers">
-    <span class="lead">compare two schedules</span>
+    <span class="lead" title="Not sure which pair? A's Pair Overview shows every pair at once; click a framed cell">compare two schedules <span class="hint">(or pick a cell in A)</span></span>
     <label class="chip ref" title="Baseline = the schedule you compare against (or shift-click a mark in A / a column header in B)">
       <span class="dot"></span>Baseline&nbsp;<select id="refSel"></select>
     </label>
@@ -33,8 +33,11 @@
 <main id="app">
   <div class="col" id="colL">
     <section class="panel" id="pA">
-      <div class="ph"><span class="pl">A</span> Latency Response <span class="task">T1 compare trends</span></div>
+      <div class="ph"><span class="pl">A</span>
+        <span class="atabs" id="aTabs"><button data-v="pairs" title="every baseline → candidate pair at once: where do schedules differ?">Pair Overview</button><button data-v="latency" title="how each strategy degrades with latency">Latency Response</button></span>
+        <span class="task">T1 compare · explore pairs</span></div>
       <div class="controls" id="responseControls"></div>
+      <div class="body" id="pairs"></div>
       <div class="body" id="response"></div>
       <div class="note" id="responseNote"></div>
     </section>
@@ -84,7 +87,8 @@
       <b>Catch the ball</b>: a small Diffusion Policy we trained moves the same pusher to touch a ball that rolls and bounces at a different speed and direction in every start state, within 8 s, under the same schedules and seeds. The ball keeps rolling while the policy thinks, so a robot that stands still loses it: there async's advantage is plain to see.
       Every predicted action chunk was logged, so you can see which plan every executed action came from.</p>
     <ol>
-      <li><b>A Latency Response</b>: how each strategy degrades as inference gets slower (x = latency <i>d</i>, the time the policy needs to compute a chunk), one panel per execution horizon <i>h</i> (how many actions of each chunk are executed before switching to the next).
+      <li><b>A Pair Overview</b> (start here): every baseline → candidate pair of schedules at once. Rows = baseline, columns = candidate; colour = how much the candidate changes the chosen question on the same start states (<span style="color:#5e3c99;font-weight:700">purple</span> = better, grey = worse); a dark frame = unlikely to be chance (95 % interval of the paired difference excludes 0). Click a cell to compare that pair in all views; no need to try every combination in the drop-downs.</li>
+      <li><b>A Latency Response</b> (second tab): how each strategy degrades as inference gets slower (x = latency <i>d</i>, the time the policy needs to compute a chunk), one panel per execution horizon <i>h</i> (how many actions of each chunk are executed before switching to the next).
         <span class="tS">Sync</span> waits while the policy thinks, <span class="tN">naive async</span> keeps acting on the old chunk and switches abruptly, <span class="tI">inpaint async</span> keeps acting and makes the new chunk continue the old one.
         The four buttons choose the question: <i>Success</i>, or the cost each strategy pays: <i>Idle</i> (sync), <i>Outdated</i> (async: how far the robot moved while the policy was thinking, so the new plan fits an old scene), <i>Discontinuity</i> (naive async). The same choice sets the attribute in B. Click a mark = <span class="tC">candidate</span>, shift-click = <span class="tR">baseline</span>; hovering a mark gives its difference to the baseline on the same seeds.</li>
       <li><b>B Paired Seed Table</b>: one row per initial state. Left: filled cell = success under that column's schedule (baseline black, candidate orange). Rows are grouped by how the outcome changes from baseline to candidate; the <i>re-run</i> column shows how many outcomes flip by chance alone. Right: the same seed's value under the baseline (●) and the candidate (<span class="tC">●</span>) for the question chosen in A. Drag over the right part to select seeds: A then recomputes on them.</li>

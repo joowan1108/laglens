@@ -1,6 +1,14 @@
 PASS  guide shown on first visit
 PASS  guide closes
-rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 450, '#seedtable g.db': 30, '#workspace g.wp': 2, '#timeline .bars rect': 98, '#timeline .think rect': 98}
+PASS  A opens on the pair overview
+PASS  pair overview shows every pair of schedules (14 × 14)
+PASS  pair overview frames pairs whose paired difference is unlikely to be chance
+PASS  pair overview tooltip gives rescued / lost start states and the chance level
+PASS  clicking a cell sets baseline (row) and candidate (column)
+PASS  the selected pair is marked in the overview
+PASS  the question bar recolours the overview
+PASS  tab switches A to the latency-response curves
+rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 450, '#seedtable g.db': 30, '#workspace g.wp': 2, '#timeline .bars rect': 58, '#timeline .think rect': 58}
 PASS  all four views rendered (A curves, B matrix + dumbbells, C boards, D tracks)
 PASS  A click sets candidate
 PASS  A shift-click sets reference

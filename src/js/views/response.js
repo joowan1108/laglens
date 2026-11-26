@@ -53,6 +53,7 @@ function points() {
 
 function render() {
   metricBtns.classed("on", (d) => d[0] === state.metric);
+  if (state.aview !== "latency") return;
   const n = state.brushed ? state.brushed.size : DATA.seeds.length;
   // the two schedule parameters are defined where they are encoded: h = panel, d = x
   noteSel.html(`<b>h</b> (panels) = actions executed from each 16-action chunk before switching to the next ·

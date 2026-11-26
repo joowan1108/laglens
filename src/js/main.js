@@ -2,6 +2,7 @@ import { state, update, bus, DEFAULTS } from "./state.js";
 import { DATA, TASKS, loadBase, loadRun, label } from "./data.js";
 import { METRICS } from "./util.js";
 import { initResponse, resizeResponse } from "./views/response.js";
+import { initPairs, resizePairs } from "./views/pairs.js";
 import { initSeedTable, resizeSeedTable, rebuildColumns } from "./views/seedtable.js";
 import { initWorkspace, resizeWorkspace, step, togglePlay } from "./views/workspace.js";
 import { initTimeline, resizeTimeline } from "./views/timeline.js";
@@ -61,6 +62,20 @@ function initPickers() {
   });
 }
 
+// A has two tabs: the pair overview (where to look) and the latency-response curves.
+function initATabs() {
+  const btns = d3.select("#aTabs").selectAll("button").on("click", function () { update({ aview: this.dataset.v }); });
+  const show = () => {
+    btns.classed("on", function () { return this.dataset.v === state.aview; });
+    d3.select("#pairs").style("display", state.aview === "pairs" ? null : "none");
+    d3.select("#response").style("display", state.aview === "latency" ? null : "none");
+    d3.select("#responseControls .legend").style("display", state.aview === "latency" ? null : "none");
+  };
+  show();
+  requestAnimationFrame(() => { resizePairs(); resizeResponse(); });  // after the tab's layout is final
+  bus.on("change.atabs", (keys) => { if (keys.has("aview")) { show(); requestAnimationFrame(() => { resizePairs(); resizeResponse(); }); } });
+}
+
 function initGuide() {
   const g = document.getElementById("guide");
   const close = () => { g.hidden = true; try { localStorage.setItem("laglens-guide", "1"); } catch (e) { /* storage unavailable */ } };
@@ -88,6 +103,7 @@ function applyParams() {
   const p = new URLSearchParams(location.search);
   const patch = {};
   for (const k of ["ref", "cand", "metric"]) if (p.has(k)) patch[k] = p.get(k);
+  if (["pairs", "latency"].includes(p.get("aview"))) patch.aview = p.get("aview");
   for (const k of ["seed", "t"]) if (p.has(k)) patch[k] = +p.get(k);
   if (p.has("win")) patch.win = p.get("win").split(",").map(Number);
   if (p.has("sel")) patch.brushed = new Set(p.get("sel").split(",").map(Number));
@@ -108,6 +124,8 @@ async function main() {
   initTaskSwitch();
   initPickers();
   initResponse();
+  initPairs();
+  initATabs();
   initSeedTable();
   initWorkspace();
   initTimeline();
@@ -116,7 +134,7 @@ async function main() {
   let raf = null;
   window.addEventListener("resize", () => {
     cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => { resizeResponse(); resizeSeedTable(); resizeWorkspace(); resizeTimeline(); });
+    raf = requestAnimationFrame(() => { resizePairs(); resizeResponse(); resizeSeedTable(); resizeWorkspace(); resizeTimeline(); });
   });
   window.LagLens = { state, update, DATA }; // for scripted screenshots / tests
 }
