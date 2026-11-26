@@ -123,3 +123,4 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .atabs button:last-child { border-right: none; }
 .atabs button.on { background: #1d1d1f; color: #fff; }
 .pickers .hint { color: #5e3c99; }
+.controls .sw.okb { background: #222; border-color: #222; } .controls .sw.okc { background: #E69F00; border-color: #E69F00; margin-right: 3px; }

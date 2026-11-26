@@ -40,9 +40,9 @@ Checked on 2026-10-28 against the current slides (two tasks, reduced grid). ✅ 
 ## 4 How: Vis idiom design (3 pts)
 | Item | Status | Evidence |
 |---|---|---|
-| ≥ 3 interactive vis components supporting the primary persona | ✅ | 4 linked views A–D (A: Pair Overview matrix + Latency Response tab; B: outcome matrix + dumbbell strip) |
+| ≥ 3 interactive vis components supporting the primary persona | ✅ | 4 linked views A–D (A: Pair Overview matrix + Latency Response tab; B: outcome cells + jump dumbbells for the chosen pair) |
 | Justification by task, attribute types, scalability | ✅ | slide 5 idiom table, slide 6 mark/channel table (effectiveness ranking, hue budget, CVD check, scalability), report §4, `docs/design_rationale.md` (20 VIS references) |
-| Interactions per vis | ✅ | select, change (one question bar for A and B), brush, link, filter, tooltip, play/scrub; `docs/ui_test_output.txt` (49/49 checks pass, 0 console errors) |
+| Interactions per vis | ✅ | select (click a pair cell), brush, link, filter, tooltip, play/scrub; `docs/ui_test_output.txt` (46/46 checks pass, 0 console errors) |
 
 ## 5 Sketch (2 pts)
 | Item | Status | Evidence |

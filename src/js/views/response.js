@@ -17,12 +17,7 @@ const STRAT_DEF = {
 
 export function initResponse() {
   const ctr = d3.select("#responseControls");
-  // one choice of question, always visible; it also sets the dumbbell attribute of B
-  metricBtns = ctr.append("span").attr("class", "metricbar").selectAll("button").data(Object.entries(METRICS)).join("button")
-    .attr("data-metric", (d) => d[0]).attr("title", (d) => d[1].note)
-    .on("click", (ev, d) => update({ metric: d[0] }))
-    .call((b) => b.append("b").text((d) => d[1].btn))
-    .call((b) => b.append("small").text((d) => d[1].sub));
+  metricBtns = d3.select(null);  // A answers one question: the success rate
   const lg = ctr.append("span").attr("class", "legend");
   for (const s of STRATEGIES) {
     const it = lg.append("span").attr("class", "li").attr("data-strat", s).attr("title", STRAT_DEF[s])
@@ -56,10 +51,7 @@ function render() {
   if (state.aview !== "latency") return;
   const n = state.brushed ? state.brushed.size : DATA.seeds.length;
   // the two schedule parameters are defined where they are encoded: h = panel, d = x
-  noteSel.html(`<b>h</b> (panels) = actions executed from each 16-action chunk before switching to the next ·
-    <b>d</b> (x) = time the policy needs to compute a chunk<br>
-    ${STRATEGIES.map((s) => `<b>${STRAT_LABEL[s]}</b> ${STRAT_DEF[s]}`).join(" · ")}<br>
-    <b>y</b> = ${METRICS[state.metric].note}${state.brushed ? ` · <b>computed over the ${n} seeds selected in B</b> (Esc clears)` : ""} · ○ = Sync d0 h8 re-run with new noise`);
+  noteSel.html(`x = latency <b>d</b> · panel = horizon <b>h</b> · y = ${METRICS[state.metric].note}${state.brushed ? ` · <b>over the ${n} start states selected in B</b> (Esc clears)` : ""}`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const M = METRICS[state.metric];

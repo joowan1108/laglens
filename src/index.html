@@ -16,11 +16,11 @@
   <div class="tasksw"><span class="lead">task</span><span class="seg" id="taskSeg"></span></div>
   <div class="pickers">
     <span class="lead" title="Not sure which pair? A's Pair Overview shows every pair at once; click a framed cell">compare two schedules <span class="hint">(or pick a cell in A)</span></span>
-    <label class="chip ref" title="Baseline = the schedule you compare against (or shift-click a mark in A / a column header in B)">
+    <label class="chip ref" title="Baseline = the schedule you compare against (or click a cell in A)">
       <span class="dot"></span>Baseline&nbsp;<select id="refSel"></select>
     </label>
     <button id="swapBtn" class="icon" title="Swap baseline and candidate">⇄</button>
-    <label class="chip cand" title="Candidate = the schedule you are testing (or click a mark in A / a column header in B)">
+    <label class="chip cand" title="Candidate = the schedule you are testing (or click a cell in A)">
       <span class="dot"></span>Candidate&nbsp;<select id="candSel"></select>
     </label>
   </div>
@@ -35,7 +35,7 @@
     <section class="panel" id="pA">
       <div class="ph"><span class="pl">A</span>
         <span class="atabs" id="aTabs"><button data-v="pairs" title="every baseline → candidate pair at once: where do schedules differ?">Pair Overview</button><button data-v="latency" title="how each strategy degrades with latency">Latency Response</button></span>
-        <span class="task">T1 compare · explore pairs</span></div>
+        <span class="task">T1 compare · explore</span></div>
       <div class="controls" id="responseControls"></div>
       <div class="body" id="pairs"></div>
       <div class="body" id="response"></div>
@@ -54,23 +54,18 @@
       <div class="body" id="workspace"></div>
       <div class="player" id="player"></div>
       <div class="note key">
-        <span><i class="k-line"></i>executed part of the current chunk</span>
-        <span><i class="k-dash"></i>planned but thrown away</span>
-        <span><i class="k-dot"></i>next chunk, still computing</span>
-        <span><i class="k-seam"></i>chunk-boundary discontinuity: jump between old and new plan</span>
-        <span><i class="k-seen"></i>what the policy saw: block (or ball) &amp; pusher in the picture the current chunk was planned from</span>
-        <span class="muted">“picture N steps old” = age of the camera picture the current move was planned from</span>
+        <span><i class="k-line"></i>executed plan</span>
+        <span><i class="k-dash"></i>planned, not executed</span>
+        <span><i class="k-seam"></i>jump at a chunk switch</span>
+        <span><i class="k-seen"></i>where things were in the picture the plan came from</span>
       </div>
     </section>
     <section class="panel" id="pD">
       <div class="ph"><span class="pl">D</span> Execution Timeline <span class="task">T3 identify when</span></div>
       <div class="note key top">
-        <span><b>think</b> = inference running</span>
-        <span><b>act</b> = executing a chunk (tints alternate per chunk, <i class="k-hatch"></i> = idle)</span>
-        <span><b>motion</b> = how far the robot moves each step, <i class="k-jump"></i>= jump at a chunk switch (same scale)</span>
-        <span><i class="k-prov"></i>current chunk: ○ camera picture → think → act</span>
-        <span><i class="k-use"></i>its 16 planned moves: skipped while thinking · executed · discarded</span>
-        <span class="muted">Sync alternates think → act; async overlaps them.</span>
+        <span><b>think</b> = policy computing a chunk</span>
+        <span><b>act</b> = executing it (<i class="k-hatch"></i> idle)</span>
+        <span><i class="k-jump"></i> jump at a chunk switch (px)</span>
       </div>
       <div class="body" id="timeline"></div>
     </section>
@@ -82,18 +77,13 @@
 <div id="guide" class="guide" hidden>
   <div class="guide-card">
     <h2>How to read LagLens</h2>
-    <p><b>Two tasks</b> (switch at the top left). <b>PushT</b>: one pretrained Diffusion Policy pushed a T-block to a goal from the <b>same 30 initial states</b> under
-      <b>14 execution schedules</b> (3 strategies × inference latency <i>d</i> ∈ {0, 2, 4} × execution horizon <i>h</i> ∈ {4, 8}; 1 step = 100 ms) plus one <b>noise replicate</b> of Sync d=0 h=8 that shows how many outcomes flip by chance alone.
-      <b>Catch the ball</b>: a small Diffusion Policy we trained moves the same pusher to touch a ball that rolls and bounces at a different speed and direction in every start state, within 8 s, under the same schedules and seeds. The ball keeps rolling while the policy thinks, so a robot that stands still loses it: there async's advantage is plain to see.
-      Every predicted action chunk was logged, so you can see which plan every executed action came from.</p>
+    <p>A robot policy plans 16 moves at a time and needs time <i>d</i> to compute each plan. <span class="tS">Sync</span> waits while it thinks; <span class="tN">naive async</span> keeps moving and switches plans abruptly; <span class="tI">inpaint async</span> keeps moving and makes the new plan continue the old one.
+      Every <b>schedule</b> (strategy × latency <i>d</i> × horizon <i>h</i>) was run from the <b>same 30 start states</b>, on two tasks: <b>PushT</b> (push a T-block onto a goal) and <b>Catch the ball</b> (touch a rolling ball within 8 s).</p>
     <ol>
-      <li><b>A Pair Overview</b> (start here): every baseline → candidate pair of schedules at once. Rows = baseline, columns = candidate; colour = how much the candidate changes the chosen question on the same start states (<span style="color:#5e3c99;font-weight:700">purple</span> = better, grey = worse); a dark frame = unlikely to be chance (95 % interval of the paired difference excludes 0). Click a cell to compare that pair in all views; no need to try every combination in the drop-downs.</li>
-      <li><b>A Latency Response</b> (second tab): how each strategy degrades as inference gets slower (x = latency <i>d</i>, the time the policy needs to compute a chunk), one panel per execution horizon <i>h</i> (how many actions of each chunk are executed before switching to the next).
-        <span class="tS">Sync</span> waits while the policy thinks, <span class="tN">naive async</span> keeps acting on the old chunk and switches abruptly, <span class="tI">inpaint async</span> keeps acting and makes the new chunk continue the old one.
-        The four buttons choose the question: <i>Success</i>, or the cost each strategy pays: <i>Idle</i> (sync), <i>Outdated</i> (async: how far the robot moved while the policy was thinking, so the new plan fits an old scene), <i>Discontinuity</i> (naive async). The same choice sets the attribute in B. Click a mark = <span class="tC">candidate</span>, shift-click = <span class="tR">baseline</span>; hovering a mark gives its difference to the baseline on the same seeds.</li>
-      <li><b>B Paired Seed Table</b>: one row per initial state. Left: filled cell = success under that column's schedule (baseline black, candidate orange). Rows are grouped by how the outcome changes from baseline to candidate; the <i>re-run</i> column shows how many outcomes flip by chance alone. Right: the same seed's value under the baseline (●) and the candidate (<span class="tC">●</span>) for the question chosen in A. Drag over the right part to select seeds: A then recomputes on them.</li>
-      <li><b>C Workspace Replay</b>: the episode under the baseline and the candidate side by side, with the chunk being executed, the next chunk still being computed and the latest <span class="tSeam">discontinuity</span>.</li>
-      <li><b>D Execution Timeline</b>: when the policy thinks and which chunk each action came from; the motion track shows each jump as a magenta bar next to the robot's normal movement. Brush a window, hover a chunk to see its plan in view C.</li>
+      <li><b>A Pair Overview</b>, start here: each cell compares two schedules (row = baseline, column = candidate). <span style="color:#5e3c99;font-weight:700">Purple</span> = the candidate succeeds more often on the same start states, grey = less; framed = unlikely to be chance. <b>Click a cell</b> to compare that pair. The second tab shows success vs. latency.</li>
+      <li><b>B</b>: the 30 start states of that pair, the ones that flip first. Click one to replay it.</li>
+      <li><b>C</b>: the replay, baseline and candidate side by side: the plan being executed, where things were when it was planned, and jumps when the plan switches.</li>
+      <li><b>D</b>: when the policy was thinking, when the robot acted or stood idle, and how big each jump was.</li>
     </ol>
     <p class="muted">Keyboard: ←/→ step, space play/pause, Esc clears the time window and the seed selection.</p>
     <button id="guideClose">Start exploring</button>

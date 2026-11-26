@@ -49,17 +49,15 @@ with sync_playwright() as p:
     pg.locator("#pairs rect.pc").nth(cell).click(force=True)
     ok("clicking a cell sets baseline (row) and candidate (column)", S("ref") == "sync_d2_h8" and S("cand") == "naive_d4_h8")
     ok("the selected pair is marked in the overview", pg.locator("#pairs rect.cur").count() == 1)
-    pg.click("#responseControls .metricbar button[data-metric=idle_frac_mean]")
-    ok("the question bar recolours the overview", "idle share" in pg.inner_text("#responseNote"))
-    pg.click("#responseControls .metricbar button[data-metric=success_rate]")
+    ok("A asks one question (success): no question buttons", pg.locator("#responseControls .metricbar button").count() == 0)
     pg.click("#aTabs button[data-v=latency]")
     ok("tab switches A to the latency-response curves", S("aview") == "latency" and pg.is_visible("#response") and not pg.is_visible("#pairs"))
     pg.wait_for_timeout(300)
     n = {sel: pg.locator(sel).count() for sel in ["#response g.pm", "#seedtable rect.c", "#seedtable g.db", "#workspace g.wp", "#timeline .bars rect", "#timeline .think rect"]}
     log.append(f"rendered marks: {n}")
-    ok("all four views rendered (A curves, B matrix + dumbbells, C boards, D tracks)", all(v > 0 for v in n.values()))
+    ok("all four views rendered (A curves, B cells + dumbbells, C boards, D tracks)", all(v > 0 for v in n.values()))
 
-    # A: click = candidate, shift-click = baseline, question buttons (drive A and B), tooltip with Δ vs baseline, legend hover
+    # A (latency tab): click = candidate, shift-click = baseline, tooltip with Δ vs baseline, legend hover
     idx_of = lambda sid: pg.evaluate(f"[...document.querySelectorAll('#response g.pm')].findIndex(g=>d3.select(g).datum().id==={sid!r})")
     target = pg.evaluate("window.LagLens.DATA.schedules.filter(s=>!s.replicate).map(s=>s.schedule).find(s=>s!==window.LagLens.state.cand && s!==window.LagLens.state.ref && s!=='sync_d2_h8')")
     marks = pg.locator("#response g.pm")
@@ -67,10 +65,6 @@ with sync_playwright() as p:
     ok("A click sets candidate", S("cand") == target)
     marks.nth(idx_of("sync_d2_h8")).locator("circle.hit").click(modifiers=["Shift"], force=True)
     ok("A shift-click sets reference", S("ref") == "sync_d2_h8")
-    pg.click("#responseControls .metricbar button[data-metric=jump_mean]")
-    ok("A question button sets the metric", S("metric") == "jump_mean")
-    ok("the same question sets B's dumbbell attribute", "largest boundary discontinuity" in pg.inner_text("#seedControls"))
-    ok("A shows exactly four questions, no dropdown", pg.locator("#responseControls .metricbar button").count() == 4 and pg.locator("#responseControls select").count() == 0)
     marks.nth(idx_of(target)).locator("circle.hit").hover(force=True)
     ok("A tooltip gives the paired difference to the baseline", pg.is_visible("#tooltip") and "vs baseline:" in pg.inner_text("#tooltip"))
     pg.hover("#responseControls .legend .li[data-strat=naive]")
@@ -78,26 +72,22 @@ with sync_playwright() as p:
     ok("A legend hover highlights one strategy", faded > 0)
     pg.mouse.move(5, 5)
 
-    # B: no controls of its own; column header click, cell click opens an episode, brush -> A
+    # B: the chosen pair only; cell click opens a start state; dumbbells = largest jump; brush -> A
     ok("B has no controls of its own", pg.locator("#seedControls button, #seedControls select").count() == 0)
+    ok("B shows two outcome cells (baseline, candidate) per start state", pg.locator("#seedtable rect.c").count() == 2 * 30)
     ok("B groups rows by baseline→candidate change", pg.locator("#seedtable g.band").count() >= 2)
-    col = pg.evaluate("[...document.querySelectorAll('#seedtable rect.colhit')].findIndex(r=>d3.select(r).datum().id==='naive_d4_h4')")
-    pg.locator("#seedtable rect.colhit").nth(col).click(force=True)
-    ok("B column header click sets candidate", S("cand") == "naive_d4_h4")
-    pg.locator("#seedtable rect.c").nth(300).click()
+    ok("B dumbbells show the largest jump at a chunk switch", "largest jump" in pg.inner_text("#seedControls"))
+    pg.locator("#seedtable rect.c").nth(20).click()
     ok("B cell click selects seed", S("seed") is not None)
-    pg.click("#responseControls .metricbar button[data-metric=idle_frac_mean]")
-    ok("B dumbbells follow the question (idle share)", "idle share" in pg.inner_text("#seedControls"))
-    box = pg.locator("#seedtable svg").bounding_box()
     start = pg.evaluate("""(()=>{
       const ov=document.querySelector('#seedtable .brush .overlay'); const r=ov.getBoundingClientRect();
-      for (let fx=0.05; fx<0.95; fx+=0.05) { const x=r.x+r.width*fx, y0=r.y+r.height*0.3, y1=r.y+r.height*0.55;
+      for (const fy of [0.3, 0.2, 0.4, 0.5, 0.6]) for (let fx=0.05; fx<0.95; fx+=0.05) { const x=r.x+r.width*fx, y0=r.y+r.height*fy, y1=y0+r.height*0.25;
         if (document.elementFromPoint(x,y0)===ov) return [x,y0,x,y1]; }
       return null;})()""")
     pg.mouse.move(start[0], start[1]); pg.mouse.down(); pg.mouse.move(start[2], start[3], steps=6); pg.mouse.up()
     br = pg.evaluate("window.LagLens.state.brushed ? window.LagLens.state.brushed.size : 0")
     ok("B brush selects seeds", br > 0)
-    ok("A recomputes on the selected seeds (cross-filter)", "computed over the" in pg.inner_text("#responseNote"))
+    ok("A recomputes on the selected seeds (cross-filter)", "selected in B" in pg.inner_text("#responseNote"))
     dimmed = pg.evaluate("[...document.querySelectorAll('#seedtable rect.c')].filter(r=>+r.getAttribute('opacity')<0.5).length")
     ok("B rows outside the selection are dimmed", dimmed > 0 or br == 30)
     pg.keyboard.press("Escape"); ok("Esc clears seed selection", S("brushed") is None)
@@ -114,8 +104,8 @@ with sync_playwright() as p:
     pg.locator("#workspace .fan circle").first.hover(force=True)
     ok("C fan tooltip", pg.is_visible("#tooltip"))
     ok("C shows what the policy saw (outline at the picture time)", pg.locator("#workspace g.sn path.sb").count() >= 1)
-    ok("D traces the current chunk picture → think → act", pg.locator("#timeline g.prov circle.cam").count() >= 1)
-    ok("D shows which of the current chunk's moves were used", pg.locator("#timeline g.use rect").count() >= 16)
+    ok("C status line says how outdated the plan is", "moved" in pg.inner_text("#workspace") or "idle" in pg.inner_text("#workspace"))
+    ok("D shows only think / act / jumps (no extra strips)", pg.locator("#timeline g.use, #timeline g.prov, #timeline path.mot").count() == 0)
 
     # D: hover a chunk -> hoverChunk, brush window
     pg.locator("#timeline .bars rect").nth(3).hover()

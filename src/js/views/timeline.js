@@ -1,13 +1,11 @@
-// View D: execution timeline on a shared time axis. For R and C, three tracks:
-//   motion — how far the commanded position moved each step (grey area); at a chunk switch the
-//            jump between old and new plan is a magenta bar on the same px scale (shared by R and C),
-//            so a jump reads as a burst of motion far above the robot's normal movement
+// View D: execution timeline on a shared time axis. For baseline and candidate, three tracks:
+//   jumps  — at every chunk switch, the jump between old and new plan as a magenta bar (px, shared scale)
 //   think  — when an inference is running (observation → chunk available)
 //   act    — which chunk the executed action came from (hatched = robot idle)
 // Sync shows "think" and "act" alternating (idle while thinking); async shows them overlapping.
 // Below: block–goal coverage of both runs.
 import { state, update, bus } from "../state.js";
-import { DATA, loadRun, activeChunk } from "../data.js";
+import { DATA, loadRun } from "../data.js";
 import { COLOR, showTip, hideTip, size } from "../util.js";
 
 let root, svg, brush, brushKey = null, eps = null, x, curBot = 0, geom = null;
@@ -65,7 +63,7 @@ function render() {
     : d3.scaleLinear().domain([0, 1]).range([covBot, covTop]);
   const thr = ball ? 40 : 0.95;  // Catch: touching = centre distance <= pusher 15 px + ball 25 px
   for (const e of [eps.ref, eps.cand]) if (!e.mot) e.mot = motion(e);
-  const gmax = Math.max(30, d3.max([eps.ref, eps.cand], (e) => Math.max(d3.max(e.mot), d3.max(e.seams, (s) => s.gap) || 0)));
+  const gmax = Math.max(30, d3.max([eps.ref, eps.cand], (e) => d3.max(e.seams, (s) => s.gap) || 0));
   const ys = d3.scaleLinear().domain([0, gmax]).range([0, motH - 2]);
 
   // brush below the marks so bars stay hoverable
@@ -79,10 +77,9 @@ function render() {
   const lg = svg.selectAll("g.lane").data(lanes, (d) => d.which).join((en) => {
     const g = en.append("g").attr("class", "lane");
     g.append("text").attr("class", "ln");
-    g.append("text").attr("class", "tk axis-title tk0").text("motion");
+    g.append("text").attr("class", "tk axis-title tk0").text("jumps");
     g.append("text").attr("class", "tk axis-title tk1").text("think");
     g.append("text").attr("class", "tk axis-title tk2").text("act");
-    g.append("path").attr("class", "mot");
     g.append("line").attr("class", "seamBase");
     g.append("g").attr("class", "think");
     g.append("g").attr("class", "idle");
@@ -100,9 +97,6 @@ function render() {
     g.select(".tk1").attr("x", m.l - 5).attr("y", thinkY + 5).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".tk2").attr("x", m.l - 5).attr("y", actY + 9).attr("text-anchor", "end").attr("font-size", 9);
     g.select(".seamBase").attr("x1", m.l).attr("x2", x(e.n)).attr("y1", motH).attr("y2", motH).attr("stroke", "#d4d4da");
-    // motion: commanded displacement per step (idle = 0)
-    g.select(".mot").datum(e.mot).attr("d", d3.area().curve(d3.curveStepAfter).x((v, t) => x(t)).y0(motH).y1((v) => motH - ys(v))(e.mot.concat([0])))
-      .attr("fill", "#a9a9b2").attr("pointer-events", "none");
 
     // think: inference intervals
     const inf = e.chunks.map((c, i) => ({ c, i })).filter((d) => d.c.t_obs < e.n);
@@ -136,7 +130,7 @@ function render() {
       .on("mousemove", (ev, r) => showTip(ev, `<b>idle</b> t=${r[0]}–${r[1] - 1}: no action available, the robot holds still`))
       .on("mouseleave", hideTip);
 
-    // jumps at chunk switches: magenta bars on the motion scale, height = gap between old and new plan
+    // jumps at chunk switches: magenta bars, height = gap between old and new plan
     const normal = d3.median(e.mot.filter((v, t) => v > 0 && !e.seamAt.has(t))) || 0;
     const bw = Math.max(1.6, x(1) - x(0) - 0.4);
     g.select(".seams").selectAll("rect.sp").data(e.seams.filter((s) => s.gap >= 1), (s) => s.t).join("rect").attr("class", "sp")
@@ -205,58 +199,6 @@ function cursor() {
   svg.selectAll("line.cur").data([state.t]).join("line").attr("class", "cur").attr("pointer-events", "none")
     .attr("x1", (t) => x(t) + 0.5).attr("x2", (t) => x(t) + 0.5).attr("y1", 2).attr("y2", curBot)
     .attr("stroke", COLOR.sel).attr("stroke-width", 1.2);
-  provenance();
-}
-
-// Provenance of the chunk being executed at the cursor (or the hovered chunk): the camera picture
-// (○ at t_obs) → its inference on the think track → its executed span on the act track.
-function provenance() {
-  if (!geom) return;
-  const { thinkY, thinkH, actY, actH } = geom;
-  const data = geom.lanes.map((L) => {
-    const e = L.e;
-    const hc = state.hoverChunk && state.hoverChunk.which === L.which ? e.chunks[state.hoverChunk.id] : null;
-    const c = hc || (state.t < e.n ? activeChunk(e, state.t) : null);
-    return c && c.t0 !== null ? { L, c } : null;
-  }).filter(Boolean);
-  const g = svg.selectAll("g.prov").data(data, (d) => d.L.which).join((en) => {
-    const q = en.append("g").attr("class", "prov").attr("pointer-events", "none");
-    q.append("rect").attr("class", "pt"); q.append("rect").attr("class", "pa"); q.append("path").attr("class", "pl"); q.append("circle").attr("class", "cam");
-    return q;
-  }).attr("transform", (d) => `translate(0,${d.L.y})`);
-  const ta = (d) => Math.min(d.c.t_avail, d.L.e.n);
-  g.select(".pt").attr("x", (d) => x(d.c.t_obs)).attr("width", (d) => Math.max(2, x(ta(d)) - x(d.c.t_obs)))
-    .attr("y", thinkY - 1.5).attr("height", thinkH + 3).attr("rx", 1.5).attr("fill", "none").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
-  g.select(".pa").attr("x", (d) => x(d.c.t0)).attr("width", (d) => Math.max(2, x(d.c.t1 + 1) - x(d.c.t0)))
-    .attr("y", actY - 1).attr("height", actH + 2).attr("rx", 1.5).attr("fill", "none").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
-  g.select(".pl").attr("d", (d) => `M${x(ta(d))},${thinkY + thinkH + 1.5}L${x(d.c.t0)},${actY - 1}`)
-    .attr("fill", "none").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
-  g.select(".cam").attr("cx", (d) => x(d.c.t_obs)).attr("cy", thinkY + thinkH / 2).attr("r", 3.2)
-    .attr("fill", "#fff").attr("stroke", COLOR.sel).attr("stroke-width", 1.3);
-  usage(data);
-}
-
-// Which of the current chunk's 16 planned moves were used: skipped (their time passed while the
-// policy was thinking; inpaint makes them match the old plan), executed, or discarded.
-// Within a schedule this pattern is the same for every chunk (set by d and h), so it is shown once
-// per lane, in the margin under the lane label, for the chunk at the cursor.
-function usage(data) {
-  const CW = 4.6;
-  const ug = svg.selectAll("g.use").data(data, (d) => d.L.which).join((en) => en.append("g").attr("class", "use").style("cursor", "help"))
-    .attr("transform", (d) => `translate(4,${d.L.y + 14})`);
-  ug.each(function (d) {
-    const js = [...d.c.execJ.keys()], lo = d3.min(js), hi = d3.max(js);
-    const strat = DATA.schedById.get(d.L.which === "ref" ? state.ref : state.cand)?.strategy;
-    const n = d.c.a ? d.c.a.length : 16;
-    const kind = (j) => (j < lo ? "skip" : j <= hi ? "used" : "drop");
-    d3.select(this).selectAll("rect").data(d3.range(n)).join("rect")
-      .attr("x", (j) => j * CW).attr("width", CW - 0.9).attr("height", 8).attr("rx", 0.6)
-      .attr("fill", (j) => (kind(j) === "used" ? d.L.col : kind(j) === "skip" ? "#cfcfd6" : "#fff"))
-      .attr("stroke", (j) => (kind(j) === "drop" ? "#b4b4bc" : "none")).attr("stroke-width", 0.7);
-    const skipTxt = lo > 0 ? `moves 0–${lo - 1} <b>skipped</b>: ${strat === "sync" ? "move 0 is the moment of the camera picture" : `their time passed while the policy was thinking${strat === "inpaint" ? " (inpaint made them match the old plan, so the new plan continues it)" : " (naive async jumps straight to the move planned for now)"}`}` : "";
-    d3.select(this).on("mousemove", (ev) => showTip(ev, `<b>moves of the current chunk</b> (#${d.L.e.chunks.indexOf(d.c)}, ${n} planned)<br>${skipTxt}<br>moves ${lo}–${hi} <b>executed</b> · moves ${hi + 1}–${n - 1} <b>discarded</b><br><span class="k">the same pattern for every chunk of this schedule (set by d and h)</span>`))
-      .on("mouseleave", hideTip);
-  });
 }
 
 export function resizeTimeline() { render(); }

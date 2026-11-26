@@ -1,8 +1,8 @@
-// View C: juxtaposed replays of the selected seed under R and C (same scale, same seed), showing
-// only what explains the action at time t: the plan being executed, what the policy saw when it
-// planned it, the plan being computed, and the most recent jump at a chunk switch.
+// View C: juxtaposed replays of the selected seed under baseline and candidate (same scale, same
+// seed), showing only what explains the action at time t: the plan being executed, what the policy
+// saw when it planned it, and the most recent jump at a chunk switch.
 import { state, update, bus } from "../state.js";
-import { DATA, loadRun, activeChunk, pendingChunk, STRAT_LABEL } from "../data.js";
+import { DATA, loadRun, activeChunk, STRAT_LABEL } from "../data.js";
 const BALL_R = 25; // Catch the ball: ball radius (scripts/catch_task.py)
 import { COLOR, showTip, hideTip, size, teePaths, GOAL, AGENT_R } from "../util.js";
 
@@ -59,8 +59,10 @@ function status(e, t) {
   if (end) return { k: "done", text: e.success ? (DATA.task === "catch" ? "finished: ball touched" : "finished: block in goal")
     : (DATA.task === "catch" ? "8 s deadline passed, ball not touched" : "time out (300 steps)") };
   if (e.chunk[t] < 0) return { k: "wait", text: "idle: waiting for inference" };
-  const pend = pendingChunk(e, t);
-  return { k: "act", text: `acting on chunk #${e.chunk[t]} · picture ${e.age[t]} steps old${pend ? " · thinking" : ""}` };
+  // how outdated the plan is: the robot's motion since the picture the current plan was made from
+  const c = activeChunk(e, t), to = Math.min(c.t_obs, e.n - 1);
+  const moved = Math.hypot(e.ax[t] - e.ax[to], e.ay[t] - e.ay[to]);
+  return { k: "act", text: `plan made from a picture ${e.age[t]} steps old · robot moved ${moved.toFixed(0)} px since` };
 }
 
 function render() {
@@ -89,7 +91,6 @@ function render() {
     b.append("g").attr("class", "seen").attr("pointer-events", "none");
     b.append("path").attr("class", "pathNow");
     b.append("path").attr("class", "pathWin");
-    b.append("g").attr("class", "pending");
     b.append("g").attr("class", "fan");
     b.append("g").attr("class", "seam").attr("pointer-events", "none");
     b.append("circle").attr("class", "agent").attr("pointer-events", "none"); // agent and seam never block hover on plan points
@@ -130,14 +131,9 @@ function render() {
     b.select(".pathWin").attr("d", state.win ? line(pts.slice(state.win[0], Math.min(e.n, state.win[1] + 1))) : null)
       .attr("fill", "none").attr("stroke", p.col).attr("stroke-opacity", 0.8).attr("stroke-width", 2.2).attr("stroke-linecap", "round");
 
-    // plan being executed (or the chunk hovered in D), and the plan still being computed
+    // plan being executed (or the chunk hovered in D)
     const hc = state.hoverChunk && state.hoverChunk.which === p.which ? e.chunks[state.hoverChunk.id] : null;
     const ch = hc || activeChunk(e, t);
-    const pend = !hc ? pendingChunk(e, t) : null;
-    b.select(".pending").selectAll("g.pd").data(pend ? [pend] : []).join((en) => {
-      const q = en.append("g").attr("class", "pd"); q.append("path"); return q;
-    }).select("path").attr("d", (d) => line(d.a.slice(1))).attr("fill", "none")
-      .attr("stroke", "#9a9aa2").attr("stroke-dasharray", "1 3.5").attr("stroke-width", 2).attr("stroke-linecap", "round");
     drawFan(b.select(".fan"), ch, p, s, line, e);
     drawSeen(b.select(".seen"), ch, p, s, tee, e, t);
 
@@ -173,7 +169,7 @@ function drawSeen(g, ch, p, s, tee, e, t) {
   const data = ch && t > to ? [{ to, moved }] : [];
   const q = g.selectAll("g.sn").data(data).join((en) => {
     const k = en.append("g").attr("class", "sn");
-    k.append("path").attr("class", "sb"); k.append("circle").attr("class", "sa"); k.append("line").attr("class", "sl"); k.append("text").attr("class", "st");
+    k.append("path").attr("class", "sb"); k.append("circle").attr("class", "sa"); k.append("line").attr("class", "sl");
     return k;
   });
   // block (PushT) or ball (Catch) where it was in the picture
@@ -186,17 +182,7 @@ function drawSeen(g, ch, p, s, tee, e, t) {
   q.select(".sl").attr("x1", (d) => s(e.ax[d.to])).attr("y1", (d) => s(e.ay[d.to])).attr("x2", s(e.ax[t])).attr("y2", s(e.ay[t]))
     .attr("stroke", p.col).attr("stroke-opacity", 0.8).attr("stroke-width", 1.2).attr("marker-end", null)
     .attr("visibility", (d) => (d.moved >= 3 ? "visible" : "hidden"));
-  const seenText = (d) => `seen at t=${d.to}${d.moved >= 3 ? ` · moved ${d.moved.toFixed(0)} px since` : ""}`;
-  // label left of the outline, else right of it, else above it, always inside the panel
-  const place = (d) => {
-    const x = s(e.ax[d.to]), y = s(e.ay[d.to]), r = s(AGENT_R) + 4, w = seenText(d).length * 5.2;
-    if (x - r - w >= 2) return [x - r - w, y + 4];
-    if (x + r + w <= s(512) - 2) return [x + r, y + 4];
-    return [Math.max(2, Math.min(s(512) - w - 2, x - w / 2)), y - r - 2];
-  };
-  q.select(".st").attr("x", (d) => place(d)[0]).attr("y", (d) => place(d)[1]).attr("text-anchor", "start")
-    .attr("font-size", 10).attr("fill", p.which === "ref" ? COLOR.ref : "#9a6a00").attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
-    .text(seenText);
+
 }
 
 // The chunk "fan": 16 planned targets; filled = executed, hollow = never executed (thrown away).

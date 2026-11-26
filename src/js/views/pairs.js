@@ -108,9 +108,8 @@ function render() {
     .attr("fill", "none").attr("stroke", COLOR.cand).attr("stroke-width", 2.5).attr("rx", 2);
 
   legend(m, S, cs, M, col, X, Y);
-  noteSel.html(`Every cell compares two schedules on the <b>same ${seeds ? seeds.size : DATA.seeds.length} start states</b>${seeds ? " selected in B (Esc clears)" : ""}:
-    colour = mean paired difference candidate − baseline in <b>${METRICS[state.metric].label}</b> (<span style="color:${BETTER};font-weight:700">purple = candidate better</span>,
-    grey = candidate worse); <b>framed</b> = unlikely to be chance (${state.metric === "success_rate" ? "exact McNemar test on the start states that flip, p &lt; 0.05" : "95 % interval of the paired difference excludes 0"}). Start with a framed, dark cell; <b>click it</b> to load the pair in B, C and D.`);
+  noteSel.html(`Each cell: how much more often the candidate succeeds than the baseline on the same ${seeds ? `${seeds.size} selected` : DATA.seeds.length} start states
+    (<span style="color:${BETTER};font-weight:700">purple</span> = more, grey = less) · framed = unlikely to be chance · <b>click a cell</b> to compare that pair.`);
 }
 
 function flips(r, c, seeds) {

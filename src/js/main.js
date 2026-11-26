@@ -98,18 +98,16 @@ function initKeys() {
   });
 }
 
-// URL parameters let a case-study state be reproduced exactly, e.g. ?task=catch&ref=sync_d0_h8&cand=naive_d4_h8&metric=jump_mean&seed=1012&t=80&sel=1001,1002
+// URL parameters let a case-study state be reproduced exactly, e.g. ?task=catch&ref=sync_d0_h8&cand=naive_d4_h8&seed=1012&t=80&sel=1001,1002
 function applyParams() {
   const p = new URLSearchParams(location.search);
   const patch = {};
-  for (const k of ["ref", "cand", "metric"]) if (p.has(k)) patch[k] = p.get(k);
+  for (const k of ["ref", "cand"]) if (p.has(k)) patch[k] = p.get(k);
   if (["pairs", "latency"].includes(p.get("aview"))) patch.aview = p.get("aview");
   for (const k of ["seed", "t"]) if (p.has(k)) patch[k] = +p.get(k);
   if (p.has("win")) patch.win = p.get("win").split(",").map(Number);
   if (p.has("sel")) patch.brushed = new Set(p.get("sel").split(",").map(Number));
   for (const k of ["ref", "cand"]) if (patch[k] && !DATA.schedById.has(patch[k])) delete patch[k];
-  if (patch.metric === "seam_gap_mean") patch.metric = "jump_mean";  // links made before the column was renamed
-  if (patch.metric && !METRICS[patch.metric]) delete patch.metric;
   Object.assign(state, patch);
 }
 

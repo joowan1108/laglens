@@ -1,37 +1,27 @@
-// View B: paired seed table. One row per initial state (seed), shared by two juxtaposed parts:
-//   left  — outcome matrix: columns = schedules grouped by strategy, filled cell = success
-//           (R's column black, C's column orange, others grey; empty = failure)
-//   right — paired shift: R value (●) → C value (●) of the episode attribute that belongs to the
-//           question chosen in A (METRICS.epB), on a common axis.
-// Rows are grouped by how the outcome changes from R to C, so a flip is a cell that breaks the
-// pattern of its band and the right part shows whether that change comes with a mechanism change.
+// View B: paired seed table for the chosen pair. One row per initial state (seed):
+//   left  — outcome of that start state under the baseline (black) and the candidate (orange):
+//           filled = success, empty = failure
+//   right — the largest jump at a chunk switch in that episode, baseline (●) → candidate (●)
+// Rows are grouped by how the outcome changes from baseline to candidate, so the start states that
+// flip are listed first and the right part shows whether the flip comes with a change in jumps.
 import { state, update, bus } from "../state.js";
-import { DATA, STRATEGIES, STRAT_LABEL, HORIZONS, LATENCIES, label } from "../data.js";
-import { COLOR, STRAT_COLOR, METRICS, EP_ATTRS, showTip, hideTip, size } from "../util.js";
+import { DATA, STRAT_LABEL, label } from "../data.js";
+import { COLOR, EP_ATTRS, showTip, hideTip, size } from "../util.js";
 
-let root, svg, ctrSel, cols, groupsPresent, brush, brushKey = null;
-const GROUP_LABEL = { replicate: "Re-run", ...STRAT_LABEL };
+let root, svg, ctrSel, brush, brushKey = null;
+const K = "jump_max";  // dumbbell attribute: largest jump at a chunk switch in the episode
 const BANDS = [
   { key: "loss", name: "baseline ✓ → candidate ✗", long: "the candidate fails where the baseline succeeded" },
   { key: "gain", name: "baseline ✗ → candidate ✓", long: "the candidate succeeds where the baseline failed" },
   { key: "bothOk", name: "both ✓", long: "both succeed" },
   { key: "bothFail", name: "both ✗", long: "both fail" },
 ];
-// long-tailed attributes on a symmetric-log axis so that the bulk is not squeezed
-const SYMLOG = new Set(["jump_max"]);
-const PCT = new Set(["coverage_final", "idle_frac"]);
+// jumps are long-tailed: symmetric-log axis so that the bulk is not squeezed
+const SYMLOG = new Set([K]);
+const PCT = new Set();
 
-// One column per schedule present in the loaded task (re-run first).
-export function rebuildColumns() {
-  cols = [];
-  for (const sc of DATA.schedules.filter((x) => x.replicate)) cols.push({ id: sc.schedule, s: "replicate", h: sc.horizon, d: sc.latency });
-  for (const s of STRATEGIES) for (const h of HORIZONS) for (const d of LATENCIES) {
-    const id = `${s}_d${d}_h${h}`;
-    if (DATA.schedById.has(id)) cols.push({ id, s, h, d });
-  }
-  groupsPresent = ["replicate", ...STRATEGIES].filter((g) => cols.some((c) => c.s === g));
-  brushKey = null;
-}
+// Called when the task changes (new data): forget the brush geometry.
+export function rebuildColumns() { brushKey = null; }
 
 export function initSeedTable() {
   ctrSel = d3.select("#seedControls");
@@ -40,7 +30,7 @@ export function initSeedTable() {
   rebuildColumns();
   render();
   bus.on("change.seedtable", (keys) => {
-    if (["task", "ref", "cand", "metric", "seed", "brushed", "hoverSeed"].some((k) => keys.has(k))) render();
+    if (["task", "ref", "cand", "seed", "brushed", "hoverSeed"].some((k) => keys.has(k))) render();
   });
 }
 
@@ -70,98 +60,42 @@ function layout(top, height) {
 }
 
 function render() {
-  // chance level: how many seeds flip when the same schedule is simply re-run
-  const rep = cols.find((c) => c.s === "replicate");
-  const base = rep && DATA.schedById.get(rep.id.replace(/_r\d+$/, ""));
-  const nFlip = rep && base ? DATA.seeds.filter((s) => outcome(rep.id, s) !== outcome(base.schedule, s)).length : null;
+  // chance level: how many seeds flip when the same schedule is simply re-run with new noise
+  const rep = DATA.schedules.find((x) => x.replicate);
+  const base = rep && DATA.schedById.get(rep.schedule.replace(/_r\d+$/, ""));
+  const nFlip = rep && base ? DATA.seeds.filter((s) => outcome(rep.schedule, s) !== outcome(base.schedule, s)).length : null;
   const cnt = d3.rollup(DATA.seeds, (v) => v.length, band);
-  d3.select("#seedNote").html(`Candidate vs baseline: <b>${cnt.get("loss") || 0} lost</b>, <b>${cnt.get("gain") || 0} gained</b> of ${DATA.seeds.length} seeds.
-    ${nFlip !== null ? `Chance level: re-running ${STRAT_LABEL[base.strategy]} d${base.latency} h${base.horizon} with new noise flips <b>${nFlip}</b> (column “re-run”).` : ""}`);
-  // key: every encoding of B is named here, not only in the guide
-  ctrSel.html(`<span>one row per initial state (seed) · <b>left</b>: one column per schedule, <span class="sw ok"></span> success ✓ <span class="sw fail"></span> failure ✗ (baseline column black, candidate orange)
-    · <b>right</b>: ${EP_ATTRS[METRICS[state.metric].epB]} under baseline and candidate (set by the question in A)</span>`);
+  d3.select("#seedNote").html(`<b>${cnt.get("gain") || 0} rescued</b>, <b>${cnt.get("loss") || 0} lost</b> of ${DATA.seeds.length} start states
+    ${nFlip !== null ? `· by chance alone (same schedule re-run) ${nFlip} flip` : ""}`);
+  ctrSel.html(`<span>one row per start state · <span class="sw okb"></span><span class="sw okc"></span> success under baseline / candidate, empty = failure · right: largest jump at a chunk switch</span>`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
-  const top = 34, bottom = 30, left = 32;
+  const top = 52, bottom = 30, left = 34;
   const L = layout(top, h - top - bottom);
   const { rows, rh } = L;
   const order = [...rows.values()];
-
-  // ---- outcome matrix -------------------------------------------------------------------------
-  const groupGap = 5;
-  const matW = Math.min(w * 0.6, Math.max(240, cols.length * 8 + groupGap * 3));
-  const cw = (matW - groupGap * (groupsPresent.length - 1)) / cols.length;
-  const xpos = new Map(cols.map((c, i) => [c.id, left + i * cw + groupsPresent.indexOf(c.s) * groupGap]));
-  const matR = left + matW;
   const dim = (seed) => (state.brushed && !state.brushed.has(seed) ? 0.2 : 1);
 
-  // strategy headers: name in ink + a short coloured rule (hue = strategy, as in A)
-  const groups = groupsPresent.map((s) => {
-    const cs = cols.filter((c) => c.s === s);
-    return { s, x0: xpos.get(cs[0].id), x1: xpos.get(cs[cs.length - 1].id) + cw, cs };
-  });
-  const gh = svg.selectAll("g.gh").data(groups, (d) => d.s).join((en) => {
-    const q = en.append("g").attr("class", "gh"); q.append("rect"); q.append("text"); return q;
-  });
-  gh.select("rect").attr("x", (d) => d.x0).attr("y", top - 31).attr("width", (d) => d.x1 - d.x0 - 0.5).attr("height", 3).attr("rx", 1.5)
-    .attr("fill", (d) => (d.s === "replicate" ? "#b9b9c0" : STRAT_COLOR[d.s]));
-  gh.select("text").attr("x", (d) => (d.s === "replicate" ? d.x0 : (d.x0 + d.x1) / 2)).attr("y", top - 18)
-    .attr("text-anchor", (d) => (d.s === "replicate" ? "start" : "middle")).attr("font-size", 10.5).attr("font-weight", 700)
-    .text((d) => (d.s === "replicate" ? "" : GROUP_LABEL[d.s]));
-  svg.selectAll("text.rr").data(groups.filter((d) => d.s === "replicate")).join("text").attr("class", "rr axis-title").attr("font-size", 9)
-    .attr("x", (d) => d.x1).attr("y", top - 5).attr("text-anchor", "end").text("re-run");
-  const hsub = groups.filter((gr) => gr.s !== "replicate").flatMap((gr) => HORIZONS.map((hz) => {
-    const cs = gr.cs.filter((c) => c.h === hz);
-    return cs.length ? { key: `${gr.s}${hz}`, h: hz, x0: xpos.get(cs[0].id), x1: xpos.get(cs[cs.length - 1].id) + cw } : null;
-  }).filter(Boolean));
-  svg.selectAll("text.hs").data(hsub, (d) => d.key).join("text").attr("class", "hs axis-title").attr("font-size", 9)
-    .attr("x", (d) => (d.x0 + d.x1) / 2).attr("y", top - 5).attr("text-anchor", "middle").text((d) => (d.x1 - d.x0 > 13 ? `h${d.h}` : ""));
-
-  // column hit areas in the header: click = C, shift-click = R
-  svg.selectAll("rect.colhit").data(cols, (d) => d.id).join("rect").attr("class", "colhit")
-    .attr("x", (d) => xpos.get(d.id)).attr("y", top - 14).attr("width", cw).attr("height", 13).attr("fill", "transparent").style("cursor", "pointer")
-    .on("click", (ev, d) => (ev.shiftKey ? update({ ref: d.id }) : update({ cand: d.id })))
-    .on("mousemove", (ev, d) => {
-      const k = d3.sum(DATA.seeds, (s) => outcome(d.id, s));
-      showTip(ev, `<b>${label(d.id)}</b><br>${k}/${DATA.seeds.length} seeds succeed<br><span class="k">click = candidate · shift-click = baseline</span>`);
-    })
-    .on("mouseleave", hideTip);
-
+  // ---- outcome cells: baseline | candidate ----------------------------------------------------
+  const cw = 22, gap = 4;
+  const cols = [{ id: state.ref, col: COLOR.ref, t: "baseline", txt: COLOR.ref }, { id: state.cand, col: COLOR.cand, t: "candidate", txt: "#9a6a00" }];
+  const xpos = (i) => left + i * (cw + gap);
+  const matR = xpos(2);
+  svg.selectAll("text.colmark").data(cols, (d, i) => i).join("text").attr("class", "colmark").attr("font-weight", 800).attr("font-size", 9.5)
+    .attr("transform", (d, i) => `translate(${xpos(i) + cw / 2 + 3},${top - 4}) rotate(-90)`).attr("fill", (d) => d.txt).text((d) => d.t);
   const cellData = [];
-  for (const r of order) for (const c of cols) cellData.push({ seed: r.seed, c });
-  const fillOf = (d) => {
-    if (!outcome(d.c.id, d.seed)) return COLOR.fail;
-    return d.c.id === state.ref ? COLOR.ref : d.c.id === state.cand ? COLOR.cand : COLOR.ok;
-  };
-  svg.selectAll("rect.c").data(cellData, (d) => `${d.seed}|${d.c.id}`).join("rect").attr("class", "c")
-    .attr("x", (d) => xpos.get(d.c.id)).attr("width", Math.max(1, cw - 1)).attr("height", Math.max(1, rh - 1))
-    .attr("fill", fillOf).attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
+  for (const r of order) cols.forEach((c, i) => cellData.push({ seed: r.seed, c, i }));
+  svg.selectAll("rect.c").data(cellData, (d) => `${d.seed}|${d.i}`).join("rect").attr("class", "c")
+    .attr("x", (d) => xpos(d.i)).attr("width", cw).attr("height", Math.max(1, rh - 1))
+    .attr("fill", (d) => (outcome(d.c.id, d.seed) ? d.c.col : COLOR.fail)).attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
     .on("mousemove", (ev, d) => {
       const e = DATA.ep.get(d.c.id).get(d.seed);
-      showTip(ev, `<b>seed ${d.seed}</b> · ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px · ball speed ${Math.round(e.ball_speed * 10)} px/s` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br>
-        <span class="k">discontinuity</span> ${e.jump_mean.toFixed(1)} px · <span class="k">moved while thinking</span> ${e.think_motion_mean.toFixed(1)} px · <span class="k">idle</span> ${Math.round(e.idle_frac * 100)}%<br>
-        <span class="k">this seed succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)}% of schedules</span><br><span class="k">click = open this episode (column becomes the candidate)</span>`);
+      showTip(ev, `<b>start state ${d.seed}</b> · ${d.c.t}: ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br><span class="k">this start state succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)} % of all schedules</span><br><span class="k">click = replay this start state in C and D</span>`);
       if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });
     })
     .on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
-    .on("click", (ev, d) => {
-      const patch = { seed: d.seed, t: 0, win: null };
-      if (d.c.id !== state.ref) patch.cand = d.c.id;
-      update(patch);
-    })
+    .on("click", (ev, d) => update({ seed: d.seed, t: 0, win: null }))
     .transition().duration(300).attr("y", (d) => rows.get(d.seed).y);
-
-  // baseline / candidate words under their columns, each extending away from the other
-  const marks = [{ id: state.ref, col: COLOR.ref, t: "baseline" }, { id: state.cand, col: "#9a6a00", t: "candidate" }].filter((m) => xpos.has(m.id));
-  const other = (d) => marks.find((m) => m !== d);
-  const fits = (d, a) => (a === "start" ? xpos.get(d.id) + d.t.length * 5.6 < matR : xpos.get(d.id) + cw - d.t.length * 5.6 > left);
-  const anchor = (d) => {
-    const want = !other(d) ? "middle" : xpos.get(d.id) < xpos.get(other(d).id) ? "end" : "start";
-    return want === "middle" || fits(d, want) ? want : want === "start" ? "end" : "start";  // never run into the row labels or the dumbbell axis
-  };
-  svg.selectAll("text.colmark").data(marks, (d) => d.t).join("text").attr("class", "colmark").attr("font-weight", 800).attr("font-size", 9.5)
-    .attr("x", (d) => xpos.get(d.id) + (anchor(d) === "end" ? cw : anchor(d) === "start" ? 0 : cw / 2)).attr("y", L.bottom + 11)
-    .attr("text-anchor", anchor).attr("fill", (d) => d.col).text((d) => d.t);
 
   // row labels
   svg.selectAll("text.rl").data(order, (d) => d.seed).join("text").attr("class", "rl axis-title")
@@ -170,10 +104,11 @@ function render() {
     .text((d) => (rh >= 9.5 || d.seed === state.seed ? d.seed : "")).style("cursor", "pointer")
     .on("click", (ev, d) => update({ seed: d.seed, t: 0, win: null }))
     .transition().duration(300).attr("y", (d) => d.y);
+  const matW = matR - left;
 
   // ---- paired shift (dumbbells) ---------------------------------------------------------------
-  const k = METRICS[state.metric].epB;
-  const dl = matR + 22, dr = w - 10;
+  const k = K;
+  const dl = matR + 26, dr = w - 10;
   const vals = order.flatMap((r) => [DATA.ep.get(state.ref).get(r.seed)[k], DATA.ep.get(state.cand).get(r.seed)[k]]);
   const [lo, hi] = d3.extent(vals);
   const x = SYMLOG.has(k)
@@ -186,14 +121,14 @@ function render() {
   svg.selectAll("g.dax").data([0]).join("g").attr("class", "axis dax").attr("transform", `translate(0,${L.bottom})`)
     .call(d3.axisBottom(x).tickValues(ticks).tickSize(3).tickFormat(PCT.has(k) ? d3.format(".0%") : d3.format("~s"))).call((g) => g.select(".domain").attr("stroke", "#c9c9cf"));
   svg.selectAll("text.dxt").data([0]).join("text").attr("class", "axis-title dxt").attr("x", dr).attr("y", L.bottom + 26).attr("text-anchor", "end")
-    .text(`${EP_ATTRS[k]}${SYMLOG.has(k) ? ", log" : ""} →`);
+    .text("largest jump at a chunk switch (px, log scale) →");
   svg.selectAll("text.dht").data([0]).join("text").attr("class", "dht").attr("x", dl).attr("y", top - 18).attr("font-size", 10.5).attr("font-weight", 700)
     .html(`<tspan fill="${COLOR.ref}">●</tspan> baseline → <tspan fill="${COLOR.cand}">●</tspan> candidate`);
-  svg.selectAll("text.dht2").data([0]).join("text").attr("class", "dht2 axis-title").attr("x", dl).attr("y", top - 5).attr("font-size", 9)
-    .text("same seed under both schedules");
+  svg.selectAll("text.dht2").data([0]).join("text").attr("class", "dht2 axis-title").attr("x", dl).attr("y", top - 6).attr("font-size", 9)
+    .text("largest jump at a chunk switch in the same start state");
 
   // brush over the dumbbell rows = select seeds (cross-filters A, dims rows)
-  const bkey = `${w}x${h}|${k}|${state.ref}|${state.cand}`;
+  const bkey = `${w}x${h}|${state.ref}|${state.cand}`;
   const bg = svg.selectAll("g.brush").data([0]).join("g").attr("class", "brush");
   if (bkey !== brushKey) {
     brushKey = bkey;

@@ -6,22 +6,19 @@ PASS  pair overview frames pairs whose paired difference is unlikely to be chanc
 PASS  pair overview tooltip gives rescued / lost start states and the chance level
 PASS  clicking a cell sets baseline (row) and candidate (column)
 PASS  the selected pair is marked in the overview
-PASS  the question bar recolours the overview
+PASS  A asks one question (success): no question buttons
 PASS  tab switches A to the latency-response curves
-rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 450, '#seedtable g.db': 30, '#workspace g.wp': 2, '#timeline .bars rect': 58, '#timeline .think rect': 58}
-PASS  all four views rendered (A curves, B matrix + dumbbells, C boards, D tracks)
+rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#timeline .bars rect': 58, '#timeline .think rect': 58}
+PASS  all four views rendered (A curves, B cells + dumbbells, C boards, D tracks)
 PASS  A click sets candidate
 PASS  A shift-click sets reference
-PASS  A question button sets the metric
-PASS  the same question sets B's dumbbell attribute
-PASS  A shows exactly four questions, no dropdown
 PASS  A tooltip gives the paired difference to the baseline
 PASS  A legend hover highlights one strategy
 PASS  B has no controls of its own
+PASS  B shows two outcome cells (baseline, candidate) per start state
 PASS  B groups rows by baseline→candidate change
-PASS  B column header click sets candidate
+PASS  B dumbbells show the largest jump at a chunk switch
 PASS  B cell click selects seed
-PASS  B dumbbells follow the question (idle share)
 PASS  B brush selects seeds
 PASS  A recomputes on the selected seeds (cross-filter)
 PASS  B rows outside the selection are dimmed
@@ -31,8 +28,8 @@ PASS  C play advances time
 PASS  C keyboard stepping
 PASS  C fan tooltip
 PASS  C shows what the policy saw (outline at the picture time)
-PASS  D traces the current chunk picture → think → act
-PASS  D shows which of the current chunk's moves were used
+PASS  C status line says how outdated the plan is
+PASS  D shows only think / act / jumps (no extra strips)
 PASS  D chunk hover links to C
 PASS  D brush sets window
 PASS  C draws brushed window path
