@@ -10,11 +10,14 @@ PASS  A latency filter keeps the d = 4 schedules plus the sync d0 reference (8 Ã
 PASS  A prints the difference in the cells when there is room
 PASS  B shades my latency
 PASS  A back to all latencies
-PASS  A frames are corrected for 91 comparisons (FDR): 48 framed ordered cells in PushT, not 64
+PASS  A frames are corrected over the 61 comparable pairs (FDR): 34 framed ordered cells in PushT (17 pairs)
+PASS  A hatches the 30 pairs that differ in latency and in strategy or h (60 ordered cells), not clickable
+PASS  choosing a candidate at another latency moves the baseline to its strategy and h at that latency (and says so)
+PASS  choosing a baseline at another latency moves the candidate
 PASS  B puts the baseline chosen in A on the zero line
 PASS  a row label in A sets only the baseline, and B's values change with it
 PASS  B marks the candidate's distance to the baseline
-rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 196, '#timeline .bars rect': 58, '#timeline .think rect': 58}
+rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 196, '#timeline .bars rect': 53, '#timeline .think rect': 53}
 PASS  all five views rendered (A matrix, B curves, C cells + dumbbells, D board, E tracks)
 PASS  B click sets candidate
 PASS  B shift-click sets reference

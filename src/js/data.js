@@ -36,6 +36,25 @@ export function shortLabel(id) {
   return s ? `${s.strategy} d${s.latency} h${s.horizon}${s.replicate ? " rep" : ""}` : id;
 }
 
+// Which pairs can be compared at all. The latency d is set by the hardware and the model, not chosen
+// by the user, so two schedules are compared only when the difference has one reading:
+//   same d (what should I run at my latency?), one of them at d = 0 (how far from no latency?), or
+//   same strategy and h, only d differs (what does more latency cost?).
+// A pair that differs in d AND in strategy or h mixes the two causes and is not compared (30 of the
+// 91 pairs). The rule is fixed by the design, not by any outcome.
+export function comparable(a, b) {
+  const A = DATA.schedById.get(a), B = DATA.schedById.get(b);
+  if (!A || !B) return true;
+  return A.latency === B.latency || A.latency === 0 || B.latency === 0
+    || (A.strategy === B.strategy && A.horizon === B.horizon);
+}
+// the same strategy and horizon as id, at latency d
+export function atLatency(id, d) {
+  const s = DATA.schedById.get(id);
+  const k = s && `${s.strategy}_d${d}_h${s.horizon}`;
+  return k && DATA.schedById.has(k) ? k : id;
+}
+
 export async function loadBase(task = "pusht") {
   const dir = TASKS[task].dir;
   const [eps, sch] = await Promise.all([d3.csv(`${dir}episodes.csv`), d3.json(`${dir}schedules.json`)]);

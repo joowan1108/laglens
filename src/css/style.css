@@ -129,4 +129,8 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .controls .plg .ramp { width: 48px; height: 9px; border: 1px solid #d6d6db; background: linear-gradient(90deg, #8a8a92, #f7f7f8, #5e3c99); }
 .controls .plg .fr { width: 10px; height: 10px; border: 1.6px solid var(--ink); background: #fff; }
 .controls .plg .cu { width: 11px; height: 11px; border: 2.5px solid var(--cand); border-radius: 2px; }
+.controls .plg .nc { width: 10px; height: 10px; background: repeating-linear-gradient(45deg, #d4d4da 0 1.2px, #fff 1.2px 3.5px); border: 1px solid #e3e3e8; }
+.note .moved { color: var(--cand); }
 .controls .plg .gap { width: 6px; }
+.controls .plg { flex-wrap: wrap; column-gap: 12px; row-gap: 2px; }
+.controls .plg .it { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }

@@ -180,7 +180,8 @@ function tipHtml(p) {
   if (p.id === state.ref) html += `<br><b>this is the baseline</b> (the zero line)`;
   else {
     html += `<br><span class="k">vs baseline:</span> <b>${pts100(p.v)} points</b> <span class="k">[${pts100(p.lo)}, ${pts100(p.hi)}], paired</span>`;
-    if (p.f) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost (McNemar p ${p.f.p < 0.001 ? "< 0.001" : `= ${p.f.p.toFixed(3)}`}, corrected q ${p.f.q < 0.001 ? "< 0.001" : `= ${p.f.q.toFixed(3)}`}) · <b>${state.brushed ? "no test on a selection made from the outcomes" : p.sig ? "unlikely to be chance" : "within chance"}</b>`;
+    if (p.f && !p.f.comparable) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost · <b>not tested</b>: differs from the baseline in latency and in strategy or h (read it along its own line)`;
+    else if (p.f) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost (McNemar p ${p.f.p < 0.001 ? "< 0.001" : `= ${p.f.p.toFixed(3)}`}, corrected q ${p.f.q < 0.001 ? "< 0.001" : `= ${p.f.q.toFixed(3)}`}) · <b>${state.brushed ? "no test on a selection made from the outcomes" : p.sig ? "unlikely to be chance" : "within chance"}</b>`;
   }
   if (p.strat !== "sync" && p.d === 0) html += `<br><span class="k">${missingReason(p.strat, 0, p.h)}</span>`;
   return `${html}<br><span class="k">click = candidate · shift-click = baseline</span>`;

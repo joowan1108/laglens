@@ -12,12 +12,17 @@ export const DEFAULTS = {
   brushed: null,           // Set of seeds selected in B (cross-filters A and B)
   hoverSeed: null,
   hoverChunk: null,        // {which: "ref"|"cand", id}
+  moved: null,             // note shown in A when the other side of the pair was moved to stay comparable
 };
 
 export const state = { ...DEFAULTS };
 export const bus = d3.dispatch("change");
 
+// guards rewrite a patch before it is applied (e.g. keep baseline and candidate comparable)
+export const guards = [];
+
 export function update(patch) {
+  for (const g of guards) patch = g(patch, state);
   const keys = Object.keys(patch).filter((k) => state[k] !== patch[k]);
   if (!keys.length) return;
   Object.assign(state, patch);

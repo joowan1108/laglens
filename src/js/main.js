@@ -1,5 +1,5 @@
-import { state, update, bus, DEFAULTS } from "./state.js";
-import { DATA, TASKS, loadBase, loadRun, label } from "./data.js";
+import { state, update, bus, DEFAULTS, guards } from "./state.js";
+import { DATA, TASKS, loadBase, loadRun, label, comparable, atLatency } from "./data.js";
 import { METRICS } from "./util.js";
 import { initResponse, resizeResponse } from "./views/response.js";
 import { initPairs, resizePairs } from "./views/pairs.js";
@@ -17,11 +17,33 @@ function firstFlip(ref, cand) {
   return (gain.length > loss.length ? gain : loss)[0] ?? gain[0] ?? DATA.seeds[0];
 }
 
+// Keep the pair comparable (data.comparable): when a new baseline (or candidate) differs from the other
+// side in latency AND in strategy or h, the other side moves to its own strategy and h at the new latency.
+function keepComparable(patch, st) {
+  if (!("ref" in patch) && !("cand" in patch)) return patch;
+  let ref = patch.ref ?? st.ref, cand = patch.cand ?? st.cand, moved = null;
+  if (!comparable(ref, cand)) {
+    const d = (id) => DATA.schedById.get(id).latency;
+    if ("cand" in patch && !("ref" in patch)) { ref = atLatency(ref, d(cand)); moved = `baseline moved to ${label(ref)}`; }
+    else { cand = atLatency(cand, d(ref)); moved = `candidate moved to ${label(cand)}`; }
+  }
+  return { ...patch, ref, cand, moved };
+}
+guards.push(keepComparable);
+
 function fillPickers() {
   const opts = DATA.schedules.map((s) => s.schedule);
   for (const [sel, key] of [["#refSel", "ref"], ["#candSel", "cand"]]) {
-    d3.select(sel).selectAll("option").data(opts, (d) => d).join("option").attr("value", (d) => d).text((d) => label(d));
+    d3.select(sel).selectAll("option").data(opts, (d) => d).join("option").attr("value", (d) => d);
     d3.select(sel).property("value", state[key]);
+  }
+  markPickers();
+}
+// options that are not comparable with the other side say so (choosing one moves the other side)
+function markPickers() {
+  for (const [sel, other] of [["#refSel", state.cand], ["#candSel", state.ref]]) {
+    d3.select(sel).selectAll("option").text((d) => (comparable(d, other) ? label(d) : `${label(d)}  (moves the other side)`))
+      .style("color", (d) => (comparable(d, other) ? null : "#8a8a92"));
   }
 }
 
@@ -54,7 +76,7 @@ function initPickers() {
   bus.on("change.pickers", (keys) => {
     if (keys.has("ref")) d3.select("#refSel").property("value", state.ref);
     if (keys.has("cand")) d3.select("#candSel").property("value", state.cand);
-    if (keys.has("ref") || keys.has("cand")) { loadRun(state.ref); loadRun(state.cand); }
+    if (keys.has("ref") || keys.has("cand")) { loadRun(state.ref); loadRun(state.cand); markPickers(); }
   });
   d3.select("#swapBtn").on("click", () => update({ ref: state.cand, cand: state.ref }));
   d3.select("#resetBtn").on("click", () => {
@@ -95,6 +117,7 @@ function applyParams() {
   if (p.has("sel")) patch.brushed = new Set(p.get("sel").split(",").map(Number));
   for (const k of ["ref", "cand"]) if (patch[k] && !DATA.schedById.has(patch[k])) delete patch[k];
   Object.assign(state, patch);
+  if (!comparable(state.ref, state.cand)) state.cand = atLatency(state.cand, DATA.schedById.get(state.ref).latency);
 }
 
 async function main() {

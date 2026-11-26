@@ -43,12 +43,12 @@ with sync_playwright() as p:
     ok("pair overview frames pairs whose paired difference is unlikely to be chance",
        pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>r.getAttribute('stroke')==='#1d1d1f').length") > 0)
     cell = pg.evaluate("""(()=>{const c=[...document.querySelectorAll('#pairs rect.pc')].map(r=>d3.select(r).datum())
-      .findIndex(q=>!q.diag && q.r.id==='sync_d2_h8' && q.c.id==='naive_d4_h8'); return c;})()""")
+      .findIndex(q=>!q.diag && q.r.id==='sync_d4_h8' && q.c.id==='naive_d4_h8'); return c;})()""")
     pg.locator("#pairs rect.pc").nth(cell).hover(force=True)
     ok("pair overview tooltip gives rescued / lost start states and the chance level",
        pg.is_visible("#tooltip") and "rescued" in pg.inner_text("#tooltip") and "chance" in pg.inner_text("#tooltip"))
     pg.locator("#pairs rect.pc").nth(cell).click(force=True)
-    ok("clicking a cell sets baseline (row) and candidate (column)", S("ref") == "sync_d2_h8" and S("cand") == "naive_d4_h8")
+    ok("clicking a cell sets baseline (row) and candidate (column)", S("ref") == "sync_d4_h8" and S("cand") == "naive_d4_h8")
     ok("the selected pair is marked in the overview", pg.locator("#pairs rect.cur").count() == 1)
     # "my latency": only the schedules at d = 4 (+ sync d0 reference), values printed in the cells
     pg.click("#pairControls .dseg button:has-text('d = 4')"); pg.wait_for_timeout(300)
@@ -58,7 +58,15 @@ with sync_playwright() as p:
     pg.click("#pairControls .dseg button:has-text('all latencies')"); pg.wait_for_timeout(300)
     ok("A back to all latencies", S("dfocus") is None and pg.locator("#pairs rect.pc").count() == 196)
     nfr = pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>r.getAttribute('stroke')==='#1d1d1f').length")
-    ok("A frames are corrected for 91 comparisons (FDR): 48 framed ordered cells in PushT, not 64", nfr == 48)
+    ok("A frames are corrected over the 61 comparable pairs (FDR): 34 framed ordered cells in PushT (17 pairs)", nfr == 34)
+    nnc = pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>d3.select(r).datum().nc).length")
+    ok("A hatches the 30 pairs that differ in latency and in strategy or h (60 ordered cells), not clickable", nnc == 60)
+    pg.evaluate("window.LagLens.update({ref:'sync_d2_h4', cand:'sync_d2_h4'})"); pg.evaluate("window.LagLens.update({cand:'inpaint_d4_h8'})"); pg.wait_for_timeout(200)
+    ok("choosing a candidate at another latency moves the baseline to its strategy and h at that latency (and says so)",
+       S("ref") == "sync_d4_h4" and S("cand") == "inpaint_d4_h8" and "baseline moved" in pg.inner_text("#pairNote"))
+    pg.evaluate("window.LagLens.update({ref:'naive_d2_h8'})"); pg.wait_for_timeout(200)
+    ok("choosing a baseline at another latency moves the candidate", S("cand") == "inpaint_d2_h8" and "candidate moved" in pg.inner_text("#pairNote"))
+    pg.evaluate("window.LagLens.update({ref:'sync_d4_h8', cand:'naive_d4_h8'})"); pg.wait_for_timeout(200)
     pg.wait_for_timeout(300)
     # B follows A: 0 = the chosen baseline, every schedule re-compared against it
     zero = lambda: pg.evaluate("[...document.querySelectorAll('#response g.pm')].map(g=>d3.select(g).datum()).find(p=>p.id===window.LagLens.state.ref).v")
@@ -66,7 +74,7 @@ with sync_playwright() as p:
     v_before = pg.evaluate("d3.select([...document.querySelectorAll('#response g.pm')].find(g=>d3.select(g).datum().id==='inpaint_d4_h4')).datum().v")
     pg.locator("#pairs text.rowL").nth(0).click(force=True)
     v_after = pg.evaluate("d3.select([...document.querySelectorAll('#response g.pm')].find(g=>d3.select(g).datum().id==='inpaint_d4_h4')).datum().v")
-    ok("a row label in A sets only the baseline, and B's values change with it", S("cand") == "naive_d4_h8" and S("ref") != "sync_d2_h8" and v_before != v_after)
+    ok("a row label in A sets only the baseline, and B's values change with it", S("cand") == "naive_d4_h8" and S("ref") != "sync_d4_h8" and v_before != v_after)
     pg.locator("#pairs rect.pc").nth(cell).click(force=True)
     ok("B marks the candidate's distance to the baseline", pg.locator("#response g.rg").count() >= 1)
     n = {sel: pg.locator(sel).count() for sel in ["#response g.pm", "#seedtable rect.c", "#seedtable g.db", "#workspace g.wp", "#pairs rect.pc", "#timeline .bars rect", "#timeline .think rect"]}
