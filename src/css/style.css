@@ -36,11 +36,13 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 
 #app {
   height: calc(100vh - 48px); min-height: 760px; padding: 10px; display: grid; gap: 10px;
-  grid-template-columns: minmax(520px, 45fr) minmax(600px, 55fr);
+  grid-template-columns: minmax(760px, 57fr) minmax(500px, 43fr);
 }
 .col { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
-#pA { flex: 43 1 0; } #pB { flex: 57 1 0; }
-#pC { flex: 54 1 0; } #pD { flex: 46 1 0; }
+.row { display: flex; gap: 10px; min-height: 0; min-width: 0; }
+#rowTop { flex: 47 1 0; } #pC { flex: 53 1 0; }
+#pA { flex: 54 1 0; } #pB { flex: 46 1 0; }
+#pD { flex: 56 1 0; } #pE { flex: 44 1 0; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
 .ph { padding: 8px 12px 2px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .pl { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; background: var(--ink); color: #fff; font-size: 11px; }
@@ -117,10 +119,11 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .tasksw .seg button, #topbar .actions button { white-space: nowrap; }
 .tasksw { flex: none; } .pickers, .actions { flex: none; }
 
-/* A's tabs: pair overview | latency response */
-.atabs { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-left: 2px; }
-.atabs button { border: none; border-radius: 0; padding: 2px 9px; font-weight: 700; font-size: 12.5px; border-right: 1px solid var(--line); background: #fff; color: var(--muted); }
-.atabs button:last-child { border-right: none; }
-.atabs button.on { background: #1d1d1f; color: #fff; }
 .pickers .hint { color: #5e3c99; }
 .controls .sw.okb { background: #222; border-color: #222; } .controls .sw.okc { background: #E69F00; border-color: #E69F00; margin-right: 3px; }
+/* A's legend: diverging ramp + frame + current pair, in one line above the matrix */
+.controls .plg { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 11px; }
+.controls .plg .ramp { width: 56px; height: 9px; border: 1px solid #d6d6db; background: linear-gradient(90deg, #8a8a92, #f7f7f8, #5e3c99); }
+.controls .plg .fr { width: 10px; height: 10px; border: 1.6px solid var(--ink); background: #fff; }
+.controls .plg .cu { width: 11px; height: 11px; border: 2.5px solid var(--cand); border-radius: 2px; }
+.controls .plg .gap { width: 6px; }

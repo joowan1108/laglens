@@ -35,7 +35,7 @@ async function setTask(task) {
   const ref = keep(state.ref, DEFAULTS.ref), cand = keep(state.cand, DEFAULTS.cand);
   Object.assign(state, { ref, cand });
   fillPickers();
-  update({ task, seed: firstFlip(ref, cand), t: 0, win: null, brushed: null, hoverSeed: null, hoverChunk: null });
+  update({ task, seed: firstFlip(ref, cand), win: null, brushed: null, hoverSeed: null, hoverChunk: null });
 }
 
 function initTaskSwitch() {
@@ -60,20 +60,6 @@ function initPickers() {
   d3.select("#resetBtn").on("click", () => {
     update({ ...DEFAULTS, task: state.task, seed: firstFlip(DEFAULTS.ref, DEFAULTS.cand), brushed: null });
   });
-}
-
-// A has two tabs: the pair overview (where to look) and the latency-response curves.
-function initATabs() {
-  const btns = d3.select("#aTabs").selectAll("button").on("click", function () { update({ aview: this.dataset.v }); });
-  const show = () => {
-    btns.classed("on", function () { return this.dataset.v === state.aview; });
-    d3.select("#pairs").style("display", state.aview === "pairs" ? null : "none");
-    d3.select("#response").style("display", state.aview === "latency" ? null : "none");
-    d3.select("#responseControls .legend").style("display", state.aview === "latency" ? null : "none");
-  };
-  show();
-  requestAnimationFrame(() => { resizePairs(); resizeResponse(); });  // after the tab's layout is final
-  bus.on("change.atabs", (keys) => { if (keys.has("aview")) { show(); requestAnimationFrame(() => { resizePairs(); resizeResponse(); }); } });
 }
 
 function initGuide() {
@@ -103,7 +89,6 @@ function applyParams() {
   const p = new URLSearchParams(location.search);
   const patch = {};
   for (const k of ["ref", "cand"]) if (p.has(k)) patch[k] = p.get(k);
-  if (["pairs", "latency"].includes(p.get("aview"))) patch.aview = p.get("aview");
   for (const k of ["seed", "t"]) if (p.has(k)) patch[k] = +p.get(k);
   if (p.has("win")) patch.win = p.get("win").split(",").map(Number);
   if (p.has("sel")) patch.brushed = new Set(p.get("sel").split(",").map(Number));
@@ -121,19 +106,21 @@ async function main() {
   if (state.seed === null) state.seed = firstFlip(state.ref, state.cand);
   initTaskSwitch();
   initPickers();
-  initResponse();
   initPairs();
-  initATabs();
+  initResponse();
   initSeedTable();
   initWorkspace();
   initTimeline();
   initGuide();
   initKeys();
   let raf = null;
-  window.addEventListener("resize", () => {
+  const resizeAll = () => {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => { resizePairs(); resizeResponse(); resizeSeedTable(); resizeWorkspace(); resizeTimeline(); });
-  });
+  };
+  window.addEventListener("resize", resizeAll);
+  resizeAll();  // after the first layout (notes and legends may wrap once text is in place)
+  if (document.fonts) document.fonts.ready.then(resizeAll);
   window.LagLens = { state, update, DATA }; // for scripted screenshots / tests
 }
 

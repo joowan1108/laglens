@@ -35,8 +35,9 @@ with sync_playwright() as p:
     ok("guide shown on first visit", pg.is_visible("#guide"))
     pg.click("#guideClose")
     ok("guide closes", not pg.is_visible("#guide"))
-    # A opens on the pair overview: every baseline → candidate pair, coloured by the paired difference
-    ok("A opens on the pair overview", S("aview") == "pairs" and pg.is_visible("#pairs") and not pg.is_visible("#response"))
+    # A pair overview and B latency response are both on screen, side by side
+    ok("A pair overview and B latency response are shown together", pg.is_visible("#pairs") and pg.is_visible("#response")
+       and pg.locator("#pA").bounding_box()["x"] < pg.locator("#pB").bounding_box()["x"])
     npc = pg.locator("#pairs rect.pc").count()
     ok("pair overview shows every pair of schedules (14 × 14)", npc == 14 * 14)
     ok("pair overview frames pairs whose paired difference is unlikely to be chance",
@@ -49,36 +50,44 @@ with sync_playwright() as p:
     pg.locator("#pairs rect.pc").nth(cell).click(force=True)
     ok("clicking a cell sets baseline (row) and candidate (column)", S("ref") == "sync_d2_h8" and S("cand") == "naive_d4_h8")
     ok("the selected pair is marked in the overview", pg.locator("#pairs rect.cur").count() == 1)
-    ok("A asks one question (success): no question buttons", pg.locator("#responseControls .metricbar button").count() == 0)
-    pg.click("#aTabs button[data-v=latency]")
-    ok("tab switches A to the latency-response curves", S("aview") == "latency" and pg.is_visible("#response") and not pg.is_visible("#pairs"))
     pg.wait_for_timeout(300)
-    n = {sel: pg.locator(sel).count() for sel in ["#response g.pm", "#seedtable rect.c", "#seedtable g.db", "#workspace g.wp", "#timeline .bars rect", "#timeline .think rect"]}
+    # B follows A: 0 = the chosen baseline, every schedule re-compared against it
+    zero = lambda: pg.evaluate("[...document.querySelectorAll('#response g.pm')].map(g=>d3.select(g).datum()).find(p=>p.id===window.LagLens.state.ref).v")
+    ok("B puts the baseline chosen in A on the zero line", zero() == 0)
+    v_before = pg.evaluate("d3.select([...document.querySelectorAll('#response g.pm')].find(g=>d3.select(g).datum().id==='inpaint_d4_h4')).datum().v")
+    pg.locator("#pairs text.rowL").nth(0).click(force=True)
+    v_after = pg.evaluate("d3.select([...document.querySelectorAll('#response g.pm')].find(g=>d3.select(g).datum().id==='inpaint_d4_h4')).datum().v")
+    ok("a row label in A sets only the baseline, and B's values change with it", S("cand") == "naive_d4_h8" and S("ref") != "sync_d2_h8" and v_before != v_after)
+    pg.locator("#pairs rect.pc").nth(cell).click(force=True)
+    ok("B marks the candidate's distance to the baseline", pg.locator("#response g.rg").count() >= 1)
+    n = {sel: pg.locator(sel).count() for sel in ["#response g.pm", "#seedtable rect.c", "#seedtable g.db", "#workspace g.wp", "#pairs rect.pc", "#timeline .bars rect", "#timeline .think rect"]}
     log.append(f"rendered marks: {n}")
-    ok("all four views rendered (A curves, B cells + dumbbells, C boards, D tracks)", all(v > 0 for v in n.values()))
+    ok("all five views rendered (A matrix, B curves, C cells + dumbbells, D board, E tracks)", all(v > 0 for v in n.values()))
 
-    # A (latency tab): click = candidate, shift-click = baseline, tooltip with Δ vs baseline, legend hover
+    # B: click = candidate, shift-click = baseline, tooltip with Δ vs baseline, legend hover
     idx_of = lambda sid: pg.evaluate(f"[...document.querySelectorAll('#response g.pm')].findIndex(g=>d3.select(g).datum().id==={sid!r})")
     target = pg.evaluate("window.LagLens.DATA.schedules.filter(s=>!s.replicate).map(s=>s.schedule).find(s=>s!==window.LagLens.state.cand && s!==window.LagLens.state.ref && s!=='sync_d2_h8')")
     marks = pg.locator("#response g.pm")
     marks.nth(idx_of(target)).locator("circle.hit").click(force=True)
-    ok("A click sets candidate", S("cand") == target)
+    ok("B click sets candidate", S("cand") == target)
     marks.nth(idx_of("sync_d2_h8")).locator("circle.hit").click(modifiers=["Shift"], force=True)
-    ok("A shift-click sets reference", S("ref") == "sync_d2_h8")
+    ok("B shift-click sets reference", S("ref") == "sync_d2_h8")
     marks.nth(idx_of(target)).locator("circle.hit").hover(force=True)
-    ok("A tooltip gives the paired difference to the baseline", pg.is_visible("#tooltip") and "vs baseline:" in pg.inner_text("#tooltip"))
+    ok("B tooltip gives the paired difference to the baseline", pg.is_visible("#tooltip") and "vs baseline:" in pg.inner_text("#tooltip"))
     pg.hover("#responseControls .legend .li[data-strat=naive]")
     faded = pg.evaluate("[...document.querySelectorAll('#response g.sl')].filter(g=>+g.getAttribute('opacity')<0.5).length")
-    ok("A legend hover highlights one strategy", faded > 0)
+    ok("B legend hover highlights one strategy", faded > 0)
     pg.mouse.move(5, 5)
 
-    # B: the chosen pair only; cell click opens a start state; dumbbells = largest jump; brush -> A
-    ok("B has no controls of its own", pg.locator("#seedControls button, #seedControls select").count() == 0)
-    ok("B shows two outcome cells (baseline, candidate) per start state", pg.locator("#seedtable rect.c").count() == 2 * 30)
-    ok("B groups rows by baseline→candidate change", pg.locator("#seedtable g.band").count() >= 2)
-    ok("B dumbbells show the largest jump at a chunk switch", "largest jump" in pg.inner_text("#seedControls"))
+    # C: the chosen pair only; cell click opens a start state; dumbbells = largest jump; brush -> A, B
+    ok("C has no controls of its own", pg.locator("#seedControls button, #seedControls select").count() == 0)
+    ok("C shows two outcome cells (baseline, candidate) per start state", pg.locator("#seedtable rect.c").count() == 2 * 30)
+    ok("C groups rows by baseline→candidate change", pg.locator("#seedtable g.band").count() >= 2)
+    ok("C dumbbells show the largest jump at a chunk switch", "largest jump" in pg.inner_text("#seedControls"))
     pg.locator("#seedtable rect.c").nth(20).click()
-    ok("B cell click selects seed", S("seed") is not None)
+    ok("C cell click selects seed", S("seed") is not None)
+    pg.wait_for_timeout(400)
+    ok("D opens the new start state where the two runs first part, not at t = 0", S("t") > 0)
     start = pg.evaluate("""(()=>{
       const ov=document.querySelector('#seedtable .brush .overlay'); const r=ov.getBoundingClientRect();
       for (const fy of [0.3, 0.2, 0.4, 0.5, 0.6]) for (let fx=0.05; fx<0.95; fx+=0.05) { const x=r.x+r.width*fx, y0=r.y+r.height*fy, y1=y0+r.height*0.25;
@@ -86,36 +95,41 @@ with sync_playwright() as p:
       return null;})()""")
     pg.mouse.move(start[0], start[1]); pg.mouse.down(); pg.mouse.move(start[2], start[3], steps=6); pg.mouse.up()
     br = pg.evaluate("window.LagLens.state.brushed ? window.LagLens.state.brushed.size : 0")
-    ok("B brush selects seeds", br > 0)
-    ok("A recomputes on the selected seeds (cross-filter)", "selected in B" in pg.inner_text("#responseNote"))
+    ok("C brush selects seeds", br > 0)
+    ok("A and B recompute on the selected seeds (cross-filter)", "selected in C" in pg.inner_text("#responseNote") and "selected" in pg.inner_text("#pairNote"))
     dimmed = pg.evaluate("[...document.querySelectorAll('#seedtable rect.c')].filter(r=>+r.getAttribute('opacity')<0.5).length")
-    ok("B rows outside the selection are dimmed", dimmed > 0 or br == 30)
+    ok("C rows outside the selection are dimmed", dimmed > 0 or br == 30)
     pg.keyboard.press("Escape"); ok("Esc clears seed selection", S("brushed") is None)
     pg.locator("#seedtable g.band").first.click(force=True)
-    ok("B band header click selects its seeds", S("brushed") is not None)
+    ok("C band header click selects its seeds", S("brushed") is not None)
     pg.keyboard.press("Escape")
     pg.wait_for_timeout(500)
 
-    # C: player
+    # D: player
     pg.click("#player button:has-text('▶ play')"); pg.wait_for_timeout(700); pg.click("#player button:has-text('pause')")
-    ok("C play advances time", S("t") > 0)
+    ok("D play advances time", S("t") > 0)
     pg.keyboard.press("ArrowRight"); t1 = S("t"); pg.keyboard.press("ArrowLeft")
-    ok("C keyboard stepping", S("t") == t1 - 1)
+    ok("D keyboard stepping", S("t") == t1 - 1)
     pg.locator("#workspace .fan circle").first.hover(force=True)
-    ok("C fan tooltip", pg.is_visible("#tooltip"))
-    ok("C shows what the policy saw (outline at the picture time)", pg.locator("#workspace g.sn path.sb").count() >= 1)
-    ok("C status line says how outdated the plan is", "moved" in pg.inner_text("#workspace") or "idle" in pg.inner_text("#workspace"))
-    ok("D shows only think / act / jumps (no extra strips)", pg.locator("#timeline g.use, #timeline g.prov, #timeline path.mot").count() == 0)
+    ok("D fan tooltip", pg.is_visible("#tooltip"))
+    ok("D shows what the policy saw (outline at the picture time)", pg.locator("#workspace g.sn path.sb").count() >= 1)
+    ok("D side cards say how outdated each plan is", "moved" in pg.inner_text("#workspace") or "idle" in pg.inner_text("#workspace"))
+    ok("D overlays baseline and candidate on one board", pg.locator("#workspace g.board").count() == 1 and pg.locator("#workspace g.board g.wp").count() == 2)
+    pg.locator("#workspace g.card").nth(1).hover()
+    ok("D card hover shows that run alone", pg.evaluate("+document.querySelectorAll('#workspace g.wp')[0].getAttribute('opacity')") < 0.5
+       or pg.evaluate("+document.querySelectorAll('#workspace g.wp')[1].getAttribute('opacity')") < 0.5)
+    pg.mouse.move(5, 5)
+    ok("E shows only think / act / jumps (no extra strips)", pg.locator("#timeline g.use, #timeline g.prov, #timeline path.mot").count() == 0)
 
-    # D: hover a chunk -> hoverChunk, brush window
+    # E: hover a chunk -> hoverChunk, brush window
     pg.locator("#timeline .bars rect").nth(3).hover()
-    ok("D chunk hover links to C", S("hoverChunk") is not None)
+    ok("E chunk hover links to D", S("hoverChunk") is not None)
     box = pg.locator("#timeline svg").bounding_box()
     y = box["y"] + box["height"] * 0.7
     pg.mouse.move(box["x"] + box["width"] * 0.35, y); pg.mouse.down()
     pg.mouse.move(box["x"] + box["width"] * 0.55, y, steps=6); pg.mouse.up()
-    ok("D brush sets window", S("win") is not None)
-    ok("C draws brushed window path", pg.evaluate("document.querySelector('#workspace .pathWin').getAttribute('d')") is not None)
+    ok("E brush sets window", S("win") is not None)
+    ok("D draws brushed window path", pg.evaluate("document.querySelector('#workspace .pathWin').getAttribute('d')") is not None)
     pg.keyboard.press("Escape"); ok("Esc clears window", S("win") is None)
 
     # header: swap, pickers, reset, resize, URL state
@@ -135,14 +149,13 @@ with sync_playwright() as p:
     pg.wait_for_function("window.LagLens.state.task === 'catch' && document.querySelectorAll('#timeline svg .bars rect').length > 5", timeout=30000)
     pg.wait_for_timeout(600)
     ok("task switch loads Catch the ball", pg.evaluate("window.LagLens.DATA.task") == "catch" and S("ref") == "naive_d4_h4")
-    ok("Catch: C draws the ball and no T", pg.locator("#workspace g.block circle").count() == 2 and pg.locator("#workspace g.block path").count() == 0 and pg.locator("#workspace path.gl").count() == 0)
-    ok("Catch: D shows the pusher–ball distance", "pusher–ball distance" in pg.inner_text("#timeline"))
-    pg.click("#aTabs button[data-v=latency]"); pg.wait_for_timeout(300)
-    ok("Catch: A describes the outcome", "8 s deadline" in pg.inner_text("#pA"))
+    ok("Catch: D draws the ball and no T", pg.locator("#workspace g.block circle").count() == 2 and pg.locator("#workspace g.block path.bl").count() == 0 and pg.locator("#workspace path.gl").count() == 0)
+    ok("Catch: E shows the pusher–ball distance", "pusher–ball distance" in pg.inner_text("#timeline"))
+    ok("Catch: D cards give the distance to the ball", "distance to ball" in pg.inner_text("#workspace"))
     pg.click("#taskSeg button:has-text('PushT')")
-    pg.wait_for_function("window.LagLens.state.task === 'pusht' && document.querySelectorAll('#workspace g.block path').length == 2", timeout=30000)
+    pg.wait_for_function("window.LagLens.state.task === 'pusht' && document.querySelectorAll('#workspace g.block path.bl').length == 2", timeout=30000)
     ok("task switch back to PushT (T-goal and T-block again, no ball)", pg.evaluate("window.LagLens.DATA.task") == "pusht"
-       and pg.locator("#workspace path.gl").count() == 2 and pg.locator("#workspace g.block circle").count() == 0)
+       and pg.locator("#workspace path.gl").count() == 1 and pg.locator("#workspace g.block circle").count() == 0)
     pg.goto(f"http://127.0.0.1:{port}/index.html?noguide&task=catch&ref=sync_d4_h4&cand=inpaint_d4_h4")
     pg.wait_for_function("window.LagLens && document.querySelectorAll('#timeline svg .bars rect').length > 5", timeout=30000)
     ok("URL ?task=catch opens the Catch data", pg.evaluate("window.LagLens.DATA.task") == "catch")

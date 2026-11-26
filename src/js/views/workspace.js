@@ -1,6 +1,7 @@
-// View C: juxtaposed replays of the selected seed under baseline and candidate (same scale, same
-// seed), showing only what explains the action at time t: the plan being executed, what the policy
-// saw when it planned it, and the most recent jump at a chunk switch.
+// View D: replay of the selected start state, baseline (near-black) and candidate (orange) overlaid
+// on one board, showing only what explains the action at time t: the plan being executed, what the
+// policy saw when it planned it, and the most recent jump at a chunk switch. Side cards name each run
+// and say what it is doing; hovering a card shows that run alone.
 import { state, update, bus } from "../state.js";
 import { DATA, loadRun, activeChunk, STRAT_LABEL } from "../data.js";
 const BALL_R = 25; // Catch the ball: ball radius (scripts/catch_task.py)
@@ -42,100 +43,114 @@ export function togglePlay() {
   }, 50); // one step per 50 ms = 2× real time (1 step = 100 ms)
 }
 
+// The replay opens where the two runs first part (pushers more than SPLIT px apart), not at t = 0
+// where both boards look the same; a time given in the URL or a brushed window is kept.
+const SPLIT = 30;
+let opened = null, keepUrlT = new URLSearchParams(location.search).has("t");
+function firstSplit(r, c) {
+  const n = Math.min(r.n, c.n);
+  for (let t = 0; t < n; t++) if (Math.hypot(r.ax[t] - c.ax[t], r.ay[t] - c.ay[t]) > SPLIT) return t;
+  return null;
+}
+
 async function load() {
   if (state.seed === null) return;
   const [r, c] = await Promise.all([loadRun(state.ref), loadRun(state.cand)]);
   eps = { ref: r.bySeed.get(state.seed), cand: c.bySeed.get(state.seed) };
   maxN = Math.max(eps.ref.n, eps.cand.n);
   slider.attr("max", maxN - 1);
-  d3.select("#seedLabel").text(`initial state: seed ${state.seed}`);
-  render();
+  d3.select("#seedLabel").text(`start state ${state.seed}`);
+  opened = firstSplit(eps.ref, eps.cand);
+  if (keepUrlT || state.win) { keepUrlT = false; render(); return; }
+  const t0 = opened ?? 0;
+  if (t0 !== state.t) update({ t: t0 }); else render();
 }
 
-// What the robot is doing at t, in the vocabulary of the strategies.
+// What the robot is doing at t, in the vocabulary of the strategies (one short phrase per line).
 function status(e, t) {
   // a failed run ends at the deadline: say so on its last step too, with the rule it missed
   const end = e.success ? t >= e.n : t >= e.n - 1;
-  if (end) return { k: "done", text: e.success ? (DATA.task === "catch" ? "finished: ball touched" : "finished: block in goal")
-    : (DATA.task === "catch" ? "8 s deadline passed, ball not touched" : "time out (300 steps)") };
-  if (e.chunk[t] < 0) return { k: "wait", text: "idle: waiting for inference" };
+  if (end) return { k: "done", lines: [e.success ? (DATA.task === "catch" ? "finished: ball touched" : "finished: block in goal")
+    : (DATA.task === "catch" ? "8 s deadline passed" : "time out (300 steps)")] };
+  if (e.chunk[t] < 0) return { k: "wait", lines: ["idle: waiting for the plan"] };
   // how outdated the plan is: the robot's motion since the picture the current plan was made from
   const c = activeChunk(e, t), to = Math.min(c.t_obs, e.n - 1);
   const moved = Math.hypot(e.ax[t] - e.ax[to], e.ay[t] - e.ay[to]);
-  return { k: "act", text: `plan made from a picture ${e.age[t]} steps old · robot moved ${moved.toFixed(0)} px since` };
+  return { k: "act", lines: [`acting on a plan from a picture ${e.age[t]} steps old`, `moved ${moved.toFixed(0)} px since that picture`] };
 }
+
+let focus = null;  // run hovered in the side cards: the other run is dimmed
 
 function render() {
   if (!eps.ref) return;
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
-  const gap = 14, head = 36;
-  const side = Math.max(120, Math.min((w - gap - 8) / 2, h - head - 4));
-  const offX = (w - (2 * side + gap)) / 2;
-  const panels = [
-    { which: "ref", e: eps.ref, id: state.ref, col: COLOR.ref, txt: COLOR.ref, x: offX },
-    { which: "cand", e: eps.cand, id: state.cand, col: COLOR.cand, txt: "#9a6a00", x: offX + side + gap },
-  ];
+  const cardW = Math.max(170, Math.min(240, w * 0.36));
+  const side = Math.max(140, Math.min(h - 6, w - cardW - 16));
   const s = d3.scaleLinear().domain([0, 512]).range([0, side]);
   slider.property("value", state.t);
   tval.text(`t = ${state.t} (${(state.t / 10).toFixed(1)} s)`);
+  const ball = DATA.task === "catch";
+  const runs = [
+    { which: "ref", e: eps.ref, id: state.ref, col: COLOR.ref, txt: COLOR.ref, role: "Baseline" },
+    { which: "cand", e: eps.cand, id: state.cand, col: COLOR.cand, txt: "#9a6a00", role: "Candidate" },
+  ];
+  const hcWhich = state.hoverChunk ? state.hoverChunk.which : null;
+  const lit = (p) => (!(focus || hcWhich) || (focus || hcWhich) === p.which ? 1 : 0.15);
+  const line = d3.line().x((d) => s(d[0])).y((d) => s(d[1]));
+  const tee = (x, y, th) => teePaths(x, y, th).map((poly) => line([...poly, poly[0]])).join(" ");
 
-  const pg = svg.selectAll("g.wp").data(panels, (d) => d.which).join((en) => {
-    const g = en.append("g").attr("class", "wp");
-    g.append("text").attr("class", "wt1").attr("font-weight", 700).attr("font-size", 11.5);
-    g.append("text").attr("class", "wt2").attr("font-size", 10.5).attr("fill", COLOR.muted);
-    const b = g.append("g").attr("class", "board");
-    b.append("rect").attr("class", "bg");
-    b.append("g").attr("class", "goal");
-    b.append("g").attr("class", "block");
-    b.append("g").attr("class", "seen").attr("pointer-events", "none");
-    b.append("path").attr("class", "pathNow");
-    b.append("path").attr("class", "pathWin");
-    b.append("g").attr("class", "fan");
-    b.append("g").attr("class", "seam").attr("pointer-events", "none");
-    b.append("circle").attr("class", "agent").attr("pointer-events", "none"); // agent and seam never block hover on plan points
+  // one board, both runs on it: same start state, so where they part is seen directly
+  const b = svg.selectAll("g.board").data([0]).join((en) => {
+    const g = en.append("g").attr("class", "board");
+    g.append("rect").attr("class", "bg"); g.append("g").attr("class", "goal"); g.append("g").attr("class", "runs");
     return g;
-  }).attr("transform", (d) => `translate(${d.x},0)`);
+  }).attr("transform", "translate(2,3)");
+  b.select(".bg").attr("width", side).attr("height", side).attr("fill", "#fafafb").attr("stroke", "#d0d0d6").attr("rx", 4);
+  b.select(".goal").selectAll("path.gl").data(ball ? [] : [0]).join("path").attr("class", "gl").attr("d", tee(...GOAL))
+    .attr("fill", "#e9e9ee").attr("stroke", COLOR.goal).attr("stroke-dasharray", "4 3").attr("stroke-width", 1.2);
 
-  pg.each(function (p) {
+  const layers = b.select(".runs").selectAll("g.wp").data(runs, (d) => d.which).join((en) => {
+    const g = en.append("g").attr("class", "wp");
+    g.append("g").attr("class", "block");
+    g.append("g").attr("class", "seen").attr("pointer-events", "none");
+    g.append("path").attr("class", "pathNow");
+    g.append("path").attr("class", "pathWin");
+    g.append("g").attr("class", "fan");
+    g.append("g").attr("class", "seam").attr("pointer-events", "none");
+    g.append("circle").attr("class", "agent").attr("pointer-events", "none"); // agent and seam never block hover on plan points
+    return g;
+  }).attr("opacity", lit);
+  // the focused run is drawn on top
+  layers.sort((a, c) => (lit(a) - lit(c)) || (a.which === "ref" ? -1 : 1));
+
+  layers.each(function (p) {
     const g = d3.select(this), e = p.e;
     const t = Math.min(state.t, e.n - 1);
     const st = status(e, state.t);
-    const ball = DATA.task === "catch";
-    const cov = ball ? null : e.cov[Math.min(state.t, e.n)];
-    const dist = ball ? e.dist[Math.min(state.t, e.n)] : null;
-    g.select(".wt1").attr("y", 13).attr("fill", p.txt)
-      .text(`${p.which === "ref" ? "Baseline" : "Candidate"} · ${shortLab(p.id)} · ${e.success ? "✓ success" : "✗ failure"}`);
-    g.select(".wt2").attr("y", 28).text(`${ball ? `distance to ball ${Math.round(dist)} px · ` : cov === null || cov === undefined ? "" : `coverage ${Math.round(cov * 100)}%${st.k === "done" ? " (need > 95%)" : ""} · `}${st.text}`)
-      .attr("fill", st.k === "wait" ? "#0072B2" : COLOR.muted);
-    const b = g.select(".board").attr("transform", `translate(0,${head})`);
-    b.select(".bg").attr("width", side).attr("height", side).attr("fill", "#fafafb").attr("stroke", "#d0d0d6").attr("rx", 4);
-    const line = d3.line().x((d) => s(d[0])).y((d) => s(d[1]));
-    const tee = (x, y, th) => teePaths(x, y, th).map((poly) => line([...poly, poly[0]])).join(" ");
-    // PushT: T-goal and T-block; Catch: the ball (grey disk) and the path it has rolled so far
-    b.select(".goal").selectAll("path.gl").data(ball ? [] : [0]).join("path").attr("class", "gl").attr("d", tee(...GOAL))
-      .attr("fill", "#e9e9ee").attr("stroke", COLOR.goal).attr("stroke-dasharray", "4 3").attr("stroke-width", 1.2);
+    p.st = st;
     const bt = Math.min(state.t, e.n);
-    b.select(".goal").selectAll("path.bpath").data(ball ? [0] : []).join("path").attr("class", "bpath")
+    // PushT: this run's T-block, outlined in the run's colour; Catch: the ball and the path it rolled
+    g.select(".block").selectAll("path.bl").data(ball ? [] : [0]).join("path").attr("class", "bl").attr("d", () => tee(e.bx[t], e.by[t], e.bth[t]))
+      .attr("fill", COLOR.block).attr("fill-opacity", 0.55).attr("stroke", p.col).attr("stroke-width", 1.6);
+    g.select(".block").selectAll("path.bpath").data(ball ? [0] : []).join("path").attr("class", "bpath")
       .attr("d", () => line(d3.range(bt + 1).map((k) => [e.bx[k], e.by[k]]))).attr("fill", "none")
       .attr("stroke", COLOR.block).attr("stroke-width", 1.2).attr("stroke-dasharray", "2 3");
-    b.select(".block").selectAll("path.bl").data(ball ? [] : [0]).join("path").attr("class", "bl").attr("d", () => tee(e.bx[t], e.by[t], e.bth[t]))
-      .attr("fill", COLOR.block).attr("fill-opacity", 0.9).attr("stroke", "#7b7f88");
-    b.select(".block").selectAll("circle").data(ball ? [0] : []).join("circle")
+    g.select(".block").selectAll("circle").data(ball ? [0] : []).join("circle")
       .attr("cx", s(e.bx[bt])).attr("cy", s(e.by[bt])).attr("r", s(BALL_R))
-      .attr("fill", COLOR.block).attr("fill-opacity", 0.9).attr("stroke", "#7b7f88");
+      .attr("fill", COLOR.block).attr("fill-opacity", 0.55).attr("stroke", p.col).attr("stroke-width", 1.6);
 
     const pts = d3.range(e.n).map((k) => [e.ax[k], e.ay[k]]);
-    b.select(".pathNow").attr("d", line(pts.slice(0, t + 1))).attr("fill", "none").attr("stroke", p.col)
+    g.select(".pathNow").attr("d", line(pts.slice(0, t + 1))).attr("fill", "none").attr("stroke", p.col)
       .attr("stroke-opacity", state.win ? 0.18 : 0.35).attr("stroke-width", 1.3);
-    b.select(".pathWin").attr("d", state.win ? line(pts.slice(state.win[0], Math.min(e.n, state.win[1] + 1))) : null)
+    g.select(".pathWin").attr("d", state.win ? line(pts.slice(state.win[0], Math.min(e.n, state.win[1] + 1))) : null)
       .attr("fill", "none").attr("stroke", p.col).attr("stroke-opacity", 0.8).attr("stroke-width", 2.2).attr("stroke-linecap", "round");
 
-    // plan being executed (or the chunk hovered in D)
+    // plan being executed (or the chunk hovered in E)
     const hc = state.hoverChunk && state.hoverChunk.which === p.which ? e.chunks[state.hoverChunk.id] : null;
     const ch = hc || activeChunk(e, t);
-    drawFan(b.select(".fan"), ch, p, s, line, e);
-    drawSeen(b.select(".seen"), ch, p, s, tee, e, t);
+    drawFan(g.select(".fan"), ch, p, s, line, e);
+    drawSeen(g.select(".seen"), ch, p, s, tee, e, t);
 
     // most recent seam at or before t: hollow = what the old chunk planned next, line = the jump
     let seam = null;
@@ -144,7 +159,7 @@ function render() {
       const jOld = d3.max([...prev.execJ.keys()]) + 1;
       if (jOld < prev.a.length) seam = { from: prev.a[jOld], to: e.act[ch.t0], gap: e.seamAt.get(ch.t0), age: t - ch.t0 };
     }
-    const sg = b.select(".seam").selectAll("g.sm").data(seam && seam.gap >= 8 ? [seam] : []).join((en) => {
+    const sg = g.select(".seam").selectAll("g.sm").data(seam && seam.gap >= 8 ? [seam] : []).join((en) => {
       const q = en.append("g").attr("class", "sm"); q.append("line"); q.append("circle"); q.append("text"); return q;
     }).attr("opacity", (d) => 1 - d.age / (SEAM_SHOW + 2));
     sg.select("line").attr("x1", (d) => s(d.from[0])).attr("y1", (d) => s(d.from[1])).attr("x2", (d) => s(d.to[0])).attr("y2", (d) => s(d.to[1]))
@@ -152,12 +167,40 @@ function render() {
     sg.select("circle").attr("cx", (d) => s(d.from[0])).attr("cy", (d) => s(d.from[1])).attr("r", 4).attr("fill", "#fff").attr("stroke", COLOR.seam).attr("stroke-width", 1.6);
     sg.select("text").attr("x", (d) => s((d.from[0] + d.to[0]) / 2) + 6).attr("y", (d) => s((d.from[1] + d.to[1]) / 2) - 6)
       .attr("font-size", 10.5).attr("font-weight", 700).attr("fill", COLOR.seam).attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
-      .text((d) => `discontinuity ${d.gap.toFixed(0)} px`);
+      .text((d) => `jump ${d.gap.toFixed(0)} px`);
 
-    b.select(".agent").attr("cx", s(e.ax[t])).attr("cy", s(e.ay[t])).attr("r", s(AGENT_R))
+    g.select(".agent").attr("cx", s(e.ax[t])).attr("cy", s(e.ay[t])).attr("r", s(AGENT_R))
       .attr("fill", p.col).attr("fill-opacity", st.k === "wait" ? 0.08 : 0.3).attr("stroke", p.col).attr("stroke-width", 2)
       .attr("stroke-dasharray", st.k === "wait" ? "3 2" : null);
   });
+
+  // side cards: who is who, the outcome, and what each robot is doing now; hover = show only that run
+  const cx = side + 16;
+  const cards = svg.selectAll("g.card").data(runs, (d) => d.which).join((en) => {
+    const g = en.append("g").attr("class", "card").style("cursor", "default");
+    g.append("rect").attr("class", "cbg"); g.append("circle").attr("class", "sw");
+    g.append("text").attr("class", "c1"); g.append("text").attr("class", "c2"); g.append("text").attr("class", "c3");
+    g.append("g").attr("class", "cs");
+    return g;
+  }).attr("transform", (d, i) => `translate(${cx},${6 + i * 96})`)
+    .on("mouseenter", (ev, d) => { focus = d.which; render(); }).on("mouseleave", () => { focus = null; render(); });
+  cards.select(".cbg").attr("x", -6).attr("y", -4).attr("width", Math.max(60, w - cx - 2)).attr("height", 88).attr("rx", 6)
+    .attr("fill", (d) => (focus === d.which ? "#f4f4f6" : "#fff")).attr("stroke", (d) => d.col).attr("stroke-opacity", 0.5);
+  cards.select(".sw").attr("cx", 6).attr("cy", 9).attr("r", 6).attr("fill", (d) => d.col).attr("fill-opacity", 0.3).attr("stroke", (d) => d.col).attr("stroke-width", 2);
+  cards.select(".c1").attr("x", 18).attr("y", 13).attr("font-weight", 800).attr("font-size", 12).attr("fill", (d) => d.txt)
+    .text((d) => `${d.role} ${d.e.success ? "✓" : "✗"}`);
+  cards.select(".c2").attr("x", 0).attr("y", 30).attr("font-size", 11).attr("font-weight", 600).attr("fill", COLOR.ink).text((d) => shortLab(d.id));
+  cards.select(".c3").attr("x", 0).attr("y", 46).attr("font-size", 11).attr("fill", COLOR.muted).text((d) => {
+    const k = Math.min(state.t, d.e.n);
+    return ball ? `distance to ball ${Math.round(d.e.dist[k])} px` : `coverage ${Math.round(d.e.cov[k] * 100)} % (need > 95 %)`;
+  });
+  cards.select(".cs").selectAll("text").data((d) => d.st.lines.map((l) => ({ l, k: d.st.k }))).join("text")
+    .attr("x", 0).attr("y", (q, i) => 62 + i * 14).attr("font-size", 11).attr("fill", (q) => (q.k === "wait" ? "#0072B2" : COLOR.muted))
+    .attr("font-weight", (q) => (q.k === "act" ? 400 : 700)).text((q) => q.l);
+  svg.selectAll("text.split").data([0]).join("text").attr("class", "split").attr("x", cx).attr("y", 6 + 2 * 96 + 10)
+    .attr("font-size", 10.5).attr("fill", COLOR.muted)
+    .text(opened === null ? "the two runs never part by more than 30 px" : `t = ${opened}: the two runs first part here`)
+    .style("cursor", opened === null ? null : "pointer").on("click", () => { if (opened !== null) update({ t: opened }); });
 }
 
 // What the policy saw: block and pusher in the camera picture the shown chunk was planned from

@@ -1,38 +1,42 @@
 PASS  guide shown on first visit
 PASS  guide closes
-PASS  A opens on the pair overview
+PASS  A pair overview and B latency response are shown together
 PASS  pair overview shows every pair of schedules (14 × 14)
 PASS  pair overview frames pairs whose paired difference is unlikely to be chance
 PASS  pair overview tooltip gives rescued / lost start states and the chance level
 PASS  clicking a cell sets baseline (row) and candidate (column)
 PASS  the selected pair is marked in the overview
-PASS  A asks one question (success): no question buttons
-PASS  tab switches A to the latency-response curves
-rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#timeline .bars rect': 58, '#timeline .think rect': 58}
-PASS  all four views rendered (A curves, B cells + dumbbells, C boards, D tracks)
-PASS  A click sets candidate
-PASS  A shift-click sets reference
-PASS  A tooltip gives the paired difference to the baseline
-PASS  A legend hover highlights one strategy
-PASS  B has no controls of its own
-PASS  B shows two outcome cells (baseline, candidate) per start state
-PASS  B groups rows by baseline→candidate change
-PASS  B dumbbells show the largest jump at a chunk switch
-PASS  B cell click selects seed
-PASS  B brush selects seeds
-PASS  A recomputes on the selected seeds (cross-filter)
-PASS  B rows outside the selection are dimmed
+PASS  B puts the baseline chosen in A on the zero line
+PASS  a row label in A sets only the baseline, and B's values change with it
+PASS  B marks the candidate's distance to the baseline
+rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 196, '#timeline .bars rect': 58, '#timeline .think rect': 58}
+PASS  all five views rendered (A matrix, B curves, C cells + dumbbells, D board, E tracks)
+PASS  B click sets candidate
+PASS  B shift-click sets reference
+PASS  B tooltip gives the paired difference to the baseline
+PASS  B legend hover highlights one strategy
+PASS  C has no controls of its own
+PASS  C shows two outcome cells (baseline, candidate) per start state
+PASS  C groups rows by baseline→candidate change
+PASS  C dumbbells show the largest jump at a chunk switch
+PASS  C cell click selects seed
+PASS  D opens the new start state where the two runs first part, not at t = 0
+PASS  C brush selects seeds
+PASS  A and B recompute on the selected seeds (cross-filter)
+PASS  C rows outside the selection are dimmed
 PASS  Esc clears seed selection
-PASS  B band header click selects its seeds
-PASS  C play advances time
-PASS  C keyboard stepping
-PASS  C fan tooltip
-PASS  C shows what the policy saw (outline at the picture time)
-PASS  C status line says how outdated the plan is
-PASS  D shows only think / act / jumps (no extra strips)
-PASS  D chunk hover links to C
-PASS  D brush sets window
-PASS  C draws brushed window path
+PASS  C band header click selects its seeds
+PASS  D play advances time
+PASS  D keyboard stepping
+PASS  D fan tooltip
+PASS  D shows what the policy saw (outline at the picture time)
+PASS  D side cards say how outdated each plan is
+PASS  D overlays baseline and candidate on one board
+PASS  D card hover shows that run alone
+PASS  E shows only think / act / jumps (no extra strips)
+PASS  E chunk hover links to D
+PASS  E brush sets window
+PASS  D draws brushed window path
 PASS  Esc clears window
 PASS  swap R/C
 PASS  candidate picker
@@ -40,9 +44,9 @@ PASS  reset
 PASS  survives resize
 PASS  URL state restores R, C, seed, t and selection
 PASS  task switch loads Catch the ball
-PASS  Catch: C draws the ball and no T
-PASS  Catch: D shows the pusher–ball distance
-PASS  Catch: A describes the outcome
+PASS  Catch: D draws the ball and no T
+PASS  Catch: E shows the pusher–ball distance
+PASS  Catch: D cards give the distance to the ball
 PASS  task switch back to PushT (T-goal and T-block again, no ball)
 PASS  URL ?task=catch opens the Catch data
 console errors/warnings: 0

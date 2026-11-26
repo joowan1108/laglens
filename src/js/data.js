@@ -24,7 +24,7 @@ export const DATA = {
 export const STRATEGIES = ["sync", "naive", "inpaint"];
 export const STRAT_LABEL = { sync: "Sync", naive: "Naive async", inpaint: "Inpaint async" };
 export const LATENCIES = [0, 2, 4];
-export const HORIZONS = [8, 4];
+export const HORIZONS = [4, 8];  // same order as the Pair Overview
 
 export function label(id) {
   const s = DATA.schedById.get(id);

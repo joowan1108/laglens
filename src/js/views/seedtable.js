@@ -90,11 +90,11 @@ function render() {
     .attr("fill", (d) => (outcome(d.c.id, d.seed) ? d.c.col : COLOR.fail)).attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
     .on("mousemove", (ev, d) => {
       const e = DATA.ep.get(d.c.id).get(d.seed);
-      showTip(ev, `<b>start state ${d.seed}</b> · ${d.c.t}: ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br><span class="k">this start state succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)} % of all schedules</span><br><span class="k">click = replay this start state in C and D</span>`);
+      showTip(ev, `<b>start state ${d.seed}</b> · ${d.c.t}: ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br><span class="k">this start state succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)} % of all schedules</span><br><span class="k">click = replay this start state in D and E</span>`);
       if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });
     })
     .on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
-    .on("click", (ev, d) => update({ seed: d.seed, t: 0, win: null }))
+    .on("click", (ev, d) => update({ seed: d.seed, win: null }))
     .transition().duration(300).attr("y", (d) => rows.get(d.seed).y);
 
   // row labels
@@ -102,7 +102,7 @@ function render() {
     .attr("font-size", Math.min(9.5, rh)).attr("x", left - 4).attr("text-anchor", "end").attr("dy", "0.8em")
     .attr("font-weight", (d) => (d.seed === state.seed ? 800 : 400)).attr("fill", (d) => (d.seed === state.seed ? COLOR.sel : null))
     .text((d) => (rh >= 9.5 || d.seed === state.seed ? d.seed : "")).style("cursor", "pointer")
-    .on("click", (ev, d) => update({ seed: d.seed, t: 0, win: null }))
+    .on("click", (ev, d) => update({ seed: d.seed, win: null }))
     .transition().duration(300).attr("y", (d) => d.y);
   const matW = matR - left;
 
@@ -187,7 +187,7 @@ function render() {
       <span class="k">(${EP_ATTRS[k]})</span><br><span class="k">click = open episode · drag vertically = select seeds</span>`);
     if (state.hoverSeed !== r.seed) update({ hoverSeed: r.seed });
   }).on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
-    .on("click", (ev, r) => update({ seed: r.seed, t: 0, win: null }));
+    .on("click", (ev, r) => update({ seed: r.seed, win: null }));
 
   // selected / hovered row outline across the matrix
   const hl = [state.seed, state.hoverSeed].filter((s) => s !== null && rows.has(s));

@@ -119,7 +119,7 @@ function render() {
         if (!hov(d)) update({ hoverChunk: { which: L.which, id: d.i } });
         const seamGap = e.seamAt.get(d.c.t0);
         const js = [...d.c.execJ.keys()];
-        showTip(ev, `<b>${L.which === "ref" ? "baseline" : "candidate"} chunk #${d.i}</b> (plan shown in view C)<br><span class="k">think</span> t=${d.c.t_obs} → ${d.c.t_avail} · <span class="k">act</span> t=${d.c.t0}–${d.c.t1}<br>
+        showTip(ev, `<b>${L.which === "ref" ? "baseline" : "candidate"} chunk #${d.i}</b> (plan shown in view D)<br><span class="k">think</span> t=${d.c.t_obs} → ${d.c.t_avail} · <span class="k">act</span> t=${d.c.t0}–${d.c.t1}<br>
           <span class="k">executed actions</span> ${d3.min(js)}–${d3.max(js)} of 16 · <span class="k">picture age</span> ${d.c.t0 - d.c.t_obs}–${d.c.t1 - d.c.t_obs} steps<br>
           ${seamGap !== undefined ? `<span class="k">boundary discontinuity at its start:</span> <b>${seamGap.toFixed(1)} px</b>` : ""}<br><span class="k">click = jump to its first action</span>`);
       })
