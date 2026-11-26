@@ -134,7 +134,7 @@ function render() {
       ${Mt.label}: ${fmtMetric(state.metric, aggregate(q.r.id, state.metric, seeds).v)} → ${fmtMetric(state.metric, aggregate(q.c.id, state.metric, seeds).v)}
       (paired ${fmtMetric(state.metric, q.v, true)}${rel ? "" : `, 95 % interval ${fmtMetric(state.metric, q.lo, true)} … ${fmtMetric(state.metric, q.hi, true)}`})<br>
       ${rel ? `on the same start states: <b>${rel.gain} rescued</b>, <b>${rel.loss} lost</b> of ${rel.n} (McNemar p = ${rel.p < 0.001 ? "< 0.001" : rel.p.toFixed(3)}, corrected q = ${rel.q < 0.001 ? "< 0.001" : rel.q.toFixed(3)}) · chance level (re-run): ${rel.chance} flips<br>` : ""}
-      ${seeds ? "no test on a selection made from the outcomes" : q.sig ? `<b>${better ? "candidate better" : "candidate worse"}, unlikely to be chance</b> (FDR 5 %)` : "difference within chance (after correcting for ${qValues().size} comparisons)"}<br><span class="k">click = compare this pair in all views</span>`);
+      ${seeds ? "no test on a selection made from the outcomes" : q.sig ? `<b>${better ? "candidate better" : "candidate worse"}, unlikely to be chance</b> (FDR 5 %)` : `difference within chance (after correcting for ${qValues().size} comparisons)`}<br><span class="k">click = compare this pair in all views</span>`);
   }).on("mouseleave", hideTip)
     .on("click", (ev, q) => { if (!q.diag && !q.nc) { hideTip(); update({ ref: q.r.id, cand: q.c.id }); } });
 
