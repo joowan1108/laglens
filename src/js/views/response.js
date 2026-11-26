@@ -82,7 +82,7 @@ function render() {
     .attr("x", (d) => x(d - 0.42)).attr("width", (d) => x(d + 0.42) - x(d - 0.42)).attr("y", m.t).attr("height", h - m.t - m.b).attr("fill", "#ececf3").lower();
   svg.select("rect.pbg").lower();
   svg.selectAll("text.dbt").data(state.dfocus !== null ? [state.dfocus] : []).join("text").attr("class", "dbt axis-title")
-    .attr("x", (d) => x(d)).attr("y", m.t + 11).attr("text-anchor", "middle").attr("font-size", 9.5).text("my latency");
+    .attr("x", (d) => x(d)).attr("y", h - m.b - 4).attr("text-anchor", "middle").attr("font-size", 9.5).text("my latency");
   svg.selectAll("g.grid").data([0]).join("g").attr("class", "grid gridline").attr("transform", `translate(${m.l},0)`)
     .call(d3.axisLeft(y).tickValues(ticks).tickSize(-(w - m.l - m.r)).tickFormat("")).call((q) => q.select(".domain").remove());
   svg.selectAll("g.yax").data([0]).join("g").attr("class", "axis yax").attr("transform", `translate(${m.l},0)`)
