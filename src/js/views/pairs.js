@@ -2,8 +2,9 @@
 // chosen from what the data show instead of from a drop-down. Rows = baseline, columns = candidate,
 // both ordered strategy → h → d. A cell's colour is the mean paired difference candidate − baseline
 // over the same start states for the question chosen in the bar (purple = candidate better, grey =
-// candidate worse, white = no difference); a dark frame marks cells whose 95 % interval of the paired
-// difference excludes 0, i.e. differences that are unlikely to be chance. Click a cell = load that pair.
+// candidate worse, white = no difference); a dark frame marks differences that are unlikely to be chance:
+// for success (binary, paired) an exact McNemar test on the start states that flip, p < 0.05; for the
+// cost questions the 95 % interval of the paired difference excludes 0. Click a cell = load that pair.
 import { state, update, bus } from "../state.js";
 import { DATA, STRATEGIES, HORIZONS, LATENCIES, label, aggregate } from "../data.js";
 import { COLOR, STRAT_COLOR, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
@@ -43,7 +44,8 @@ function render() {
   for (const r of S) for (const c of S) {
     if (r.id === c.id) { cells.push({ r, c, diag: true }); continue; }
     const a = aggregate(c.id, state.metric, seeds, r.id);
-    cells.push({ r, c, v: a.v, lo: a.lo, hi: a.hi, n: a.n, sig: a.lo > 0 || a.hi < 0 });
+    const f = state.metric === "success_rate" ? flips(r.id, c.id, seeds) : null;
+    cells.push({ r, c, v: a.v, lo: a.lo, hi: a.hi, n: a.n, f, sig: f ? f.p < 0.05 : a.lo > 0 || a.hi < 0 });
   }
   const M = d3.max(cells, (q) => (q.diag ? 0 : Math.abs(q.v))) || 1;
   const col = (v) => {
@@ -89,12 +91,12 @@ function render() {
   sel.on("mousemove", (ev, q) => {
     if (q.diag) return;
     const Mt = METRICS[state.metric];
-    const rel = state.metric === "success_rate" ? flips(q.r.id, q.c.id, seeds) : null;
+    const rel = q.f;
     const better = q.v * sign() > 0;
     showTip(ev, `<b>baseline</b> ${label(q.r.id)}<br><b>candidate</b> ${label(q.c.id)}<br>
       ${Mt.label}: ${fmtMetric(state.metric, aggregate(q.r.id, state.metric, seeds).v)} → ${fmtMetric(state.metric, aggregate(q.c.id, state.metric, seeds).v)}
-      (paired ${fmtMetric(state.metric, q.v, true)}, 95 % interval ${fmtMetric(state.metric, q.lo, true)} … ${fmtMetric(state.metric, q.hi, true)})<br>
-      ${rel ? `on the same start states: <b>${rel.gain} rescued</b>, <b>${rel.loss} lost</b> of ${rel.n} · chance level (re-run): ${rel.chance} flips<br>` : ""}
+      (paired ${fmtMetric(state.metric, q.v, true)}${rel ? "" : `, 95 % interval ${fmtMetric(state.metric, q.lo, true)} … ${fmtMetric(state.metric, q.hi, true)}`})<br>
+      ${rel ? `on the same start states: <b>${rel.gain} rescued</b>, <b>${rel.loss} lost</b> of ${rel.n} (exact McNemar p = ${rel.p < 0.001 ? "< 0.001" : rel.p.toFixed(3)}) · chance level (re-run): ${rel.chance} flips<br>` : ""}
       ${q.sig ? `<b>${better ? "candidate better" : "candidate worse"}, unlikely to be chance</b>` : "difference within chance"}<br><span class="k">click = compare this pair in all views</span>`);
   }).on("mouseleave", hideTip)
     .on("click", (ev, q) => { if (!q.diag) { hideTip(); update({ ref: q.r.id, cand: q.c.id }); } });
@@ -108,7 +110,7 @@ function render() {
   legend(m, S, cs, M, col, X, Y);
   noteSel.html(`Every cell compares two schedules on the <b>same ${seeds ? seeds.size : DATA.seeds.length} start states</b>${seeds ? " selected in B (Esc clears)" : ""}:
     colour = mean paired difference candidate − baseline in <b>${METRICS[state.metric].label}</b> (<span style="color:${BETTER};font-weight:700">purple = candidate better</span>,
-    grey = candidate worse); <b>framed</b> = 95 % interval excludes 0, i.e. unlikely to be chance. Start with a framed, dark cell; <b>click it</b> to load the pair in B, C and D.`);
+    grey = candidate worse); <b>framed</b> = unlikely to be chance (${state.metric === "success_rate" ? "exact McNemar test on the start states that flip, p &lt; 0.05" : "95 % interval of the paired difference excludes 0"}). Start with a framed, dark cell; <b>click it</b> to load the pair in B, C and D.`);
 }
 
 function flips(r, c, seeds) {
@@ -118,7 +120,16 @@ function flips(r, c, seeds) {
   const rep = DATA.schedules.find((x) => x.replicate);
   let chance = "–";
   if (rep) { const A = DATA.ep.get(rep.schedule), B = DATA.ep.get(`sync_d${rep.latency}_h${rep.horizon}`); chance = S.filter((s) => A.get(s)?.success !== B.get(s)?.success).length; }
-  return { gain, loss, n: S.length, chance };
+  return { gain, loss, n: S.length, chance, p: mcnemar(gain, loss) };
+}
+
+// exact two-sided McNemar test = binomial sign test on the discordant start states
+function mcnemar(g, l) {
+  const n = g + l;
+  if (!n) return 1;
+  let tail = 0, c = 1;  // c = C(n, i)
+  for (let i = 0; i <= Math.min(g, l); i++) { tail += c; c = (c * (n - i)) / (i + 1); }
+  return Math.min(1, (2 * tail) / 2 ** n);
 }
 
 function legend(m, S, cs, M, col, X, Y) {
