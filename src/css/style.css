@@ -122,8 +122,11 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .pickers .hint { color: #5e3c99; }
 .controls .sw.okb { background: #222; border-color: #222; } .controls .sw.okc { background: #E69F00; border-color: #E69F00; margin-right: 3px; }
 /* A's legend: diverging ramp + frame + current pair, in one line above the matrix */
+.controls .plgwrap { display: inline-flex; flex-wrap: wrap; gap: 2px 10px; }
+.controls .dseg button { font-weight: 600; }
+.controls .dseg button.on { background: var(--ink); color: #fff; }
 .controls .plg { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 11px; }
-.controls .plg .ramp { width: 56px; height: 9px; border: 1px solid #d6d6db; background: linear-gradient(90deg, #8a8a92, #f7f7f8, #5e3c99); }
+.controls .plg .ramp { width: 48px; height: 9px; border: 1px solid #d6d6db; background: linear-gradient(90deg, #8a8a92, #f7f7f8, #5e3c99); }
 .controls .plg .fr { width: 10px; height: 10px; border: 1.6px solid var(--ink); background: #fff; }
 .controls .plg .cu { width: 11px; height: 11px; border: 2.5px solid var(--cand); border-radius: 2px; }
 .controls .plg .gap { width: 6px; }

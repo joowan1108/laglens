@@ -63,10 +63,12 @@ function render() {
   // chance level: how many seeds flip when the same schedule is simply re-run with new noise
   const rep = DATA.schedules.find((x) => x.replicate);
   const base = rep && DATA.schedById.get(rep.schedule.replace(/_r\d+$/, ""));
-  const nFlip = rep && base ? DATA.seeds.filter((s) => outcome(rep.schedule, s) !== outcome(base.schedule, s)).length : null;
+  // start states whose outcome flips on a plain re-run of the same schedule: their flips are the least trustworthy
+  const noisy = new Set(rep && base ? DATA.seeds.filter((s) => outcome(rep.schedule, s) !== outcome(base.schedule, s)) : []);
+  const nFlip = rep && base ? noisy.size : null;
   const cnt = d3.rollup(DATA.seeds, (v) => v.length, band);
   d3.select("#seedNote").html(`<b>${cnt.get("gain") || 0} rescued</b>, <b>${cnt.get("loss") || 0} lost</b> of ${DATA.seeds.length} start states
-    ${nFlip !== null ? `· by chance alone (same schedule re-run) ${nFlip} flip` : ""}`);
+    ${nFlip !== null ? `· by chance alone (same schedule re-run) ${nFlip} flip; <b>≈</b> marks those start states` : ""}`);
   ctrSel.html(`<span>one row per start state · <span class="sw okb"></span><span class="sw okc"></span> success under baseline / candidate, empty = failure · right: largest jump at a chunk switch</span>`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
@@ -90,7 +92,7 @@ function render() {
     .attr("fill", (d) => (outcome(d.c.id, d.seed) ? d.c.col : COLOR.fail)).attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
     .on("mousemove", (ev, d) => {
       const e = DATA.ep.get(d.c.id).get(d.seed);
-      showTip(ev, `<b>start state ${d.seed}</b> · ${d.c.t}: ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br><span class="k">this start state succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)} % of all schedules</span><br><span class="k">click = replay this start state in D and E</span>`);
+      showTip(ev, `<b>start state ${d.seed}</b> · ${d.c.t}: ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br><span class="k">this start state succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)} % of all schedules</span>${noisy.has(d.seed) ? `<br><b>≈ noisy</b>: flips when the same schedule is simply re-run` : ""}<br><span class="k">click = replay this start state in D and E</span>`);
       if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });
     })
     .on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
@@ -105,6 +107,9 @@ function render() {
     .on("click", (ev, d) => update({ seed: d.seed, win: null }))
     .transition().duration(300).attr("y", (d) => d.y);
   const matW = matR - left;
+  svg.selectAll("text.nz").data(order.filter((r) => noisy.has(r.seed)), (d) => d.seed).join("text").attr("class", "nz")
+    .attr("x", matR + 3).attr("dy", "0.8em").attr("font-size", Math.min(11, rh + 2)).attr("font-weight", 700).attr("fill", COLOR.muted)
+    .attr("pointer-events", "none").text("≈").transition().duration(300).attr("y", (d) => d.y - 1);
 
   // ---- paired shift (dumbbells) ---------------------------------------------------------------
   const k = K;
@@ -155,7 +160,7 @@ function render() {
   }).attr("transform", (g) => `translate(0,${g.y})`).raise();
   bh.select(".bb").attr("x", 2).attr("y", 1).attr("width", w - 4).attr("height", L.headH - 2).attr("rx", 3).attr("fill", "#f2f2f5");
   bh.select(".bt").attr("x", 6).attr("y", L.headH - 4).attr("font-size", 10).attr("font-weight", 700)
-    .text((g) => `${g.name}  ${g.seeds.length}`);
+    .text((g) => { const z = g.seeds.filter((x) => noisy.has(x)).length; return `${g.name}  ${g.seeds.length}${z && (g.key === "gain" || g.key === "loss") ? `  (≈ ${z} noisy)` : ""}`; });
   for (const [cls, which, col] of [["mr", state.ref, COLOR.ref], ["mc", state.cand, COLOR.cand]]) {
     bh.select(`.${cls}`).attr("x1", (g) => x(med(g, which))).attr("x2", (g) => x(med(g, which))).attr("y1", 2).attr("y2", L.headH - 1)
       .attr("stroke", col).attr("stroke-width", 2.5);

@@ -4,6 +4,7 @@ export const DEFAULTS = {
   task: "pusht",           // which task's data: "pusht" | "catch" (data.TASKS)
   ref: "sync_d4_h4",       // reference schedule R (opens on: same 400 ms latency, wait vs. act-while-thinking)
   cand: "inpaint_d4_h4",   // candidate schedule C
+  dfocus: null,            // "my latency" in A: null = all, or 2 / 4 (plus sync d0 as the no-latency reference)
   metric: "success_rate",  // the one question asked: y of A and the dumbbell attribute of B (util.METRICS)
   seed: null,              // selected initial state
   t: 0,                    // replay time step

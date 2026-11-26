@@ -36,7 +36,7 @@ export function initResponse() {
   noteSel = d3.select("#responseNote");
   render();
   bus.on("change.response", (keys) => {
-    if (["task", "ref", "cand", "brushed"].some((k) => keys.has(k))) render();
+    if (["task", "ref", "cand", "brushed", "dfocus"].some((k) => keys.has(k))) render();
   });
 }
 
@@ -49,7 +49,7 @@ function points() {
     const dl = self ? { v: 0, lo: 0, hi: 0 } : aggregate(s.schedule, "success_rate", state.brushed, state.ref);
     const f = self ? null : flips(state.ref, s.schedule, state.brushed);
     out.push({ id: s.schedule, strat: s.strategy, d: s.latency, h: s.horizon, rep: !!s.replicate, abs: a.v, n: a.n,
-      v: dl.v, lo: dl.lo, hi: dl.hi, f, sig: !!f && f.p < 0.05 });
+      v: dl.v, lo: dl.lo, hi: dl.hi, f, sig: !!f && f.sig });
   }
   return out;
 }
@@ -66,7 +66,9 @@ function render() {
   svg.attr("width", w).attr("height", h);
   const pts = points();
   const base = aggregate(state.ref, "success_rate", state.brushed)?.v ?? 0;
-  noteSel.html(`0 = the baseline chosen in A; each point = that schedule's success minus the baseline's on the same ${state.brushed ? `<b>${n} start states selected in C</b> (Esc clears)` : `${n} start states`} · filled = unlikely to be chance`);
+  noteSel.html(state.brushed
+    ? `0 = the baseline chosen in A; points = success minus the baseline's on the <b>${n} start states selected in C</b> (Esc clears) · no filled points: the selection was made from the outcomes`
+    : `0 = the baseline chosen in A; each point = that schedule's success minus the baseline's on the same ${n} start states · filled = unlikely to be chance (FDR 5 %)`);
   const m = { l: 40, r: 30, t: 10, b: 34 };
   const x = d3.scaleLinear().domain([-0.45, LATENCIES[LATENCIES.length - 1] + 0.45]).range([m.l, w - m.r]);
   // the scale covers exactly 0 … 100 % success, shifted so that the baseline sits at 0
@@ -75,6 +77,12 @@ function render() {
 
   svg.selectAll("rect.pbg").data([0]).join("rect").attr("class", "pbg").attr("x", m.l).attr("y", m.t)
     .attr("width", w - m.l - m.r).attr("height", h - m.t - m.b).attr("fill", "#fafafb");
+  // "my latency" chosen in A: its column is shaded
+  svg.selectAll("rect.dband").data(state.dfocus !== null ? [state.dfocus] : []).join("rect").attr("class", "dband")
+    .attr("x", (d) => x(d - 0.42)).attr("width", (d) => x(d + 0.42) - x(d - 0.42)).attr("y", m.t).attr("height", h - m.t - m.b).attr("fill", "#ececf3").lower();
+  svg.select("rect.pbg").lower();
+  svg.selectAll("text.dbt").data(state.dfocus !== null ? [state.dfocus] : []).join("text").attr("class", "dbt axis-title")
+    .attr("x", (d) => x(d)).attr("y", m.t + 11).attr("text-anchor", "middle").attr("font-size", 9.5).text("my latency");
   svg.selectAll("g.grid").data([0]).join("g").attr("class", "grid gridline").attr("transform", `translate(${m.l},0)`)
     .call(d3.axisLeft(y).tickValues(ticks).tickSize(-(w - m.l - m.r)).tickFormat("")).call((q) => q.select(".domain").remove());
   svg.selectAll("g.yax").data([0]).join("g").attr("class", "axis yax").attr("transform", `translate(${m.l},0)`)
@@ -157,7 +165,10 @@ function render() {
     .attr("fill", "#9a6a00").attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
     .text((r) => (r.k === "cand" && Math.abs(r.p.v) > 0.04 ? pts100(r.p.v) : ""));
 
-  svg.selectAll("text.zl").data([0]).join("text").attr("class", "zl").attr("x", w - m.r - 3).attr("text-anchor", "end").attr("y", y(0) + (base > 0.85 ? 12 : -4))
+  // the zero-line label goes to the side away from the baseline's own point
+  const refP = pts.find((p) => p.id === state.ref);
+  const zLeft = refP && px(refP) > (m.l + w - m.r) / 2;
+  svg.selectAll("text.zl").data([0]).join("text").attr("class", "zl").attr("x", zLeft ? m.l + 4 : w - m.r - 3).attr("text-anchor", zLeft ? "start" : "end").attr("y", y(0) + (base > 0.85 ? 12 : -4))
     .attr("font-size", 9.5).attr("fill", COLOR.ref).attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
     .text(`0 = baseline (${Math.round(base * 100)} % success)`);
   svg.selectAll("text.xt").data([0]).join("text").attr("class", "axis-title xt").attr("x", w - m.r).attr("y", h - 4)
@@ -169,7 +180,7 @@ function tipHtml(p) {
   if (p.id === state.ref) html += `<br><b>this is the baseline</b> (the zero line)`;
   else {
     html += `<br><span class="k">vs baseline:</span> <b>${pts100(p.v)} points</b> <span class="k">[${pts100(p.lo)}, ${pts100(p.hi)}], paired</span>`;
-    if (p.f) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost (McNemar p ${p.f.p < 0.001 ? "< 0.001" : `= ${p.f.p.toFixed(3)}`}) · <b>${p.sig ? "unlikely to be chance" : "within chance"}</b>`;
+    if (p.f) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost (McNemar p ${p.f.p < 0.001 ? "< 0.001" : `= ${p.f.p.toFixed(3)}`}, corrected q ${p.f.q < 0.001 ? "< 0.001" : `= ${p.f.q.toFixed(3)}`}) · <b>${state.brushed ? "no test on a selection made from the outcomes" : p.sig ? "unlikely to be chance" : "within chance"}</b>`;
   }
   if (p.strat !== "sync" && p.d === 0) html += `<br><span class="k">${missingReason(p.strat, 0, p.h)}</span>`;
   return `${html}<br><span class="k">click = candidate · shift-click = baseline</span>`;

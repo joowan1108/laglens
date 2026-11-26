@@ -10,7 +10,8 @@ import { DATA, STRATEGIES, HORIZONS, LATENCIES, label, aggregate } from "../data
 import { COLOR, STRAT_COLOR, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
 
 const BETTER = "#5e3c99", WORSE = "#8a8a92", MID = "#f7f7f8";
-const ORDER_H = [4, 8];  // within a strategy: h, then d
+const ORDER_H = [4, 8];
+const SCALE = 0.6;  // colour saturates at ±60 points of success  // within a strategy: h, then d
 let root, svg, noteSel;
 
 export function initPairs() {
@@ -18,12 +19,18 @@ export function initPairs() {
   svg = root.append("svg");
   noteSel = d3.select("#pairNote");
   // legend in one line above the matrix, so the matrix gets the whole panel
-  d3.select("#pairControls").html(`<span class="plg"><span>candidate worse</span><span class="ramp"></span><span>better</span>
-    <span class="gap"></span><span class="fr"></span><span>unlikely to be chance</span>
+  // "my latency": keep only the schedules at one latency, plus sync d0 as the no-latency reference
+  const ctr = d3.select("#pairControls");
+  const seg = ctr.append("span").attr("class", "seg dseg").attr("title", "the latency your robot has: show only the schedules at that latency (plus sync d = 0, the no-latency reference)");
+  ctr.append("span").attr("class", "plgwrap");
+  seg.selectAll("button").data([null, 2, 4]).join("button").text((d) => (d === null ? "all latencies" : `d = ${d}`))
+    .on("click", (ev, d) => update({ dfocus: d }));
+  ctr.select(".plgwrap").html(`<span class="plg" title="candidate − baseline, percentage points of success on the same start states"><span>worse −60</span><span class="ramp"></span><span>+60 better</span>
+    <span class="gap"></span><span class="fr"></span><span title="exact McNemar test on the start states that flip, Benjamini–Hochberg corrected over all 91 pairs (false discovery rate 5 %)">unlikely chance (FDR 5 %)</span>
     <span class="gap"></span><span class="cu"></span><span>current pair</span></span>
-    <span class="plg" style="margin-left:auto"><b>row</b>&nbsp;= baseline · <b>column</b>&nbsp;= candidate</span>`);
+    <span class="plg"><b>row</b>&nbsp;= baseline · <b>column</b>&nbsp;= candidate</span>`);
   bus.on("change.pairs", (keys) => {
-    if (["task", "ref", "cand", "metric", "brushed"].some((k) => keys.has(k))) render();
+    if (["task", "ref", "cand", "metric", "brushed", "dfocus"].some((k) => keys.has(k))) render();
   });
   render();
 }
@@ -33,7 +40,9 @@ function schedules() {
   const out = [];
   for (const s of STRATEGIES) for (const h of ORDER_H) for (const d of LATENCIES) {
     const id = `${s}_d${d}_h${h}`;
-    if (DATA.schedById.has(id)) out.push({ id, s, h, d });
+    if (!DATA.schedById.has(id)) continue;
+    if (state.dfocus !== null && d !== state.dfocus && !(s === "sync" && d === 0)) continue;
+    out.push({ id, s, h, d });
   }
   return out;
 }
@@ -48,16 +57,19 @@ function render() {
   for (const r of S) for (const c of S) {
     if (r.id === c.id) { cells.push({ r, c, diag: true }); continue; }
     const a = aggregate(c.id, state.metric, seeds, r.id);
-    const f = state.metric === "success_rate" ? flips(r.id, c.id, seeds) : null;
-    cells.push({ r, c, v: a.v, lo: a.lo, hi: a.hi, n: a.n, f, sig: f ? f.p < 0.05 : a.lo > 0 || a.hi < 0 });
+    const f = flips(r.id, c.id, seeds);
+    cells.push({ r, c, v: a.v, lo: a.lo, hi: a.hi, n: a.n, f, sig: f.sig });
   }
-  const M = d3.max(cells, (q) => (q.diag ? 0 : Math.abs(q.v))) || 1;
+  const M = SCALE;  // fixed, so a colour means the same difference under every filter and task
   const col = (v) => {
     const t = Math.max(-1, Math.min(1, (v * sign()) / M));
     return t >= 0 ? d3.interpolateRgb(MID, BETTER)(t) : d3.interpolateRgb(MID, WORSE)(-t);
   };
 
-  noteSel.html(`Cell = how much more often the candidate succeeds than the baseline on the same ${seeds ? `${seeds.size} selected` : DATA.seeds.length} start states · <b>click a cell</b> to compare that pair`);
+  d3.select("#pairControls .dseg").selectAll("button").classed("on", (d) => d === state.dfocus);
+  noteSel.html(seeds
+    ? `Cell = success difference on the <b>${seeds.size} start states selected in C</b> · <b>no frames</b>: the selection was made from these outcomes, so testing it again would be circular (Esc clears)`
+    : `Cell = how much more often the candidate succeeds than the baseline on the same ${DATA.seeds.length} start states (number = points when there is room) · <b>click a cell</b> to compare that pair`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const m = { l: 70, t: 50, r: 6, b: 4 };
@@ -96,6 +108,13 @@ function render() {
     .attr("x", (q) => X(q.c.id)).attr("y", (q) => Y(q.r.id)).attr("width", cs - 1).attr("height", cs - 1)
     .attr("fill", (q) => (q.diag ? "#fff" : col(q.v))).attr("stroke", (q) => (q.sig ? COLOR.ink : q.diag ? "#e3e3e8" : "none"))
     .attr("stroke-width", (q) => (q.sig ? 1.6 : 1)).style("cursor", (q) => (q.diag ? "default" : "pointer"));
+  // the value itself, when the cells are big enough to hold it (e.g. with one latency chosen)
+  const showNum = cs >= 22;
+  svg.selectAll("text.pv").data(showNum ? cells.filter((q) => !q.diag) : [], (q) => `${q.r.id}|${q.c.id}`).join("text").attr("class", "pv")
+    .attr("pointer-events", "none").attr("x", (q) => X(q.c.id) + (cs - 1) / 2).attr("y", (q) => Y(q.r.id) + (cs - 1) / 2 + 3.5)
+    .attr("text-anchor", "middle").attr("font-size", Math.min(11, cs * 0.4)).attr("font-weight", (q) => (q.sig ? 700 : 400))
+    .attr("fill", (q) => (Math.abs(q.v) / M > 0.5 ? "#fff" : COLOR.ink))
+    .text((q) => { const k = Math.round(q.v * 100); return k > 0 ? `+${k}` : k < 0 ? `−${-k}` : "0"; });
   sel.on("mousemove", (ev, q) => {
     if (q.diag) return;
     const Mt = METRICS[state.metric];
@@ -104,8 +123,8 @@ function render() {
     showTip(ev, `<b>baseline</b> ${label(q.r.id)}<br><b>candidate</b> ${label(q.c.id)}<br>
       ${Mt.label}: ${fmtMetric(state.metric, aggregate(q.r.id, state.metric, seeds).v)} → ${fmtMetric(state.metric, aggregate(q.c.id, state.metric, seeds).v)}
       (paired ${fmtMetric(state.metric, q.v, true)}${rel ? "" : `, 95 % interval ${fmtMetric(state.metric, q.lo, true)} … ${fmtMetric(state.metric, q.hi, true)}`})<br>
-      ${rel ? `on the same start states: <b>${rel.gain} rescued</b>, <b>${rel.loss} lost</b> of ${rel.n} (exact McNemar p = ${rel.p < 0.001 ? "< 0.001" : rel.p.toFixed(3)}) · chance level (re-run): ${rel.chance} flips<br>` : ""}
-      ${q.sig ? `<b>${better ? "candidate better" : "candidate worse"}, unlikely to be chance</b>` : "difference within chance"}<br><span class="k">click = compare this pair in all views</span>`);
+      ${rel ? `on the same start states: <b>${rel.gain} rescued</b>, <b>${rel.loss} lost</b> of ${rel.n} (McNemar p = ${rel.p < 0.001 ? "< 0.001" : rel.p.toFixed(3)}, corrected q = ${rel.q < 0.001 ? "< 0.001" : rel.q.toFixed(3)}) · chance level (re-run): ${rel.chance} flips<br>` : ""}
+      ${seeds ? "no test on a selection made from the outcomes" : q.sig ? `<b>${better ? "candidate better" : "candidate worse"}, unlikely to be chance</b> (FDR 5 %)` : "difference within chance (after correcting for 91 comparisons)"}<br><span class="k">click = compare this pair in all views</span>`);
   }).on("mouseleave", hideTip)
     .on("click", (ev, q) => { if (!q.diag) { hideTip(); update({ ref: q.r.id, cand: q.c.id }); } });
 
@@ -118,7 +137,36 @@ function render() {
 
 }
 
+// Every unordered pair of schedules (91 for 14) is one exact McNemar test; the frames use
+// Benjamini–Hochberg q-values over that whole family, so about 1 in 20 framed cells may be a false
+// discovery instead of 1 in 20 of all cells. Computed once per task on all start states.
+let qCache = { task: null, q: new Map() };
+function qValues() {
+  if (qCache.task === DATA.task) return qCache.q;
+  const ids = DATA.schedules.filter((x) => !x.replicate).map((x) => x.schedule);
+  const tests = [];
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+    const f = rawFlips(ids[i], ids[j], null);
+    tests.push({ k: pairKey(ids[i], ids[j]), p: mcnemar(f.gain, f.loss) });
+  }
+  tests.sort((a, b) => a.p - b.p);
+  const m = tests.length, q = new Map();
+  let run = 1;
+  for (let i = m - 1; i >= 0; i--) { run = Math.min(run, (tests[i].p * m) / (i + 1)); q.set(tests[i].k, run); }
+  qCache = { task: DATA.task, q };
+  return q;
+}
+const pairKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+
+// Test of one pair: rescued / lost start states, raw p, BH q. On a selection of start states made
+// in C (which is chosen by looking at outcomes) no test is claimed: sig = false.
 export function flips(r, c, seeds) {
+  const f = rawFlips(r, c, seeds);
+  const q = qValues().get(pairKey(r, c)) ?? 1;
+  return { ...f, q, sig: !seeds && q < 0.05 };
+}
+
+function rawFlips(r, c, seeds) {
   const R = DATA.ep.get(r), C = DATA.ep.get(c), S = seeds ? [...seeds] : DATA.seeds;
   let gain = 0, loss = 0;
   for (const s of S) { const a = R.get(s)?.success, b = C.get(s)?.success; if (a === 0 && b === 1) gain++; if (a === 1 && b === 0) loss++; }

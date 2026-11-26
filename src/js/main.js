@@ -90,6 +90,7 @@ function applyParams() {
   const patch = {};
   for (const k of ["ref", "cand"]) if (p.has(k)) patch[k] = p.get(k);
   for (const k of ["seed", "t"]) if (p.has(k)) patch[k] = +p.get(k);
+  if (["2", "4"].includes(p.get("d"))) patch.dfocus = +p.get("d");
   if (p.has("win")) patch.win = p.get("win").split(",").map(Number);
   if (p.has("sel")) patch.brushed = new Set(p.get("sel").split(",").map(Number));
   for (const k of ["ref", "cand"]) if (patch[k] && !DATA.schedById.has(patch[k])) delete patch[k];

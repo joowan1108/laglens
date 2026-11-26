@@ -6,6 +6,11 @@ PASS  pair overview frames pairs whose paired difference is unlikely to be chanc
 PASS  pair overview tooltip gives rescued / lost start states and the chance level
 PASS  clicking a cell sets baseline (row) and candidate (column)
 PASS  the selected pair is marked in the overview
+PASS  A latency filter keeps the d = 4 schedules plus the sync d0 reference (8 × 8)
+PASS  A prints the difference in the cells when there is room
+PASS  B shades my latency
+PASS  A back to all latencies
+PASS  A frames are corrected for 91 comparisons (FDR): 48 framed ordered cells in PushT, not 64
 PASS  B puts the baseline chosen in A on the zero line
 PASS  a row label in A sets only the baseline, and B's values change with it
 PASS  B marks the candidate's distance to the baseline
@@ -18,11 +23,13 @@ PASS  B legend hover highlights one strategy
 PASS  C has no controls of its own
 PASS  C shows two outcome cells (baseline, candidate) per start state
 PASS  C groups rows by baseline→candidate change
+PASS  C marks the start states that flip on a plain re-run (≈)
 PASS  C dumbbells show the largest jump at a chunk switch
 PASS  C cell click selects seed
 PASS  D opens the new start state where the two runs first part, not at t = 0
 PASS  C brush selects seeds
 PASS  A and B recompute on the selected seeds (cross-filter)
+PASS  no significance frames on a selection made in C (circular)
 PASS  C rows outside the selection are dimmed
 PASS  Esc clears seed selection
 PASS  C band header click selects its seeds
