@@ -19,7 +19,7 @@ Useful URL parameters (reproduce a case-study view exactly):
 
 Controls: the baseline / candidate pair and one question bar in A (Success · Idle = cost of sync · Outdated = robot motion while thinking (cost of async) · Discontinuity = cost of naive async) that drives both A and B; everything else is direct manipulation.
 
-Views: **A** Latency Response (curves per horizon, 95 % intervals) · **B** Paired Seed Table (outcome matrix + baseline→candidate dumbbells, cross-filters A) · **C** Workspace Replay · **D** Execution Timeline (think / act tracks, motion track with discontinuity bars). Design rationale with references: `docs/design_rationale.md`.
+Views: **A** Pair Overview (all baseline × candidate pairs, coloured by the paired difference, framed when unlikely to be chance; click a cell to compare that pair) and, as a second tab, Latency Response (curves per horizon, 95 % intervals) · **B** Paired Seed Table (outcome matrix + baseline→candidate dumbbells, cross-filters A) · **C** Workspace Replay · **D** Execution Timeline (think / act tracks, motion track with discontinuity bars). Design rationale with references: `docs/design_rationale.md`.
 
 ## Folder layout
 

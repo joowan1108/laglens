@@ -102,45 +102,40 @@ rbox(906, 15, 236, 26, C, 2.2)
 txt(918, 34, f'<tspan fill="{C}">Candidate</tspan>:  Inpaint, d=4, h=4  ▾', 12.5)
 txt(1166, 34, "?", 14)
 badge(612, 28, 1)
-note(596, 33, "pick two schedules (or click a point in A)", "end")
+note(596, 33, "or pick the two schedules here", "end")
 
-# ---- A latency response
+# ---- A pair overview (default tab) | latency response (second tab)
 rbox(ax, ay, aw, ah)
-txt(ax + 12, ay + 24, "A · Latency response", 15, weight="bold")
+txt(ax + 12, ay + 24, "A ·", 15, weight="bold")
+rbox(ax + 40, ay + 8, 112, 22, fill="#444"); txt(ax + 96, ay + 24, "Pair overview", 12.5, "#fff", "middle")
+rbox(ax + 152, ay + 8, 124, 22); txt(ax + 214, ay + 24, "Latency response", 12.5, INK, "middle")
+note(ax + 284, ay + 24, "2nd tab: success vs latency per h")
 qx = ax + 12
 for lab, wd in [("Success", 66), ("Idle", 44), ("Outdated", 74), ("Discontinuity", 102)]:
-    rbox(qx, ay + 34, wd, 24, fill="#444" if lab == "Success" else None)
-    txt(qx + wd / 2, ay + 51, lab, 12.5, "#fff" if lab == "Success" else INK, "middle")
+    rbox(qx, ay + 38, wd, 22, fill="#444" if lab == "Success" else None)
+    txt(qx + wd / 2, ay + 54, lab, 12.5, "#fff" if lab == "Success" else INK, "middle")
     qx += wd + 6
-badge(qx + 12, ay + 46, 2)
-note(qx + 28, ay + 51, "= y-axis of A, B")
-# one chart, drawn as a schematic
-x0, y0, W, H = ax + 48, ay + 92, 210, 112
-rl(x0, y0 + H, x0, y0 - 4, INK, 1.5); rl(x0, y0 + H, x0 + W + 6, y0 + H, INK, 1.5)
-txt(x0 + W / 2, y0 - 8, "h = 8", 12.5, anchor="middle")
-txt(x0 - 6, y0 + 6, "y", 12.5, GREY, "end")
-txt(x0 + W, y0 + H + 18, "latency d →", 12.5, GREY, "end")
-X = lambda t: x0 + 10 + t * (W - 20)
-Y = lambda v: y0 + H - 8 - v * (H - 16)
-lines = {"sync": ([0, .5, 1], [.95, .6, .12], None),
-         "naive": ([0, .5, 1], [.95, .7, .45], "7 4"),
-         "inpaint": ([0, .5, 1], [.95, .85, .66], "2 4")}
-for s, (ts, vs, dash) in lines.items():
-    curve([(X(t), Y(v)) for t, v in zip(ts, vs)], "#444", 1.8, dash)
-    txt(X(ts[-1]) + (16 if ts[-1] == 1 else 8), Y(vs[-1]) + 5, s, 12, "#444")
-rcirc(X(1), Y(.66), 7, C, 2.2); txt(X(1), Y(.66) - 13, "candidate", 12, "#9a6a00", "middle")
-rcirc(X(1), Y(.12), 7, R, 2.2); txt(X(1), Y(.12) - 13, "baseline", 12, R, "middle")
-rl(X(.5), Y(.6) - 12, X(.5), Y(.6) + 12, GREY, 1.2, over=0)
-# small multiples hint
-for i, h in enumerate([4]):
-    sx, sy = ax + 352 + i * 54, ay + 104
-    rl(sx, sy + 46, sx, sy, GREY, 1.2); rl(sx, sy + 46, sx + 44, sy + 46, GREY, 1.2)
-    curve([(sx + 4, sy + 8), (sx + 20, sy + 18 + i * 4), (sx + 40, sy + 28 + i * 5)], GREY, 1.3)
-    txt(sx + 22, sy - 6, f"h={h}", 11.5, GREY, "middle")
-txt(ax + 340, ay + 172, "same chart for h = 4", 12, "#555")
-txt(ax + 340, ay + 190, "one line per strategy", 12, "#555")
-txt(ax + 340, ay + 208, "| = 95 % interval", 12, "#555")
-note(ax + 12, ay + ah - 10, "click a point = candidate · shift-click = baseline · hover = value")
+badge(qx + 12, ay + 49, 2)
+note(qx + 28, ay + 54, "= A colour, B dumbbells")
+# schematic matrix: rows = baseline, columns = candidate (7 x 7 placeholder cells)
+mx, my, mc, nn = ax + 70, ay + 86, 18, 7
+shade = [[0, 1, 2, 1, 1, 0, 1], [1, 0, 1, 3, 2, 1, 2], [2, 2, 0, 3, 3, 2, 3], [0, 1, 0, 0, 1, 0, 1],
+         [0, 0, 0, 1, 0, 0, 0], [1, 1, 0, 2, 1, 0, 2], [0, 0, 0, 1, 0, 0, 0]]
+fills = ["#ffffff", "#d9d9de", "#a9a9b2", "#555"]
+for i in range(nn):
+    for k in range(nn):
+        rbox(mx + k * mc, my + i * mc, mc - 2, mc - 2, sw=1.0 if shade[i][k] < 3 else 2.2, fill=fills[shade[i][k]] if i != k else "#fff",
+             col=INK if shade[i][k] == 3 else "#bbb")
+rbox(mx + 6 * mc - 3, my + 2 * mc - 3, mc + 4, mc + 4, C, 2.6)
+txt(mx - 8, my + 2 * mc + 12, "baseline ↓", 11.5, R, "end")
+txt(mx + nn * mc / 2, my - 8, "candidate →", 11.5, "#9a6a00", "middle")
+txt(ax + 214, ay + 104, "row = baseline · column = candidate", 12, "#555")
+txt(ax + 214, ay + 122, "shade = how much the candidate changes", 12, "#555")
+txt(ax + 214, ay + 138, "the question on the same start states", 12, "#555")
+txt(ax + 214, ay + 156, "dark frame = unlikely to be chance", 12, "#555")
+badge(ax + 214 + 8, ay + 186, 1)
+note(ax + 236, ay + 191, "click a cell = compare that pair")
+note(ax + 12, ay + ah - 10, "hover = rates, rescued / lost start states, chance level")
 
 # ---- B paired seed table
 rbox(bx, by, bw, bh)

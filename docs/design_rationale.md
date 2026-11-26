@@ -23,7 +23,18 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 - Magnitude: position on a common scale > length > … > luminance > hue.
 - Identity: spatial region > hue > shape.
 
-### A Latency Response (T1 compare trends)
+### A Pair Overview (default tab; T1 compare, explore which pairs differ)
+Added after the proposal feedback: picking baseline and candidate from drop-downs assumed a *lookup* (the analyst already knows which pair matters) and invited trying every combination. The pair is now chosen from an overview of all pairs, which supports *explore* (target and location unknown).
+
+| Decision | Why | Source |
+|---|---|---|
+| Matrix of all ordered pairs: rows = baseline, columns = candidate, ordered strategy → *h* → *d*, with strategy bands on both axes | One mark per comparison shows every pair at once (182 per task), so no combination has to be tried blindly; spatial region (blocks per strategy) separates sync→async from within-strategy comparisons. | [1] |
+| Cell colour = mean paired difference candidate − baseline over the same start states, for the question in the bar | The paired difference is the quantity the tool is built around; the question bar keeps one meaning across A and B. | [8] |
+| Diverging purple ↔ grey with a white midpoint, signed so that purple always means "candidate better" (higher success, lower cost) | Polarity needs a diverging scale; blue–red would collide with the strategy hues (sync blue, naive vermillion) and brown failed the CVD check against vermillion, so the "better" arm uses purple, which is otherwise unused. | [16] |
+| Dark frame = unlikely to be chance: exact McNemar test on the start states that flip (success), 95 % interval of the paired difference excludes 0 (cost questions) | The noise re-run flips 8/30 PushT outcomes, so the eye needs a guard against reading noise; McNemar is the standard test for paired binary outcomes. | [5] |
+| Click a cell = load that pair in all views; hover = rates, rescued / lost start states, *p*, chance level | Details on demand, then drill-down into B–D. | [17] |
+
+### A Latency Response (second tab; T1 compare trends)
 | Decision | Why | Source |
 |---|---|---|
 | Line + point marks; x = latency *d* on its true ratio scale (0, 1, 2, 4, 6 steps); y = metric | The old heatmap encoded the metric with luminance, a low-ranked magnitude channel, and needed a number in every cell. Position on a common scale is the most accurate magnitude channel, and the slope directly shows how quickly a strategy degrades. | [1][2][3] |
