@@ -54,7 +54,7 @@ function points() {
     // its plain re-runs on the same scale: their success minus the baseline's (run 0)
     const re = reruns(s.schedule).map((k) => aggregate(k, state.metric, state.brushed).v).filter((v) => v !== null);
     out.push({ id: s.schedule, strat: s.strategy, d: s.latency, h: s.horizon, abs: a.v, n: a.n,
-      v: dl.v, re, reAbs: re, f, sig: isS() ? !!f && f.sig : true });
+      v: dl.v, re, reAbs: re, f, sig: isS() && !!f && f.sig, nt: !!f && !f.comparable });
   }
   return out;
 }
@@ -75,7 +75,7 @@ function render() {
   for (const p of pts) p.re = p.reAbs.map((v) => v - base);
   noteSel.html(state.brushed
     ? `${isS() ? "Success" : Mt.btn} minus the baseline's on the <b>${n} start states selected in C</b> (Esc clears)${isS() ? " · nothing filled: the selection was made from the outcomes" : ""}`
-    : `Point = that schedule's ${what} minus the baseline's on the same ${n} start states · ${isS() ? "filled = unlikely to be chance (FDR 5 %)" : `<b>${Mt.label}</b>: higher = pays more (costs are described, not tested)`} · small hollow = the same schedule run again`);
+    : `Point = that schedule's ${what} minus the baseline's on the same ${n} start states · ${isS() ? "filled = unlikely to be chance (FDR 5 %) · dashed outline = not compared with this baseline" : `<b>${Mt.label}</b>: higher = pays more (costs are described, not tested, so nothing is filled)`} · small hollow = the same schedule run again · click = candidate, shift-click = baseline`);
   const m = { l: 40, r: 30, t: 10, b: 34 };
   const x = d3.scaleLinear().domain([-0.45, LATENCIES[LATENCIES.length - 1] + 0.45]).range([m.l, w - m.r]);
   // the scale covers exactly 0 … 100 % success, shifted so that the baseline sits at 0
@@ -146,10 +146,11 @@ function render() {
     .attr("cy", (q) => y(q.v)).attr("r", 2.3).attr("fill", "#fafafb").attr("stroke", (q) => STRAT_COLOR[q.strat]).attr("stroke-width", 1);
   mk.select(".sym").attr("transform", (p) => `translate(0,${y(p.v)})`)
     .attr("d", (p) => d3.symbol(STRAT_SYMBOL[p.strat], 44)())
-    .attr("fill", (p) => STRAT_COLOR[p.strat])
-    .attr("fill-opacity", (p) => (p.sig || p.id === state.ref ? 1 : 0.35))
+    .attr("fill", (p) => (p.nt ? "#fafafb" : STRAT_COLOR[p.strat]))
+    .attr("fill-opacity", (p) => (p.nt ? 1 : p.sig || p.id === state.ref ? 1 : 0.35))
     .attr("stroke", (p) => (p.sig ? "#fff" : STRAT_COLOR[p.strat]))
-    .attr("stroke-width", 1);
+    .attr("stroke-dasharray", (p) => (p.nt ? "2 1.5" : null))
+    .attr("stroke-width", (p) => (p.nt ? 1.3 : 1));
   mk.select(".hit").attr("cy", (p) => y(p.v)).attr("r", 6).attr("fill", "transparent");
   mk.on("click", (ev, p) => (ev.shiftKey ? update({ ref: p.id }) : update({ cand: p.id })))
     .on("mouseenter", (ev, p) => { hoverStrat = p.strat; render(); })
@@ -186,11 +187,21 @@ function render() {
     .text((r) => (r.k === "cand" && Math.abs(y(0) - y(r.p.v)) > 16 ? pts100(r.p.v) : ""));
 
   // the zero-line label goes to the side away from the baseline's own point
-  const refP = pts.find((p) => p.id === state.ref);
-  const zLeft = refP && px(refP) > (m.l + w - m.r) / 2;
-  svg.selectAll("text.zl").data([0]).join("text").attr("class", "zl").attr("x", zLeft ? m.l + 4 : w - m.r - 3).attr("text-anchor", zLeft ? "start" : "end").attr("y", y(0) + (y(0) - m.t < 16 ? 12 : -4))
+  const zText = `0 = baseline (${fmtMetric(state.metric, base)}${isS() ? " success" : Mt.pct ? " idle" : " px"})`;
+  const zw = zText.length * 5.3;
+  const spots = [];
+  for (const below of [false, true]) for (const left of [true, false]) {
+    const ty = y(0) + (below ? 12 : -4);
+    if (ty - 10 < m.t || ty > h - m.b) continue;
+    const x0 = left ? m.l + 4 : w - m.r - 3 - zw;
+    const hits = pts.flatMap((p) => [p.v, ...p.re].map((v) => [px(p), y(v)]))
+      .filter(([qx, qy]) => qx > x0 - 7 && qx < x0 + zw + 7 && qy > ty - 15 && qy < ty + 6).length;
+    spots.push({ left, ty, hits });
+  }
+  const zs = spots.sort((a, b) => a.hits - b.hits)[0] ?? { left: true, ty: y(0) - 4 };
+  svg.selectAll("text.zl").data([0]).join("text").attr("class", "zl").attr("x", zs.left ? m.l + 4 : w - m.r - 3).attr("text-anchor", zs.left ? "start" : "end").attr("y", zs.ty)
     .attr("font-size", 9.5).attr("fill", COLOR.ref).attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
-    .text(`0 = baseline (${fmtMetric(state.metric, base)}${isS() ? " success" : Mt.pct ? " idle" : " px"})`);
+    .text(zText);
   svg.selectAll("text.xt").data([0]).join("text").attr("class", "axis-title xt").attr("x", w - m.r).attr("y", h - 4)
     .attr("text-anchor", "end").text("inference latency d (steps; 1 step = 100 ms) →");
 }
@@ -201,7 +212,7 @@ function tipHtml(p) {
   else {
     html += `<br><span class="k">vs baseline:</span> <b>${pts100(p.v)} ${METRICS[state.metric].pct ? "points" : "px"}</b> <span class="k">on the same start states</span>`;
     if (p.f && !p.f.comparable) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost · <b>not tested</b>: ${whyNot(state.ref, p.id)} (read it along its own line; it cannot be chosen as candidate)`;
-    else if (p.f) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost (McNemar p ${p.f.p < 0.001 ? "< 0.001" : `= ${p.f.p.toFixed(3)}`}, corrected q ${p.f.q < 0.001 ? "< 0.001" : `= ${p.f.q.toFixed(3)}`}) · <b>${state.brushed ? "no test on a selection made from the outcomes" : p.sig ? "unlikely to be chance" : "within chance"}</b>`;
+    else if (p.f) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost (McNemar p ${p.f.p < 0.001 ? "< 0.001" : `= ${p.f.p.toFixed(3)}`}, corrected q ${p.f.q < 0.001 ? "< 0.001" : `= ${p.f.q.toFixed(3)}`}) · <b>${state.brushed ? "no test on a selection made from the outcomes" : p.sig ? "unlikely to be chance" : `not established with ${p.f.n} start states`}</b>${!state.brushed && !p.sig && p.f.agree ? ` · the re-runs point the same way (${p.f.agree})` : ""}`;
   }
   if (p.reAbs.length) html += `<br><span class="k">the same schedule run again:</span> ${p.reAbs.map((v) => fmtMetric(state.metric, v)).join(", ")} <span class="k">(hollow marks)</span>`;
   if (p.strat !== "sync" && p.d === 0) html += `<br><span class="k">${missingReason(p.strat, 0, p.h)}</span>`;

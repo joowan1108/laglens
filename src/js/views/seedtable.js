@@ -98,7 +98,7 @@ function render() {
   const solid = flipsN.filter((s) => !noisy.has(s)).length;
   const fr = rerunFlips(state.ref), fc = rerunFlips(state.cand), f1 = (v) => (Number.isInteger(v) ? v : v.toFixed(1));
   d3.select("#seedNote").html(`<b>${cnt.get("gain") || 0} rescued</b>, <b>${cnt.get("loss") || 0} lost</b> of ${DATA.seeds.length} start states
-    ${nRe ? `· <b>${solid} of these ${flipsN.length} flips</b> come back in all ${nRe + 1} runs of both schedules; <b>≈</b> marks the others · a plain re-run alone flips ${f1(fr)} (baseline) and ${f1(fc)} (candidate) start states` : ""}`);
+    ${nRe ? `· <b>${solid} of these ${flipsN.length} flips</b> come back in all ${nRe + 1} runs of both schedules; <b>≈</b> marks the others · <span style="white-space:nowrap">a plain re-run alone flips ${f1(fr)} (baseline) and ${f1(fc)} (candidate) start states</span>` : ""}`);
   const ck = costKey(), C = COSTS[ck], k = C.k;
   ctrSel.select(".ctext").html(`row = start state · <span class="sw okb"></span><span class="sw okc"></span> success under baseline / candidate, empty = failure${nRe ? " · narrow = run again" : ""} · right: what each run paid (<b>${C.btn.toLowerCase()}</b>)`);
   const { w, h } = size(root.node());
@@ -201,12 +201,14 @@ function render() {
   const med = (g, which) => d3.median(g.seeds, (s) => DATA.ep.get(which).get(s)[k]);
   const bh = svg.selectAll("g.band").data(bands, (g) => g.key).join((en) => {
     const q = en.append("g").attr("class", "band").style("cursor", "pointer");
-    q.append("rect").attr("class", "bb"); q.append("text").attr("class", "bt");
-    q.append("line").attr("class", "mr"); q.append("line").attr("class", "mc");
+    // the text is drawn over the median ticks with a halo, so a tick never strikes through it
+    q.append("rect").attr("class", "bb"); q.append("line").attr("class", "mr"); q.append("line").attr("class", "mc");
+    q.append("text").attr("class", "bt");
     return q;
   }).attr("transform", (g) => `translate(0,${g.y})`).raise();
   bh.select(".bb").attr("x", 2).attr("y", 1).attr("width", w - 4).attr("height", L.headH - 2).attr("rx", 3).attr("fill", "#f2f2f5");
   bh.select(".bt").attr("x", 6).attr("y", L.headH - 4).attr("font-size", 10).attr("font-weight", 700)
+    .attr("stroke", "#f2f2f5").attr("stroke-width", 4).attr("paint-order", "stroke").attr("stroke-linejoin", "round")
     .text((g) => { const z = g.seeds.filter((x) => noisy.has(x)).length; return `${g.name}  ${g.seeds.length}${z && (g.key === "gain" || g.key === "loss") ? `  (≈ ${z} not repeatable)` : ""}`; });
   for (const [cls, which, col] of [["mr", state.ref, COLOR.ref], ["mc", state.cand, COLOR.cand]]) {
     bh.select(`.${cls}`).attr("x1", (g) => x(med(g, which))).attr("x2", (g) => x(med(g, which))).attr("y1", 2).attr("y2", L.headH - 1)

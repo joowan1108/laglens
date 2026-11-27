@@ -55,8 +55,8 @@ export function comparable(a, b) {
 // why a pair is not compared, in words
 export function whyNot(a, b) {
   const A = DATA.schedById.get(a), B = DATA.schedById.get(b);
-  const also = [A.horizon !== B.horizon ? "h" : null, A.strategy !== B.strategy && A.latency && B.latency ? "strategy" : null].filter(Boolean).join(" and ");
-  return `they differ in latency d, which you cannot choose, and also in ${also}`;
+  if (A.horizon !== B.horizon) return `they differ in latency d and in h: compared across latencies are only schedules with the same h`;
+  return `they differ in latency d and in strategy, and neither is at d = 0: across latencies a strategy is compared with itself (what more latency costs) or with d = 0 (how far it is from having no latency)`;
 }
 // Plain re-runs of a schedule (same schedule and start states, new sampling noise): ids of its replicates.
 export function reruns(id) {

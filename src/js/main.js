@@ -21,7 +21,12 @@ function firstFlip(ref, cand) {
 // comparable is not applied and A says why; nothing is changed behind the user's back. A cell in A
 // sets both sides at once, so every comparable pair is one click away.
 function keepComparable(patch, st) {
-  if (!("ref" in patch) && !("cand" in patch)) return patch;
+  // the refusal note lasts until the next deliberate change (a seed, a selection, a time window, the
+  // question, the task or "my latency"); hovering and the replay moving its cursor keep it
+  if (!("ref" in patch) && !("cand" in patch)) {
+    const deliberate = ["seed", "brushed", "win", "metric", "task", "dfocus"].some((k) => k in patch);
+    return st.blocked && deliberate && !("blocked" in patch) ? { ...patch, blocked: null } : patch;
+  }
   const ref = patch.ref ?? st.ref, cand = patch.cand ?? st.cand;
   if (comparable(ref, cand)) return { ...patch, blocked: null };
   const out = { ...patch };

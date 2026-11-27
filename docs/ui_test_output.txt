@@ -12,15 +12,17 @@ PASS  B shades my latency
 PASS  A back to all latencies
 framed ordered cells: 20
 PASS  A frames are corrected over the 49 comparable pairs (FDR): 20 framed ordered cells in PushT (10 pairs)
-PASS  A hatches the 42 pairs that differ in latency and in h or strategy (84 ordered cells), not clickable
+PASS  A hatches the 42 pairs that are not compared (84 ordered cells), not clickable
 PASS  a pair with d = 0 is compared only at the same h
 PASS  a candidate that is not comparable with the baseline is refused, nothing is moved, and A says why
 PASS  the header has no look-up menus: it only names the pair chosen in A
+PASS  the refusal notice is cleared by the next deliberate change (here: another start state)
 PASS  a comparable choice clears the notice
+PASS  B draws the schedules that are not compared with the baseline as dashed outlines, and fills only tested differences
 PASS  B puts the baseline chosen in A on the zero line
 PASS  a row label in A sets only the baseline, and B's values change with it
 PASS  B marks the candidate's distance to the baseline
-rendered marks: {'#response g.pm': 14, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 196, '#timeline .bars rect': 53, '#timeline .think rect': 53}
+rendered marks: {'#response g.pm': 14, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 196, '#timeline .bars rect': 37, '#timeline .think rect': 37}
 PASS  all five views rendered (A matrix, B curves, C cells + dumbbells, D board, E tracks)
 PASS  B click sets candidate
 PASS  B shift-click sets reference

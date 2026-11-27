@@ -35,6 +35,7 @@ button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .chip.cand { border-color: var(--cand); } .chip.cand .dot { background: var(--cand); }
 .actions { display: flex; gap: 6px; }
 
+body { min-width: 1280px; }  /* the five views need 1280 px; narrower windows scroll sideways instead of clipping */
 #app {
   height: calc(100vh - 48px); min-height: 760px; padding: 10px; display: grid; gap: 10px;
   grid-template-columns: minmax(760px, 57fr) minmax(500px, 43fr);

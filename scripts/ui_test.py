@@ -61,15 +61,21 @@ with sync_playwright() as p:
     log.append(f"framed ordered cells: {nfr}")
     ok("A frames are corrected over the 49 comparable pairs (FDR): 20 framed ordered cells in PushT (10 pairs)", nfr == 20)
     nnc = pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>d3.select(r).datum().nc).length")
-    ok("A hatches the 42 pairs that differ in latency and in h or strategy (84 ordered cells), not clickable", nnc == 84)
+    ok("A hatches the 42 pairs that are not compared (84 ordered cells), not clickable", nnc == 84)
     ok("a pair with d = 0 is compared only at the same h", pg.evaluate("""(()=>{const c=[...document.querySelectorAll('#pairs rect.pc')].map(r=>d3.select(r).datum());
       const f=(a,b)=>c.find(q=>!q.diag&&q.r.id===a&&q.c.id===b); return !!f('sync_d0_h4','inpaint_d2_h8').nc && !f('sync_d0_h8','inpaint_d2_h8').nc;})()"""))
     pg.evaluate("window.LagLens.update({ref:'sync_d2_h4', cand:'inpaint_d2_h4'})"); pg.evaluate("window.LagLens.update({cand:'inpaint_d4_h8'})"); pg.wait_for_timeout(200)
     ok("a candidate that is not comparable with the baseline is refused, nothing is moved, and A says why",
        S("ref") == "sync_d2_h4" and S("cand") == "inpaint_d2_h4" and "not compared with the current baseline" in pg.inner_text("#pairNote"))
     ok("the header has no look-up menus: it only names the pair chosen in A", pg.locator("#topbar select").count() == 0 and "Inpaint async" in pg.inner_text("#candName"))
+    pg.evaluate("window.LagLens.update({seed:1003})"); pg.wait_for_timeout(200)
+    ok("the refusal notice is cleared by the next deliberate change (here: another start state)", "not compared with the current" not in pg.inner_text("#pairNote"))
+    pg.evaluate("window.LagLens.update({cand:'inpaint_d4_h8'})"); pg.wait_for_timeout(200)
     pg.evaluate("window.LagLens.update({cand:'naive_d2_h8'})"); pg.wait_for_timeout(200)
     ok("a comparable choice clears the notice", S("cand") == "naive_d2_h8" and "not compared with the current" not in pg.inner_text("#pairNote"))
+    pg.evaluate("window.LagLens.update({ref:'sync_d2_h4', cand:'inpaint_d2_h4'})"); pg.wait_for_timeout(300)
+    ok("B draws the schedules that are not compared with the baseline as dashed outlines, and fills only tested differences",
+       pg.evaluate("[...document.querySelectorAll('#response g.pm path.sym')].filter(p=>p.getAttribute('stroke-dasharray')).length") > 0)
     pg.evaluate("window.LagLens.update({ref:'sync_d4_h8', cand:'naive_d4_h8'})"); pg.wait_for_timeout(200)
     pg.wait_for_timeout(300)
     # B follows A: 0 = the chosen baseline, every schedule re-compared against it

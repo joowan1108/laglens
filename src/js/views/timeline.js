@@ -164,7 +164,7 @@ function render() {
   cg.select(".yax").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(yc).ticks(2).tickSize(3).tickFormat(ball ? (v) => `${v} px` : d3.format(".0%"))).call((q) => q.select(".domain").remove());
   cg.select(".xax").attr("transform", `translate(0,${covBot})`).call(d3.axisBottom(x).ticks(10).tickSize(3)).call((q) => q.select(".domain").attr("stroke", "#c9c9cf"));
   cg.select(".thr").attr("x1", m.l).attr("x2", w - m.r).attr("y1", yc(thr)).attr("y2", yc(thr)).attr("stroke", "#77777f").attr("stroke-dasharray", "4 3");
-  cg.select(".thrt").attr("x", m.l + 4).attr("y", yc(thr) - 3).attr("text-anchor", "start").text(ball ? "touch: within 40 px" : "success threshold 95 %");
+  cg.select(".thrt").attr("x", m.l + 4).attr("y", yc(thr) - 4).attr("stroke", "#fff").attr("stroke-width", 3).attr("paint-order", "stroke").attr("text-anchor", "start").text(ball ? "touch: within 40 px" : "success threshold 95 %");
   cg.select(".yt").attr("x", 4).attr("y", covTop - 8).text(ball ? "pusher–ball distance" : "block–goal coverage");
   svg.selectAll("text.xt").data([0]).join("text").attr("class", "xt axis-title").attr("x", w - m.r).attr("y", h - 2).attr("text-anchor", "end")
     .text("time step t (10 Hz) · drag = select window · click = move cursor");

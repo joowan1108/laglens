@@ -37,9 +37,9 @@ export function applyTask(task) {
 export function fmtMetric(k, v, signed = false) {
   if (v === null || v === undefined || Number.isNaN(v)) return "–";
   const m = METRICS[k];
-  const s = signed && v > 0 ? "+" : "";
-  if (m.pct) return `${s}${Math.round(v * 100)}${signed ? " pt" : "%"}`;
-  return `${s}${Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(1)}`;
+  const s = v > 0 ? (signed ? "+" : "") : v < 0 ? "−" : "", a = Math.abs(v);
+  if (m.pct) { const k = Math.round(a * 100); return `${k ? s : ""}${k}${signed ? " pt" : "%"}`; }
+  return `${s}${a >= 10 ? a.toFixed(0) : a.toFixed(1)}`;
 }
 
 // per-episode attributes on B's dumbbell axis (one per metric, see METRICS.epB)

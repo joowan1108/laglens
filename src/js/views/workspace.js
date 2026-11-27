@@ -79,7 +79,11 @@ async function load() {
   slider.attr("max", maxN - 1);
   d3.select("#seedLabel").text(`start state ${state.seed}`);
   opened = keyMoment(eps.ref, eps.cand);
-  if (keepUrlT || state.win) { keepUrlT = false; render(); return; }
+  if (keepUrlT || state.win) {
+    keepUrlT = false;
+    if (state.t > maxN - 1) update({ t: maxN - 1 }); else render();  // a URL t past the end goes to the last step
+    return;
+  }
   const t0 = opened ? opened.t : 0;
   if (t0 !== state.t) update({ t: t0 }); else render();
 }
@@ -137,8 +141,8 @@ function render() {
     g.append("path").attr("class", "pathNow");
     g.append("path").attr("class", "pathWin");
     g.append("g").attr("class", "fan");
-    g.append("g").attr("class", "seam").attr("pointer-events", "none");
     g.append("circle").attr("class", "agent").attr("pointer-events", "none"); // agent and seam never block hover on plan points
+    g.append("g").attr("class", "seam").attr("pointer-events", "none");  // over the pusher, so its label stays readable
     return g;
   }).attr("opacity", lit);
   // the focused run is drawn on top
