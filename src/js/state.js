@@ -5,14 +5,14 @@ export const DEFAULTS = {
   ref: "sync_d4_h4",       // reference schedule R (opens on: same 400 ms latency, wait vs. act-while-thinking)
   cand: "inpaint_d4_h4",   // candidate schedule C
   dfocus: null,            // "my latency" in A: null = all, or 2 / 4 (plus sync d0 as the no-latency reference)
-  metric: "success_rate",  // the one question asked: y of A and the dumbbell attribute of B (util.METRICS)
+  metric: "success_rate",  // what A, B and C show: success, or a cost (util.METRICS: idle_frac_mean, think_motion_mean, jump_mean)
   seed: null,              // selected initial state
   t: 0,                    // replay time step
   win: null,               // brushed time window [t0, t1] in the timeline
   brushed: null,           // Set of seeds selected in B (cross-filters A and B)
   hoverSeed: null,
   hoverChunk: null,        // {which: "ref"|"cand", id}
-  moved: null,             // note shown in A when the other side of the pair was moved to stay comparable
+  blocked: null,           // note shown in A when a choice was refused because the pair would not be comparable
 };
 
 export const state = { ...DEFAULTS };

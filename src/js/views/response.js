@@ -3,10 +3,11 @@
 // one line per strategy × horizon (hue + shape = strategy, solid = h 4, dashed = h 8). y = each schedule's success minus the baseline's on the same start states (paired), so
 // 0 is the baseline and choosing another baseline in A moves the zero line and re-tests every point.
 // The scale spans exactly 0–100 % success, so the curve shapes read as absolute latency response.
-// Whiskers = 95 % interval of the paired difference; filled = unlikely to be chance (exact McNemar).
+// Small hollow marks = the same schedule simply run again (its re-runs), joined by a thin line: the
+// spread that chance alone produces. Filled = unlikely to be chance (exact McNemar, FDR 5 %).
 import { state, update, bus } from "../state.js";
-import { DATA, STRATEGIES, STRAT_LABEL, LATENCIES, HORIZONS, label, aggregate, missingReason } from "../data.js";
-import { COLOR, STRAT_COLOR, STRAT_SYMBOL, fmtMetric, showTip, hideTip, size } from "../util.js";
+import { DATA, STRATEGIES, STRAT_LABEL, LATENCIES, HORIZONS, label, aggregate, missingReason, reruns, whyNot } from "../data.js";
+import { COLOR, STRAT_COLOR, STRAT_SYMBOL, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
 import { flips } from "./pairs.js";
 
 let root, svg, noteSel, hoverStrat = null;
@@ -16,7 +17,9 @@ const STRAT_DEF = {
   naive: "keeps executing the old chunk, then switches to the new one",
   inpaint: "like naive, but the new chunk is generated to continue the old plan",
 };
-const pts100 = (v) => `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(Math.round(v * 100))}`;
+// signed difference in the unit of the question: points for shares, px for the px costs
+const pts100 = (v) => { const k = METRICS[state.metric].pct ? v * 100 : v; const a = Math.abs(k); return `${k > 0 ? "+" : k < 0 ? "−" : "±"}${a >= 10 || METRICS[state.metric].pct ? Math.round(a) : a.toFixed(1)}`; };
+const isS = () => state.metric === "success_rate";
 
 export function initResponse() {
   const ctr = d3.select("#responseControls");
@@ -30,26 +33,28 @@ export function initResponse() {
   }
   lg.append("span").attr("class", "li").attr("title", "execution horizon h: how many actions of each chunk are executed before switching to the next chunk")
     .html('<svg width="18" height="8"><line x1="0" x2="18" y1="4" y2="4" stroke="#555" stroke-width="2"/></svg>h 4 <svg width="18" height="8"><line x1="0" x2="18" y1="4" y2="4" stroke="#555" stroke-width="2" stroke-dasharray="5 3"/></svg>h 8');
-  lg.append("span").attr("class", "li muted").attr("title", "the same schedule (Sync d0 h8) run a second time: how much success changes by chance alone").html("○ re-run");
+  lg.append("span").attr("class", "li muted").attr("title", "every schedule was run two more times from the same start states (only the sampling noise of the policy differs): the spread of the three results is what chance alone does").html('<svg width="10" height="16"><line x1="5" x2="5" y1="2" y2="14" stroke="#777" stroke-width="1"/><circle cx="5" cy="3" r="2.2" fill="#fff" stroke="#777"/><circle cx="5" cy="12" r="2.2" fill="#fff" stroke="#777"/></svg>run again');
   root = d3.select("#response");
   svg = root.append("svg");
   noteSel = d3.select("#responseNote");
   render();
   bus.on("change.response", (keys) => {
-    if (["task", "ref", "cand", "brushed", "dfocus"].some((k) => keys.has(k))) render();
+    if (["task", "ref", "cand", "brushed", "dfocus", "metric"].some((k) => keys.has(k))) render();
   });
 }
 
 function points() {
   const out = [];
   for (const s of DATA.schedules) {
-    const a = aggregate(s.schedule, "success_rate", state.brushed);
+    const a = aggregate(s.schedule, state.metric, state.brushed);
     if (!a || a.v === null) continue;
     const self = s.schedule === state.ref;
-    const dl = self ? { v: 0, lo: 0, hi: 0 } : aggregate(s.schedule, "success_rate", state.brushed, state.ref);
-    const f = self ? null : flips(state.ref, s.schedule, state.brushed);
-    out.push({ id: s.schedule, strat: s.strategy, d: s.latency, h: s.horizon, rep: !!s.replicate, abs: a.v, n: a.n,
-      v: dl.v, lo: dl.lo, hi: dl.hi, f, sig: !!f && f.sig });
+    const dl = self ? { v: 0, lo: 0, hi: 0 } : aggregate(s.schedule, state.metric, state.brushed, state.ref);
+    const f = self || !isS() ? null : flips(state.ref, s.schedule, state.brushed);  // only the outcome is tested
+    // its plain re-runs on the same scale: their success minus the baseline's (run 0)
+    const re = reruns(s.schedule).map((k) => aggregate(k, state.metric, state.brushed).v).filter((v) => v !== null);
+    out.push({ id: s.schedule, strat: s.strategy, d: s.latency, h: s.horizon, abs: a.v, n: a.n,
+      v: dl.v, re, reAbs: re, f, sig: isS() ? !!f && f.sig : true });
   }
   return out;
 }
@@ -65,15 +70,19 @@ function render() {
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const pts = points();
-  const base = aggregate(state.ref, "success_rate", state.brushed)?.v ?? 0;
+  const base = aggregate(state.ref, state.metric, state.brushed)?.v ?? 0;
+  const Mt = METRICS[state.metric], what = isS() ? "success" : Mt.btn.toLowerCase();
+  for (const p of pts) p.re = p.reAbs.map((v) => v - base);
   noteSel.html(state.brushed
-    ? `0 = the baseline chosen in A; points = success minus the baseline's on the <b>${n} start states selected in C</b> (Esc clears) · no filled points: the selection was made from the outcomes`
-    : `0 = the baseline chosen in A; each point = that schedule's success minus the baseline's on the same ${n} start states · filled = unlikely to be chance (FDR 5 %)`);
+    ? `${isS() ? "Success" : Mt.btn} minus the baseline's on the <b>${n} start states selected in C</b> (Esc clears)${isS() ? " · nothing filled: the selection was made from the outcomes" : ""}`
+    : `Point = that schedule's ${what} minus the baseline's on the same ${n} start states · ${isS() ? "filled = unlikely to be chance (FDR 5 %)" : `<b>${Mt.label}</b>: higher = pays more (costs are described, not tested)`} · small hollow = the same schedule run again`);
   const m = { l: 40, r: 30, t: 10, b: 34 };
   const x = d3.scaleLinear().domain([-0.45, LATENCIES[LATENCIES.length - 1] + 0.45]).range([m.l, w - m.r]);
   // the scale covers exactly 0 … 100 % success, shifted so that the baseline sits at 0
-  const y = d3.scaleLinear().domain([-base, 1 - base]).range([h - m.b, m.t]);
-  const ticks = d3.range(-10, 11).map((k) => k * 0.2).filter((v) => v >= -base - 1e-9 && v <= 1 - base + 1e-9);
+  // costs have no natural range: the scale spans what the schedules and their re-runs reach
+  const all = pts.flatMap((p) => [p.v, ...p.re]), pad = (d3.max(all) - d3.min(all)) * 0.08 || 1;
+  const y = d3.scaleLinear().domain(isS() ? [-base, 1 - base] : [Math.min(0, d3.min(all)) - pad, Math.max(0, d3.max(all)) + pad]).range([h - m.b, m.t]);
+  const ticks = isS() ? d3.range(-10, 11).map((k) => k * 0.2).filter((v) => v >= -base - 1e-9 && v <= 1 - base + 1e-9) : y.ticks(6);
 
   svg.selectAll("rect.pbg").data([0]).join("rect").attr("class", "pbg").attr("x", m.l).attr("y", m.t)
     .attr("width", w - m.l - m.r).attr("height", h - m.t - m.b).attr("fill", "#fafafb");
@@ -81,8 +90,7 @@ function render() {
   svg.selectAll("rect.dband").data(state.dfocus !== null ? [state.dfocus] : []).join("rect").attr("class", "dband")
     .attr("x", (d) => x(d - 0.42)).attr("width", (d) => x(d + 0.42) - x(d - 0.42)).attr("y", m.t).attr("height", h - m.t - m.b).attr("fill", "#ececf3").lower();
   svg.select("rect.pbg").lower();
-  svg.selectAll("text.dbt").data(state.dfocus !== null ? [state.dfocus] : []).join("text").attr("class", "dbt axis-title")
-    .attr("x", (d) => x(d)).attr("y", h - m.b - 4).attr("text-anchor", "middle").attr("font-size", 9.5).text("my latency");
+  svg.selectAll("text.dbt").remove();  // the band is named on its axis tick instead
   svg.selectAll("g.grid").data([0]).join("g").attr("class", "grid gridline").attr("transform", `translate(${m.l},0)`)
     .call(d3.axisLeft(y).tickValues(ticks).tickSize(-(w - m.l - m.r)).tickFormat("")).call((q) => q.select(".domain").remove());
   svg.selectAll("g.yax").data([0]).join("g").attr("class", "axis yax").attr("transform", `translate(${m.l},0)`)
@@ -90,9 +98,9 @@ function render() {
     .call((g) => g.select(".domain").remove());
   svg.selectAll("text.yt").data([0]).join("text").attr("class", "axis-title yt")
     .attr("transform", `translate(10,${(m.t + h - m.b) / 2}) rotate(-90)`).attr("text-anchor", "middle")
-    .text("success vs. baseline (points)");
+    .text(isS() ? "success vs. baseline (points)" : `${Mt.btn.toLowerCase()} vs. baseline (${Mt.pct ? "points" : "px"}) · up = pays more`);
   svg.selectAll("g.xax").data([0]).join("g").attr("class", "axis xax").attr("transform", `translate(0,${h - m.b})`)
-    .call(d3.axisBottom(x).tickValues(LATENCIES).tickSize(3).tickFormat((d) => d)).call((q) => q.select(".domain").attr("stroke", "#c9c9cf"));
+    .call(d3.axisBottom(x).tickValues(LATENCIES).tickSize(3).tickFormat((d) => (d === state.dfocus ? `${d} = my latency` : d))).call((q) => q.select(".domain").attr("stroke", "#c9c9cf"));
   svg.selectAll("line.zero").data([0]).join("line").attr("class", "zero").attr("x1", m.l).attr("x2", w - m.r)
     .attr("y1", y(0)).attr("y2", y(0)).attr("stroke", COLOR.ref).attr("stroke-width", 1.4);
   for (const c of ["lines", "marks", "rings"]) svg.selectAll(`g.${c}`).data([0]).join("g").attr("class", c);
@@ -102,9 +110,9 @@ function render() {
   const pairKeys = new Set([state.ref, state.cand].map((id) => sched(id)).filter((q) => q && !q.replicate).map((q) => `${q.strategy}${q.horizon}`));
   const op = (strat, k) => (hoverStrat ? (hoverStrat === strat ? 1 : 0.12) : pairKeys.has(k) ? 1 : 0.28);
   const lx = (p) => x(p.d) + DODGE[key(p)];
-  const px = (p) => (p.rep ? x(p.d) + 30 : lx(p));
+  const px = lx;
 
-  const main = pts.filter((p) => !p.rep);
+  const main = pts;
   const lines = [];
   for (const s of STRATEGIES) for (const hz of HORIZONS) {
     const ps = main.filter((p) => p.strat === s && p.h === hz).sort((a, b) => a.d - b.d);
@@ -128,17 +136,20 @@ function render() {
 
   const mk = svg.select("g.marks").selectAll("g.pm").data(pts, (p) => p.id).join((en) => {
     const q = en.append("g").attr("class", "pm").style("cursor", "pointer");
-    q.append("line").attr("class", "ci"); q.append("path").attr("class", "sym"); q.append("circle").attr("class", "hit");
+    q.append("line").attr("class", "ci"); q.append("g").attr("class", "re"); q.append("path").attr("class", "sym"); q.append("circle").attr("class", "hit");
     return q;
   }).attr("opacity", (p) => op(p.strat, key(p))).attr("transform", (p) => `translate(${px(p)},0)`);
-  mk.select(".ci").attr("y1", (p) => y(p.lo)).attr("y2", (p) => y(p.hi)).attr("stroke", (p) => STRAT_COLOR[p.strat])
-    .attr("stroke-width", 1.2).attr("stroke-opacity", 0.45);
+  // spread of the three runs of the same schedule (run 0 = the symbol, re-runs = small hollow circles)
+  mk.select(".ci").attr("y1", (p) => y(Math.min(p.v, ...p.re))).attr("y2", (p) => y(Math.max(p.v, ...p.re))).attr("stroke", (p) => STRAT_COLOR[p.strat])
+    .attr("stroke-width", 1).attr("stroke-opacity", 0.6);
+  mk.select(".re").selectAll("circle").data((p) => p.re.map((v) => ({ v, strat: p.strat }))).join("circle")
+    .attr("cy", (q) => y(q.v)).attr("r", 2.3).attr("fill", "#fafafb").attr("stroke", (q) => STRAT_COLOR[q.strat]).attr("stroke-width", 1);
   mk.select(".sym").attr("transform", (p) => `translate(0,${y(p.v)})`)
-    .attr("d", (p) => d3.symbol(STRAT_SYMBOL[p.strat], p.rep ? 34 : 44)())
-    .attr("fill", (p) => (p.rep ? "#fff" : STRAT_COLOR[p.strat]))
-    .attr("fill-opacity", (p) => (p.rep || p.sig || p.id === state.ref ? 1 : 0.35))
-    .attr("stroke", (p) => (p.rep ? STRAT_COLOR[p.strat] : p.sig ? "#fff" : STRAT_COLOR[p.strat]))
-    .attr("stroke-width", (p) => (p.rep ? 1.4 : 1));
+    .attr("d", (p) => d3.symbol(STRAT_SYMBOL[p.strat], 44)())
+    .attr("fill", (p) => STRAT_COLOR[p.strat])
+    .attr("fill-opacity", (p) => (p.sig || p.id === state.ref ? 1 : 0.35))
+    .attr("stroke", (p) => (p.sig ? "#fff" : STRAT_COLOR[p.strat]))
+    .attr("stroke-width", 1);
   mk.select(".hit").attr("cy", (p) => y(p.v)).attr("r", 6).attr("fill", "transparent");
   mk.on("click", (ev, p) => (ev.shiftKey ? update({ ref: p.id }) : update({ cand: p.id })))
     .on("mouseenter", (ev, p) => { hoverStrat = p.strat; render(); })
@@ -156,33 +167,43 @@ function render() {
   rg.select("circle").attr("r", 7.5).attr("fill", "none").attr("stroke", (r) => r.col).attr("stroke-width", 2.2);
   rg.select("line").attr("y1", 0).attr("y2", (r) => (r.k === "cand" ? y(0) - y(r.p.v) : 0))
     .attr("stroke", COLOR.cand).attr("stroke-width", 2).attr("stroke-dasharray", "3 2");
-  // word above the ring (below when the candidate is under 0 or the ring is at the top)
+  // word above the ring (below when the candidate is under 0 or the ring is at the top). When the two
+  // rings are close, the upper one is named above and the lower one below; without room for that,
+  // the word goes to the outer side of its ring.
   const above = (r) => (r.k === "ref" || r.p.v >= 0) && y(r.p.v) - 22 > m.t;
-  rg.select("text.who").attr("y", (r) => (above(r) ? -11 : 19)).attr("text-anchor", "middle").attr("font-size", 10.5)
+  const other = (r) => rings.find((q) => q !== r);
+  const clash = rings.length === 2 && Math.abs(px(rings[0].p) - px(rings[1].p)) < 62 && Math.abs(y(rings[0].p.v) - y(rings[1].p.v)) < 34;
+  const upper = (r) => { const o = other(r); return y(r.p.v) < y(o.p.v) || (y(r.p.v) === y(o.p.v) && r.k === "ref"); };
+  const room = (r) => (upper(r) ? y(r.p.v) - 22 > m.t : y(r.p.v) + 24 < h - m.b);
+  const side = (r) => clash && !room(r);
+  const toLeft = (r) => (px(r.p) + 70 > w - 2 ? true : px(r.p) - 70 < m.l ? false : px(r.p) <= px(other(r).p));
+  rg.select("text.who").attr("y", (r) => (side(r) ? 4 : clash ? (upper(r) ? -11 : 19) : above(r) ? -11 : 19)).attr("x", (r) => (side(r) ? (toLeft(r) ? -12 : 12) : 0))
+    .attr("text-anchor", (r) => (side(r) ? (toLeft(r) ? "end" : "start") : "middle")).attr("font-size", 10.5)
     .attr("font-weight", 800).attr("fill", (r) => (r.k === "cand" ? "#9a6a00" : COLOR.ref))
     .attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke").text((r) => r.t);
   rg.select("text.dv").attr("x", -10).attr("text-anchor", "end").attr("y", (r) => (y(0) - y(r.p.v)) / 2 + 4).attr("font-size", 10.5).attr("font-weight", 800)
     .attr("fill", "#9a6a00").attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
-    .text((r) => (r.k === "cand" && Math.abs(r.p.v) > 0.04 ? pts100(r.p.v) : ""));
+    .text((r) => (r.k === "cand" && Math.abs(y(0) - y(r.p.v)) > 16 ? pts100(r.p.v) : ""));
 
   // the zero-line label goes to the side away from the baseline's own point
   const refP = pts.find((p) => p.id === state.ref);
   const zLeft = refP && px(refP) > (m.l + w - m.r) / 2;
-  svg.selectAll("text.zl").data([0]).join("text").attr("class", "zl").attr("x", zLeft ? m.l + 4 : w - m.r - 3).attr("text-anchor", zLeft ? "start" : "end").attr("y", y(0) + (base > 0.85 ? 12 : -4))
+  svg.selectAll("text.zl").data([0]).join("text").attr("class", "zl").attr("x", zLeft ? m.l + 4 : w - m.r - 3).attr("text-anchor", zLeft ? "start" : "end").attr("y", y(0) + (y(0) - m.t < 16 ? 12 : -4))
     .attr("font-size", 9.5).attr("fill", COLOR.ref).attr("stroke", "#fafafb").attr("stroke-width", 3).attr("paint-order", "stroke")
-    .text(`0 = baseline (${Math.round(base * 100)} % success)`);
+    .text(`0 = baseline (${fmtMetric(state.metric, base)}${isS() ? " success" : Mt.pct ? " idle" : " px"})`);
   svg.selectAll("text.xt").data([0]).join("text").attr("class", "axis-title xt").attr("x", w - m.r).attr("y", h - 4)
     .attr("text-anchor", "end").text("inference latency d (steps; 1 step = 100 ms) →");
 }
 
 function tipHtml(p) {
-  let html = `<b>${label(p.id)}</b><br><span class="k">success:</span> ${fmtMetric("success_rate", p.abs)} of ${p.n} start states`;
+  let html = `<b>${label(p.id)}</b><br><span class="k">${METRICS[state.metric].label}:</span> ${fmtMetric(state.metric, p.abs)}${isS() ? ` of ${p.n} start states` : ` (mean over ${p.n} start states)`}`;
   if (p.id === state.ref) html += `<br><b>this is the baseline</b> (the zero line)`;
   else {
-    html += `<br><span class="k">vs baseline:</span> <b>${pts100(p.v)} points</b> <span class="k">[${pts100(p.lo)}, ${pts100(p.hi)}], paired</span>`;
-    if (p.f && !p.f.comparable) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost · <b>not tested</b>: differs from the baseline in latency and in strategy or h (read it along its own line)`;
+    html += `<br><span class="k">vs baseline:</span> <b>${pts100(p.v)} ${METRICS[state.metric].pct ? "points" : "px"}</b> <span class="k">on the same start states</span>`;
+    if (p.f && !p.f.comparable) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost · <b>not tested</b>: ${whyNot(state.ref, p.id)} (read it along its own line; it cannot be chosen as candidate)`;
     else if (p.f) html += `<br>${p.f.gain} rescued, ${p.f.loss} lost (McNemar p ${p.f.p < 0.001 ? "< 0.001" : `= ${p.f.p.toFixed(3)}`}, corrected q ${p.f.q < 0.001 ? "< 0.001" : `= ${p.f.q.toFixed(3)}`}) · <b>${state.brushed ? "no test on a selection made from the outcomes" : p.sig ? "unlikely to be chance" : "within chance"}</b>`;
   }
+  if (p.reAbs.length) html += `<br><span class="k">the same schedule run again:</span> ${p.reAbs.map((v) => fmtMetric(state.metric, v)).join(", ")} <span class="k">(hollow marks)</span>`;
   if (p.strat !== "sync" && p.d === 0) html += `<br><span class="k">${missingReason(p.strat, 0, p.h)}</span>`;
   return `${html}<br><span class="k">click = candidate · shift-click = baseline</span>`;
 }

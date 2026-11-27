@@ -43,13 +43,31 @@ export function togglePlay() {
   }, 50); // one step per 50 ms = 2× real time (1 step = 100 ms)
 }
 
-// The replay opens where the two runs first part (pushers more than SPLIT px apart), not at t = 0
-// where both boards look the same; a time given in the URL or a brushed window is kept.
+// The replay opens at the moment that most likely explains the pair, not at t = 0 where both runs
+// look the same (a time given in the URL or a brushed window is kept). In this order:
+//   1. one run fails and its largest jump at a chunk switch is big (>= 30 px and at least twice the
+//      other run's largest): that jump;
+//   2. the outcome traces (coverage / distance to the ball) first differ clearly;
+//   3. the pushers are first more than 30 px apart.
+// The card says which rule fired; it is a pointer for where to look, not a proof of the cause.
 const SPLIT = 30;
 let opened = null, keepUrlT = new URLSearchParams(location.search).has("t");
-function firstSplit(r, c) {
-  const n = Math.min(r.n, c.n);
-  for (let t = 0; t < n; t++) if (Math.hypot(r.ax[t] - c.ax[t], r.ay[t] - c.ay[t]) > SPLIT) return t;
+function keyMoment(r, c) {
+  const big = (e) => e.seams.reduce((m, q) => (!m || q.gap > m.gap ? q : m), null);
+  if (r.success !== c.success) {
+    const fail = r.success ? c : r, other = r.success ? r : c;
+    const j = big(fail), o = big(other);
+    if (j && j.gap >= 30 && j.gap >= 2 * (o ? o.gap : 0)) {
+      return { t: j.t, why: `largest jump of the failing run, ${j.gap.toFixed(0)} px` };
+    }
+  }
+  const n = Math.min(r.n, c.n), ball = DATA.task === "catch";
+  const tr = (e) => (ball ? e.dist : e.cov), lim = ball ? 60 : 0.2;
+  for (let t = 1; t < n; t++) {
+    const a = tr(r)[t], b = tr(c)[t];
+    if (a !== null && b !== null && Math.abs(a - b) > lim) return { t, why: "the outcomes part here" };
+  }
+  for (let t = 0; t < n; t++) if (Math.hypot(r.ax[t] - c.ax[t], r.ay[t] - c.ay[t]) > SPLIT) return { t, why: "the two runs part here" };
   return null;
 }
 
@@ -60,9 +78,9 @@ async function load() {
   maxN = Math.max(eps.ref.n, eps.cand.n);
   slider.attr("max", maxN - 1);
   d3.select("#seedLabel").text(`start state ${state.seed}`);
-  opened = firstSplit(eps.ref, eps.cand);
+  opened = keyMoment(eps.ref, eps.cand);
   if (keepUrlT || state.win) { keepUrlT = false; render(); return; }
-  const t0 = opened ?? 0;
+  const t0 = opened ? opened.t : 0;
   if (t0 !== state.t) update({ t: t0 }); else render();
 }
 
@@ -76,7 +94,7 @@ function status(e, t) {
   // how outdated the plan is: the robot's motion since the picture the current plan was made from
   const c = activeChunk(e, t), to = Math.min(c.t_obs, e.n - 1);
   const moved = Math.hypot(e.ax[t] - e.ax[to], e.ay[t] - e.ay[to]);
-  return { k: "act", lines: [`acting on a plan from a picture ${e.age[t]} steps old`, `moved ${moved.toFixed(0)} px since that picture`] };
+  return { k: "act", lines: [`plan from a picture ${e.age[t]} steps old`, `robot moved ${moved.toFixed(0)} px since then`] };
 }
 
 let focus = null;  // run hovered in the side cards: the other run is dimmed
@@ -103,16 +121,18 @@ function render() {
   // one board, both runs on it: same start state, so where they part is seen directly
   const b = svg.selectAll("g.board").data([0]).join((en) => {
     const g = en.append("g").attr("class", "board");
-    g.append("rect").attr("class", "bg"); g.append("g").attr("class", "goal"); g.append("g").attr("class", "runs");
+    g.append("clipPath").attr("id", "boardClip").append("rect");
+    g.append("rect").attr("class", "bg"); g.append("g").attr("class", "goal"); g.append("g").attr("class", "runs").attr("clip-path", "url(#boardClip)");
     return g;
   }).attr("transform", "translate(2,3)");
+  b.select("#boardClip rect").attr("width", side).attr("height", side);  // plans that leave the table are cut at its edge
   b.select(".bg").attr("width", side).attr("height", side).attr("fill", "#fafafb").attr("stroke", "#d0d0d6").attr("rx", 4);
   b.select(".goal").selectAll("path.gl").data(ball ? [] : [0]).join("path").attr("class", "gl").attr("d", tee(...GOAL))
     .attr("fill", "#e9e9ee").attr("stroke", COLOR.goal).attr("stroke-dasharray", "4 3").attr("stroke-width", 1.2);
 
   const layers = b.select(".runs").selectAll("g.wp").data(runs, (d) => d.which).join((en) => {
     const g = en.append("g").attr("class", "wp");
-    g.append("g").attr("class", "block");
+    g.append("g").attr("class", "block").attr("pointer-events", "none");
     g.append("g").attr("class", "seen").attr("pointer-events", "none");
     g.append("path").attr("class", "pathNow");
     g.append("path").attr("class", "pathWin");
@@ -199,8 +219,9 @@ function render() {
     .attr("font-weight", (q) => (q.k === "act" ? 400 : 700)).text((q) => q.l);
   svg.selectAll("text.split").data([0]).join("text").attr("class", "split").attr("x", cx).attr("y", 6 + 2 * 96 + 10)
     .attr("font-size", 10.5).attr("fill", COLOR.muted)
-    .text(opened === null ? "the two runs never part by more than 30 px" : `t = ${opened}: the two runs first part here`)
-    .style("cursor", opened === null ? null : "pointer").on("click", () => { if (opened !== null) update({ t: opened }); });
+    .text(opened === null ? "the two runs stay together" : `t = ${opened.t}: ${opened.why}`)
+    .style("cursor", opened === null ? null : "pointer").on("click", () => { if (opened !== null) update({ t: opened.t }); })
+    .call((q) => q.selectAll("title").data([0]).join("title").text("where the replay opens: the failing run's largest jump if it stands out, else where the outcomes part; click = go back there"));
 }
 
 // What the policy saw: block and pusher in the camera picture the shown chunk was planned from

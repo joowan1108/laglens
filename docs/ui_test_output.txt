@@ -10,24 +10,32 @@ PASS  A latency filter keeps the d = 4 schedules plus the sync d0 reference (8 �
 PASS  A prints the difference in the cells when there is room
 PASS  B shades my latency
 PASS  A back to all latencies
-PASS  A frames are corrected over the 61 comparable pairs (FDR): 34 framed ordered cells in PushT (17 pairs)
-PASS  A hatches the 30 pairs that differ in latency and in strategy or h (60 ordered cells), not clickable
-PASS  choosing a candidate at another latency moves the baseline to its strategy and h at that latency (and says so)
-PASS  choosing a baseline at another latency moves the candidate
+framed ordered cells: 20
+PASS  A frames are corrected over the 49 comparable pairs (FDR): 20 framed ordered cells in PushT (10 pairs)
+PASS  A hatches the 42 pairs that differ in latency and in h or strategy (84 ordered cells), not clickable
+PASS  a pair with d = 0 is compared only at the same h
+PASS  a candidate that is not comparable with the baseline is refused, nothing is moved, and A says why
+PASS  the header has no look-up menus: it only names the pair chosen in A
+PASS  a comparable choice clears the notice
 PASS  B puts the baseline chosen in A on the zero line
 PASS  a row label in A sets only the baseline, and B's values change with it
 PASS  B marks the candidate's distance to the baseline
-rendered marks: {'#response g.pm': 15, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 196, '#timeline .bars rect': 53, '#timeline .think rect': 53}
+rendered marks: {'#response g.pm': 14, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 196, '#timeline .bars rect': 53, '#timeline .think rect': 53}
 PASS  all five views rendered (A matrix, B curves, C cells + dumbbells, D board, E tracks)
 PASS  B click sets candidate
 PASS  B shift-click sets reference
+PASS  B shows the re-runs of every schedule as small hollow marks
 PASS  B tooltip gives the paired difference to the baseline
 PASS  B legend hover highlights one strategy
-PASS  C has no controls of its own
+PASS  C shows the cost the pair pays when the question is success (sync with latency: idle)
+PASS  the question in the header (Jump) changes A, B and C together
+PASS  costs are described, not tested: no frames in A
+PASS  back to success: frames return
+PASS  C re-run cells: two narrow cells per schedule and start state
 PASS  C shows two outcome cells (baseline, candidate) per start state
 PASS  C groups rows by baseline→candidate change
-PASS  C marks the start states that flip on a plain re-run (≈)
-PASS  C dumbbells show the largest jump at a chunk switch
+≈ marks: 20
+PASS  C marks the start states whose outcome is not the same in all runs (≈) and counts the flips that come back
 PASS  C cell click selects seed
 PASS  D opens the new start state where the two runs first part, not at t = 0
 PASS  C brush selects seeds
@@ -43,13 +51,14 @@ PASS  D shows what the policy saw (outline at the picture time)
 PASS  D side cards say how outdated each plan is
 PASS  D overlays baseline and candidate on one board
 PASS  D card hover shows that run alone
-PASS  E shows only think / act / jumps (no extra strips)
+PASS  E shows ordinary motion under the jumps and the final value of each run
+PASS  D says why it opened where it did
 PASS  E chunk hover links to D
 PASS  E brush sets window
 PASS  D draws brushed window path
 PASS  Esc clears window
 PASS  swap R/C
-PASS  candidate picker
+PASS  a column label in A sets only the candidate
 PASS  reset
 PASS  survives resize
 PASS  URL state restores R, C, seed, t and selection
@@ -57,6 +66,9 @@ PASS  task switch loads Catch the ball
 PASS  Catch: D draws the ball and no T
 PASS  Catch: E shows the pusher–ball distance
 PASS  Catch: D cards give the distance to the ball
+PASS  Catch: B shows the two re-runs of every schedule as small hollow marks
+PASS  Catch: C shows two narrow re-run cells per schedule and start state
+PASS  Catch: C marks start states whose outcome is not the same in all runs (≈) and counts the flips that come back
 PASS  task switch back to PushT (T-goal and T-block again, no ball)
 PASS  URL ?task=catch opens the Catch data
 console errors/warnings: 0

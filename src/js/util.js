@@ -18,22 +18,17 @@ export const STRAT_SYMBOL = { sync: d3.symbolCircle, naive: d3.symbolSquare, inp
 // `epB` = per-episode attribute shown as R → C dumbbells in B.
 export const METRICS = {
   success_rate: { btn: "Success", sub: "outcome", label: "success rate", ep: "success", rate: true, pct: true,
-    epB: "coverage_final",
     note: "share of the 30 episodes that end with more than 95 % of the T-block in the goal" },
-  idle_frac_mean: { btn: "Idle", sub: "cost of sync", label: "idle share", ep: "idle_frac", pct: true,
-    epB: "idle_frac",
+  idle_frac_mean: { btn: "Idle", sub: "what sync pays", label: "idle share", ep: "idle_frac", pct: true,
     note: "share of steps in which the robot holds still while the policy thinks: the price sync pays" },
-  think_motion_mean: { btn: "Outdated", sub: "cost of async", label: "robot motion while thinking (px)", ep: "think_motion_mean",
-    epB: "think_motion_mean",
-    note: "how far the robot moved between the camera picture a chunk was planned from and the moment that chunk was ready: the plan was made for a scene that has since changed (the price async pays; sync waits, so it moves less)" },
-  jump_mean: { btn: "Discontinuity", sub: "cost of naive async", label: "boundary discontinuity (px)", ep: "jump_mean",
-    epB: "jump_max",
-    note: "chunk-boundary discontinuity: distance between the action the old chunk planned next and the first action of the new chunk, at each chunk switch" },
+  think_motion_mean: { btn: "Outdated plan", sub: "what async pays", label: "robot motion while a plan is computed (px)", ep: "think_motion_mean",
+    note: "how far the robot moved between the camera picture a plan was made from and the moment that plan was ready: the plan was made for a scene that has since changed (the price async pays; sync waits, so it moves less)" },
+  jump_mean: { btn: "Jump", sub: "what naive async pays", label: "jump at a chunk switch (px, mean per switch)", ep: "jump_mean",
+    note: "distance between the action the old chunk planned next and the first action of the new chunk, averaged over the chunk switches of an episode" },
 };
 // Task-specific wording and B's outcome attribute (PushT: coverage of the goal; Catch: distance to the ball).
 export function applyTask(task) {
   const m = METRICS.success_rate;
-  m.epB = task === "catch" ? "dist_final" : "coverage_final";
   m.note = task === "catch"
     ? "share of the 30 episodes in which the pusher touches the rolling ball before the 8 s deadline"
     : "share of the 30 episodes that end with more than 95 % of the T-block in the goal";

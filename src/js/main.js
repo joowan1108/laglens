@@ -1,5 +1,5 @@
 import { state, update, bus, DEFAULTS, guards } from "./state.js";
-import { DATA, TASKS, loadBase, loadRun, label, comparable, atLatency } from "./data.js";
+import { DATA, TASKS, loadBase, loadRun, label, comparable, atLatency, whyNot } from "./data.js";
 import { METRICS } from "./util.js";
 import { initResponse, resizeResponse } from "./views/response.js";
 import { initPairs, resizePairs } from "./views/pairs.js";
@@ -17,34 +17,28 @@ function firstFlip(ref, cand) {
   return (gain.length > loss.length ? gain : loss)[0] ?? gain[0] ?? DATA.seeds[0];
 }
 
-// Keep the pair comparable (data.comparable): when a new baseline (or candidate) differs from the other
-// side in latency AND in strategy or h, the other side moves to its own strategy and h at the new latency.
+// Only comparable pairs can be chosen (data.comparable). A choice that would make the pair not
+// comparable is not applied and A says why; nothing is changed behind the user's back. A cell in A
+// sets both sides at once, so every comparable pair is one click away.
 function keepComparable(patch, st) {
   if (!("ref" in patch) && !("cand" in patch)) return patch;
-  let ref = patch.ref ?? st.ref, cand = patch.cand ?? st.cand, moved = null;
-  if (!comparable(ref, cand)) {
-    const d = (id) => DATA.schedById.get(id).latency;
-    if ("cand" in patch && !("ref" in patch)) { ref = atLatency(ref, d(cand)); moved = `baseline moved to ${label(ref)}`; }
-    else { cand = atLatency(cand, d(ref)); moved = `candidate moved to ${label(cand)}`; }
-  }
-  return { ...patch, ref, cand, moved };
+  const ref = patch.ref ?? st.ref, cand = patch.cand ?? st.cand;
+  if (comparable(ref, cand)) return { ...patch, blocked: null };
+  const out = { ...patch };
+  const which = "cand" in patch && !("ref" in patch) ? "cand" : "ref";
+  const tried = patch[which];
+  delete out.ref; delete out.cand;
+  out.blocked = `<b>${shortName(tried)}</b> is not compared with the current ${which === "cand" ? "baseline" : "candidate"} (${whyNot(ref, cand)}): click a cell in A to change both`;
+  return out;
 }
+const shortName = (id) => { const q = DATA.schedById.get(id); return `${{ sync: "Sync", naive: "Naive", inpaint: "Inpaint" }[q.strategy]} d${q.latency} h${q.horizon}`; };
 guards.push(keepComparable);
 
+// The header only names the current pair; the pair is chosen in the Pair Overview (A), not looked up in a menu.
 function fillPickers() {
-  const opts = DATA.schedules.map((s) => s.schedule);
-  for (const [sel, key] of [["#refSel", "ref"], ["#candSel", "cand"]]) {
-    d3.select(sel).selectAll("option").data(opts, (d) => d).join("option").attr("value", (d) => d);
-    d3.select(sel).property("value", state[key]);
-  }
-  markPickers();
-}
-// options that are not comparable with the other side say so (choosing one moves the other side)
-function markPickers() {
-  for (const [sel, other] of [["#refSel", state.cand], ["#candSel", state.ref]]) {
-    d3.select(sel).selectAll("option").text((d) => (comparable(d, other) ? label(d) : `${label(d)}  (moves the other side)`))
-      .style("color", (d) => (comparable(d, other) ? null : "#8a8a92"));
-  }
+  const nm = (id) => { const q = DATA.schedById.get(id); return `${{ sync: "Sync", naive: "Naive async", inpaint: "Inpaint async" }[q.strategy]} · d=${q.latency} · h=${q.horizon}`; };
+  d3.select("#refName").text(nm(state.ref)).attr("title", label(state.ref));
+  d3.select("#candName").text(nm(state.cand)).attr("title", label(state.cand));
 }
 
 // Switching the task reloads both data tables; the same schedule ids exist in both tasks, so the
@@ -68,15 +62,19 @@ function initTaskSwitch() {
   bus.on("change.task", (keys) => { if (keys.has("task")) mark(); });
 }
 
+// One question for the whole interface: the outcome (success) or one of the costs; A, B and C follow it.
+function initMetric() {
+  const btns = d3.select("#metricSeg").selectAll("button").data(Object.keys(METRICS)).join("button")
+    .text((d) => METRICS[d].btn).attr("title", (d) => `${METRICS[d].sub}: ${METRICS[d].note}`).on("click", (ev, d) => update({ metric: d }));
+  const mark = () => btns.classed("on", (d) => d === state.metric);
+  mark();
+  bus.on("change.metric", (keys) => { if (keys.has("metric")) mark(); });
+}
+
 function initPickers() {
   fillPickers();
-  for (const [sel, key] of [["#refSel", "ref"], ["#candSel", "cand"]]) {
-    d3.select(sel).on("change", (ev) => update({ [key]: ev.target.value }));
-  }
   bus.on("change.pickers", (keys) => {
-    if (keys.has("ref")) d3.select("#refSel").property("value", state.ref);
-    if (keys.has("cand")) d3.select("#candSel").property("value", state.cand);
-    if (keys.has("ref") || keys.has("cand")) { loadRun(state.ref); loadRun(state.cand); markPickers(); }
+    if (keys.has("ref") || keys.has("cand")) { loadRun(state.ref); loadRun(state.cand); fillPickers(); }
   });
   d3.select("#swapBtn").on("click", () => update({ ref: state.cand, cand: state.ref }));
   d3.select("#resetBtn").on("click", () => {
@@ -113,11 +111,18 @@ function applyParams() {
   for (const k of ["ref", "cand"]) if (p.has(k)) patch[k] = p.get(k);
   for (const k of ["seed", "t"]) if (p.has(k)) patch[k] = +p.get(k);
   if (["2", "4"].includes(p.get("d"))) patch.dfocus = +p.get("d");
+  if (METRICS[p.get("show")]) patch.metric = p.get("show");
   if (p.has("win")) patch.win = p.get("win").split(",").map(Number);
   if (p.has("sel")) patch.brushed = new Set(p.get("sel").split(",").map(Number));
   for (const k of ["ref", "cand"]) if (patch[k] && !DATA.schedById.has(patch[k])) delete patch[k];
   Object.assign(state, patch);
-  if (!comparable(state.ref, state.cand)) state.cand = atLatency(state.cand, DATA.schedById.get(state.ref).latency);
+  // a link to a pair that is not compared opens the nearest comparable one: the candidate at the
+  // baseline's latency, else at the baseline's horizon
+  if (!comparable(state.ref, state.cand)) {
+    const r = DATA.schedById.get(state.ref), c = DATA.schedById.get(state.cand);
+    const tries = [atLatency(state.cand, r.latency), `${c.strategy}_d${c.latency}_h${r.horizon}`, DEFAULTS.cand];
+    state.cand = tries.find((id) => DATA.schedById.has(id) && comparable(state.ref, id)) ?? state.ref;
+  }
 }
 
 async function main() {
@@ -130,6 +135,7 @@ async function main() {
   if (state.seed === null) state.seed = firstFlip(state.ref, state.cand);
   initTaskSwitch();
   initPickers();
+  initMetric();
   initPairs();
   initResponse();
   initSeedTable();

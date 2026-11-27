@@ -25,11 +25,15 @@ TASKS = [("pusht", os.path.join(ROOT, "data", "runs"), os.path.join(ROOT, "src",
          ("catch", os.path.join(ROOT, "data", "runs_catch"), os.path.join(ROOT, "src", "data", "catch"))]
 
 # The interface shows a reduced grid (simpler to read): latency d in {0, 2, 4}, horizon h in {4, 8},
-# the first 30 seeds (1000-1029, fixed before looking at outcomes) and the noise replicate.
+# the first 30 seeds (1000-1029, fixed before looking at outcomes), and for every schedule two plain
+# re-runs (_r1, _r2: the same schedule and start states, only the sampling noise of the policy differs).
+# The re-runs contribute their per-episode rows (how repeatable an outcome is); the replay shows run 0,
+# so no step/chunk detail file is written for them.
 # data/runs holds the full generated grid (46 schedules x 50 seeds); it is not changed.
 LATENCIES, HORIZONS, N_SEEDS = (0, 2, 4), (4, 8), 30
 GRID = [f"{s}_d{d}_h{h}" for s in ("sync", "naive", "inpaint") for d in LATENCIES for h in HORIZONS
-        if s == "sync" or d > 0] + ["sync_d0_h8_r1"]
+        if s == "sync" or d > 0]
+REPS = [f"{c}_r{k}" for k in (1, 2) for c in GRID]
 SEED_MAX = 1000 + N_SEEDS - 1
 
 
@@ -86,7 +90,10 @@ def episode_metrics(ep, j0):
 
 def build(task, RAW, OUT):
     os.makedirs(os.path.join(OUT, "runs"), exist_ok=True)
-    files = sorted(os.path.join(RAW, f"{c}.json") for c in GRID)
+    files = sorted(f for f in (os.path.join(RAW, f"{c}.json") for c in GRID + REPS) if os.path.exists(f))
+    missing = [c for c in GRID + REPS if not os.path.exists(os.path.join(RAW, f"{c}.json"))]
+    if missing:
+        print(f"{task}: not generated yet, skipped: {missing}")
     for f in glob.glob(os.path.join(OUT, "runs", "*.json")):  # drop detail files of schedules no longer shown
         if os.path.basename(f)[:-5] not in GRID:
             os.remove(f)
@@ -118,8 +125,9 @@ def build(task, RAW, OUT):
                 de.update(bx=[s["bx"] for s in S], by=[s["by"] for s in S], bth=[s["bth"] for s in S],
                           cov=[None if s["t"] == 0 else s["cov"] for s in S] + [ep["coverage_final"]])
             detail["episodes"].append(de)
-        with open(os.path.join(OUT, "runs", f"{R['config']}.json"), "w") as fo:
-            json.dump(detail, fo, separators=(",", ":"))
+        if not detail["replicate"]:
+            with open(os.path.join(OUT, "runs", f"{R['config']}.json"), "w") as fo:
+                json.dump(detail, fo, separators=(",", ":"))
         eps = [r for r in rows if r["schedule"] == R["config"]]
         schedules.append({"schedule": R["config"], "strategy": R["strategy"], "latency": R["latency"],
                           "horizon": R["horizon"], "replicate": R.get("replicate", 0), "n": len(eps),

@@ -6,12 +6,27 @@
 // for success (binary, paired) an exact McNemar test on the start states that flip, p < 0.05; for the
 // cost questions the 95 % interval of the paired difference excludes 0. Click a cell = load that pair.
 import { state, update, bus } from "../state.js";
-import { DATA, STRATEGIES, HORIZONS, LATENCIES, label, aggregate, comparable } from "../data.js";
+import { DATA, STRATEGIES, HORIZONS, LATENCIES, label, aggregate, comparable, whyNot, reruns, rerunFlips } from "../data.js";
 import { COLOR, STRAT_COLOR, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
 
 const BETTER = "#5e3c99", WORSE = "#8a8a92", MID = "#f7f7f8";
 const ORDER_H = [4, 8];
-const SCALE = 0.6;  // colour saturates at ±60 points of success  // within a strategy: h, then d
+// The colour scale is fixed per question and task, so a colour means the same difference under every
+// filter: ±60 points for success and idle share; for the px costs the largest paired difference
+// among the comparable pairs of the task.
+let scaleCache = { key: null, v: 0.6 };
+function scale() {
+  if (METRICS[state.metric].pct) return 0.6;
+  const key = `${DATA.task}|${state.metric}`;
+  if (scaleCache.key !== key) {
+    const ids = DATA.schedules.map((x) => x.schedule);
+    let mx = 1;
+    for (const a of ids) for (const b of ids) if (a < b && comparable(a, b)) mx = Math.max(mx, Math.abs(aggregate(b, state.metric, null, a).v));
+    scaleCache = { key, v: mx };
+  }
+  return scaleCache.v;
+}
+const isSuccess = () => state.metric === "success_rate";
 let root, svg, noteSel;
 
 export function initPairs() {
@@ -28,13 +43,13 @@ export function initPairs() {
   ctr.append("span").attr("class", "plgwrap");
   seg.selectAll("button").data([null, 2, 4]).join("button").text((d) => (d === null ? "all latencies" : `d = ${d}`))
     .on("click", (ev, d) => update({ dfocus: d }));
-  ctr.select(".plgwrap").html(`<span class="plg" title="candidate − baseline, percentage points of success on the same start states"><span class="it">worse −60 <span class="ramp"></span> +60 better</span>
+  ctr.select(".plgwrap").html(`<span class="plg" title="candidate − baseline, percentage points of success on the same start states"><span class="it"><span class="lo"></span> <span class="ramp"></span> <span class="hi"></span></span>
     <span class="it"><span class="fr"></span><span class="fam">unlikely chance (FDR 5 %)</span></span>
-    <span class="it" title="the two schedules differ in latency d (which you cannot choose) and also in strategy or h, so a difference could not be attributed to either"><span class="nc"></span>not compared</span>
+    <span class="it" title="the two schedules differ in latency d (which you cannot choose) and also in h or in strategy, so a difference could not be attributed to one cause"><span class="nc"></span>not compared</span>
     <span class="it"><span class="cu"></span>current pair</span>
     <span class="it"><b>row</b>&nbsp;= baseline · <b>column</b>&nbsp;= candidate</span></span>`);
   bus.on("change.pairs", (keys) => {
-    if (["task", "ref", "cand", "metric", "brushed", "dfocus", "moved"].some((k) => keys.has(k))) render();
+    if (["task", "ref", "cand", "metric", "brushed", "dfocus", "blocked"].some((k) => keys.has(k))) render();
   });
   render();
 }
@@ -62,10 +77,13 @@ function render() {
     if (r.id === c.id) { cells.push({ r, c, diag: true }); continue; }
     if (!comparable(r.id, c.id)) { cells.push({ r, c, nc: true }); continue; }
     const a = aggregate(c.id, state.metric, seeds, r.id);
-    const f = flips(r.id, c.id, seeds);
-    cells.push({ r, c, v: a.v, lo: a.lo, hi: a.hi, n: a.n, f, sig: f.sig });
+    const f = isSuccess() ? flips(r.id, c.id, seeds) : null;  // only the outcome is tested; costs are described
+    cells.push({ r, c, v: a.v, lo: a.lo, hi: a.hi, n: a.n, f, sig: !!f && f.sig });
   }
-  const M = SCALE;  // fixed, so a colour means the same difference under every filter and task
+  const M = scale(), Mt0 = METRICS[state.metric];
+  const lim = Mt0.pct ? "60" : `${Math.round(M)} px`;
+  d3.select("#pairControls .lo").text(isSuccess() ? `worse −${lim}` : `pays more +${lim}`);
+  d3.select("#pairControls .hi").text(isSuccess() ? `+${lim} better` : `−${lim} pays less`);
   const col = (v) => {
     const t = Math.max(-1, Math.min(1, (v * sign()) / M));
     return t >= 0 ? d3.interpolateRgb(MID, BETTER)(t) : d3.interpolateRgb(MID, WORSE)(-t);
@@ -73,9 +91,10 @@ function render() {
 
   d3.select("#pairControls .dseg").selectAll("button").classed("on", (d) => d === state.dfocus);
   d3.select("#pairControls .fam").attr("title", `exact McNemar test on the start states that flip, Benjamini–Hochberg corrected over the ${qValues().size} comparable pairs (false discovery rate 5 %)`);
-  noteSel.html((state.moved ? `<b class="moved">${state.moved}</b>: schedules at different latencies are compared only with the same strategy and h · ` : "") + (seeds
-    ? `Cell = success difference on the <b>${seeds.size} start states selected in C</b> · <b>no frames</b>: the selection was made from these outcomes, so testing it again would be circular (Esc clears)`
-    : `Cell = how much more often the candidate succeeds than the baseline on the same ${DATA.seeds.length} start states (number = points when there is room) · <b>click a cell</b> to compare that pair · hatched = not compared (differ in latency <i>and</i> in strategy or h)`));
+  noteSel.html((state.blocked ? `<span class="moved">${state.blocked}</span> · ` : "") + (seeds
+    ? `Cell = ${isSuccess() ? "success" : Mt0.btn.toLowerCase()} difference on the <b>${seeds.size} start states selected in C</b> · <b>no frames</b>: the selection was made from these outcomes, so testing it again would be circular (Esc clears)`
+    : `${isSuccess() ? `Cell = how much more often the candidate succeeds than the baseline on the same ${DATA.seeds.length} start states (number = points when there is room)`
+      : `Cell = how much less (purple) or more (grey) the candidate pays than the baseline: <b>${Mt0.label}</b>, mean over the same ${DATA.seeds.length} start states · no frames: only success is tested`} · <b>click a cell</b> to compare that pair · hatched = not compared (differ in latency <i>and</i> in h or strategy)`));
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const m = { l: 70, t: 50, r: 6, b: 4 };
@@ -86,6 +105,8 @@ function render() {
   const pos = new Map(S.map((q, i) => [q.id, i]));
   const X = (id) => gx(pos.get(id)), Y = (id) => m.t + pos.get(id) * cs + STRATEGIES.indexOf(DATA.schedById.get(id).strategy) * 4;
   const short = (q) => `d${q.d} h${q.h}`;
+  const lf = Math.max(6.5, Math.min(8.5, cs - 1.5));  // labels never taller than a cell
+  const OFF = "#c4c4ca";  // a label that is not comparable with the other side of the current pair
 
   // strategy bands along both axes (hue = strategy, as in B's column headers)
   const groups = STRATEGIES.map((s) => ({ s, ids: S.filter((q) => q.s === s).map((q) => q.id) })).filter((g) => g.ids.length);
@@ -98,16 +119,16 @@ function render() {
       .attr("font-size", 9.5).attr("font-weight", 700).text((d) => ({ sync: "Sync", naive: "Naive", inpaint: "Inpaint" })[d.s]));
   // per-schedule labels
   svg.selectAll("text.colL").data(S, (q) => q.id).join("text").attr("class", "colL axis-title")
-    .attr("transform", (q) => `translate(${X(q.id) + cs / 2 + 3},${m.t - 3}) rotate(-90)`).attr("font-size", 8.5)
-    .attr("font-weight", (q) => (q.id === state.cand ? 800 : 400)).attr("fill", (q) => (q.id === state.cand ? "#9a6a00" : null)).text(short);
+    .attr("transform", (q) => `translate(${X(q.id) + cs / 2 + 3},${m.t - 3}) rotate(-90)`).attr("font-size", lf)
+    .attr("font-weight", (q) => (q.id === state.cand ? 800 : 400)).attr("fill", (q) => (q.id === state.cand ? "#9a6a00" : comparable(state.ref, q.id) ? null : OFF)).text(short);
   svg.selectAll("text.rowL").data(S, (q) => q.id).join("text").attr("class", "rowL axis-title")
-    .attr("x", m.l - 4).attr("y", (q) => Y(q.id) + cs / 2 + 3).attr("text-anchor", "end").attr("font-size", 8.5)
-    .attr("font-weight", (q) => (q.id === state.ref ? 800 : 400)).attr("fill", (q) => (q.id === state.ref ? COLOR.ref : null)).text(short);
+    .attr("x", m.l - 4).attr("y", (q) => Y(q.id) + cs / 2 + 3).attr("text-anchor", "end").attr("font-size", lf)
+    .attr("font-weight", (q) => (q.id === state.ref ? 800 : 400)).attr("fill", (q) => (q.id === state.ref ? COLOR.ref : comparable(q.id, state.cand) ? null : OFF)).text(short);
   // a row label sets only the baseline, a column label only the candidate
   svg.selectAll("text.rowL").style("cursor", "pointer").on("click", (ev, q) => update({ ref: q.id }))
-    .call((q) => q.selectAll("title").data((d) => [d]).join("title").text((d) => `${label(d.id)}: click = use as baseline`));
+    .call((q) => q.selectAll("title").data((d) => [d]).join("title").text((d) => (comparable(d.id, state.cand) ? `${label(d.id)}: click = use as baseline` : `${label(d.id)}: not compared with the current candidate; click a cell to change both`)));
   svg.selectAll("text.colL").style("cursor", "pointer").on("click", (ev, q) => update({ cand: q.id }))
-    .call((q) => q.selectAll("title").data((d) => [d]).join("title").text((d) => `${label(d.id)}: click = use as candidate`));
+    .call((q) => q.selectAll("title").data((d) => [d]).join("title").text((d) => (comparable(state.ref, d.id) ? `${label(d.id)}: click = use as candidate` : `${label(d.id)}: not compared with the current baseline; click a cell to change both`)));
 
   // cells
   const sel = svg.selectAll("rect.pc").data(cells, (q) => `${q.r.id}|${q.c.id}`).join("rect").attr("class", "pc")
@@ -120,11 +141,11 @@ function render() {
     .attr("pointer-events", "none").attr("x", (q) => X(q.c.id) + (cs - 1) / 2).attr("y", (q) => Y(q.r.id) + (cs - 1) / 2 + 3.5)
     .attr("text-anchor", "middle").attr("font-size", Math.min(11, cs * 0.4)).attr("font-weight", (q) => (q.sig ? 700 : 400))
     .attr("fill", (q) => (Math.abs(q.v) / M > 0.5 ? "#fff" : COLOR.ink))
-    .text((q) => { const k = Math.round(q.v * 100); return k > 0 ? `+${k}` : k < 0 ? `−${-k}` : "0"; });
+    .text((q) => { const k = Math.round(q.v * (Mt0.pct ? 100 : 1)); return k > 0 ? `+${k}` : k < 0 ? `−${-k}` : "0"; });
   sel.on("mousemove", (ev, q) => {
     if (q.diag) return;
     if (q.nc) {
-      showTip(ev, `<b>baseline</b> ${label(q.r.id)}<br><b>candidate</b> ${label(q.c.id)}<br><b>not compared</b>: they differ in latency d, which you cannot choose, and also in ${q.r.s !== q.c.s ? "strategy" : "h"}${q.r.s !== q.c.s && q.r.h !== q.c.h ? " and h" : ""}, so a difference could not be attributed to either.<br><span class="k">compare each with a schedule at its own latency, or B shows both latencies at once</span>`);
+      showTip(ev, `<b>baseline</b> ${label(q.r.id)}<br><b>candidate</b> ${label(q.c.id)}<br><b>not compared</b>: ${whyNot(q.r.id, q.c.id)}, so a difference could not be attributed to one cause.<br><span class="k">B shows every schedule against the baseline along its own line</span>`);
       return;
     }
     const Mt = METRICS[state.metric];
@@ -133,8 +154,8 @@ function render() {
     showTip(ev, `<b>baseline</b> ${label(q.r.id)}<br><b>candidate</b> ${label(q.c.id)}<br>
       ${Mt.label}: ${fmtMetric(state.metric, aggregate(q.r.id, state.metric, seeds).v)} → ${fmtMetric(state.metric, aggregate(q.c.id, state.metric, seeds).v)}
       (paired ${fmtMetric(state.metric, q.v, true)}${rel ? "" : `, 95 % interval ${fmtMetric(state.metric, q.lo, true)} … ${fmtMetric(state.metric, q.hi, true)}`})<br>
-      ${rel ? `on the same start states: <b>${rel.gain} rescued</b>, <b>${rel.loss} lost</b> of ${rel.n} (McNemar p = ${rel.p < 0.001 ? "< 0.001" : rel.p.toFixed(3)}, corrected q = ${rel.q < 0.001 ? "< 0.001" : rel.q.toFixed(3)}) · chance level (re-run): ${rel.chance} flips<br>` : ""}
-      ${seeds ? "no test on a selection made from the outcomes" : q.sig ? `<b>${better ? "candidate better" : "candidate worse"}, unlikely to be chance</b> (FDR 5 %)` : `difference within chance (after correcting for ${qValues().size} comparisons)`}<br><span class="k">click = compare this pair in all views</span>`);
+      ${rel ? `on the same start states: <b>${rel.gain} rescued</b>, <b>${rel.loss} lost</b> of ${rel.n} (McNemar p = ${rel.p < 0.001 ? "< 0.001" : rel.p.toFixed(3)}, corrected q = ${rel.q < 0.001 ? "< 0.001" : rel.q.toFixed(3)}) <br>${rel.chance}<br>` : ""}
+      ${!rel ? "costs are described, not tested: only success has a test" : seeds ? "no test on a selection made from the outcomes" : q.sig ? `<b>${better ? "candidate better" : "candidate worse"}, unlikely to be chance</b> (FDR 5 %)` : `difference within chance (after correcting for ${qValues().size} comparisons)`}<br><span class="k">click = compare this pair in all views</span>`);
   }).on("mouseleave", hideTip)
     .on("click", (ev, q) => { if (!q.diag && !q.nc) { hideTip(); update({ ref: q.r.id, cand: q.c.id }); } });
 
@@ -182,9 +203,14 @@ function rawFlips(r, c, seeds) {
   const R = DATA.ep.get(r), C = DATA.ep.get(c), S = seeds ? [...seeds] : DATA.seeds;
   let gain = 0, loss = 0;
   for (const s of S) { const a = R.get(s)?.success, b = C.get(s)?.success; if (a === 0 && b === 1) gain++; if (a === 1 && b === 0) loss++; }
-  const rep = DATA.schedules.find((x) => x.replicate);
-  let chance = "–";
-  if (rep) { const A = DATA.ep.get(rep.schedule), B = DATA.ep.get(`sync_d${rep.latency}_h${rep.horizon}`); chance = S.filter((s) => A.get(s)?.success !== B.get(s)?.success).length; }
+  // the yardstick for chance: what a plain re-run of each schedule changes, and whether the
+  // difference of the pair comes back when both schedules are run again
+  const fr = rerunFlips(r, seeds), fc = rerunFlips(c, seeds);
+  const again = reruns(r).map((id, k) => [id, reruns(c)[k]]).filter(([a, b]) => a && b)
+    .map(([a, b]) => { const v = aggregate(b, "success_rate", seeds, a).v; return `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(Math.round(v * 100))}`; });
+  const f1 = (v) => (Number.isInteger(v) ? v : v.toFixed(1));
+  const chance = fr === null || fc === null ? "no re-runs of these schedules yet"
+    : `chance level: a plain re-run flips ${f1(fr)} start states of the baseline and ${f1(fc)} of the candidate${again.length ? ` · the same pair in the re-runs: <b>${again.join(", ")}</b> points` : ""}`;
   return { gain, loss, n: S.length, chance, p: mcnemar(gain, loss) };
 }
 

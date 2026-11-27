@@ -1,36 +1,63 @@
-// View B: paired seed table for the chosen pair. One row per initial state (seed):
+// View C: paired seed table for the chosen pair. One row per initial state (seed):
 //   left  — outcome of that start state under the baseline (black) and the candidate (orange):
-//           filled = success, empty = failure
-//   right — the largest jump at a chunk switch in that episode, baseline (●) → candidate (●)
+//           filled = success, empty = failure; the wide cell is the run replayed in D, the narrow
+//           cells are the same schedule simply run again (how repeatable the outcome is)
+//   right — what the schedule paid in that episode, baseline (●) → candidate (●). Which cost is shown
+//           follows the pair (sync pays by standing idle, async by jumps at chunk switches) and can
+//           be switched; every cost is a share or a mean per event, so it does not grow just because
+//           a failed episode runs longer, and its scale is the same for every pair of the task.
 // Rows are grouped by how the outcome changes from baseline to candidate, so the start states that
-// flip are listed first and the right part shows whether the flip comes with a change in jumps.
+// flip are listed first and the right part shows whether the flip comes with a change in cost.
 import { state, update, bus } from "../state.js";
-import { DATA, STRAT_LABEL, label } from "../data.js";
-import { COLOR, EP_ATTRS, showTip, hideTip, size } from "../util.js";
+import { DATA, STRAT_LABEL, label, outcomes, reruns, rerunFlips } from "../data.js";
+import { COLOR, showTip, hideTip, size } from "../util.js";
 
 let root, svg, ctrSel, brush, brushKey = null;
-const K = "jump_max";  // dumbbell attribute: largest jump at a chunk switch in the episode
+const COSTS = {
+  idle: { k: "idle_frac", btn: "Idle", pct: true, who: "what sync pays", name: "share of steps the robot stands idle",
+    axis: "share of the episode the robot stands idle, waiting for a plan →" },
+  stale: { k: "think_motion_mean", btn: "Outdated plan", who: "what async pays", name: "px the robot moved while a plan was computed (mean per plan)",
+    axis: "how far the robot moved while a plan was computed (px, mean per plan, log scale) →" },
+  jump: { k: "jump_mean", btn: "Jump", who: "what naive async pays", name: "jump at a chunk switch (px, mean per switch)",
+    axis: "jump at a chunk switch (px, mean per switch, log scale) →" },
+};
+// the cost that separates the two schedules of the pair: sync with latency pays by waiting, the others by jumps
+function autoCost() {
+  const waits = (id) => { const q = DATA.schedById.get(id); return q.strategy === "sync" && q.latency > 0; };
+  return waits(state.ref) || waits(state.cand) ? "idle" : "jump";
+}
+// with a cost chosen in the header, C shows that cost; with "Success", the cost that separates the pair
+const BY_METRIC = { idle_frac_mean: "idle", think_motion_mean: "stale", jump_mean: "jump" };
+const costKey = () => BY_METRIC[state.metric] || autoCost();
+// one scale per cost and task (all 14 schedules), so a dumbbell means the same in every pair
+let domCache = { task: null, d: {} };
+function domain(k) {
+  if (domCache.task !== DATA.task) domCache = { task: DATA.task, d: {} };
+  if (!domCache.d[k]) {
+    const ids = new Set(DATA.schedules.map((x) => x.schedule));
+    domCache.d[k] = [0, d3.max(DATA.episodes, (r) => (ids.has(r.schedule) ? r[k] : 0))];
+  }
+  return domCache.d[k];
+}
 const BANDS = [
   { key: "loss", name: "baseline ✓ → candidate ✗", long: "the candidate fails where the baseline succeeded" },
   { key: "gain", name: "baseline ✗ → candidate ✓", long: "the candidate succeeds where the baseline failed" },
   { key: "bothOk", name: "both ✓", long: "both succeed" },
   { key: "bothFail", name: "both ✗", long: "both fail" },
 ];
-// jumps are long-tailed: symmetric-log axis so that the bulk is not squeezed
-const SYMLOG = new Set([K]);
-const PCT = new Set();
 
 // Called when the task changes (new data): forget the brush geometry.
 export function rebuildColumns() { brushKey = null; }
 
 export function initSeedTable() {
   ctrSel = d3.select("#seedControls");
+  ctrSel.append("span").attr("class", "ctext");
   root = d3.select("#seedtable");
   svg = root.append("svg");
   rebuildColumns();
   render();
   bus.on("change.seedtable", (keys) => {
-    if (["task", "ref", "cand", "seed", "brushed", "hoverSeed"].some((k) => keys.has(k))) render();
+    if (["task", "ref", "cand", "seed", "brushed", "hoverSeed", "metric"].some((k) => keys.has(k))) render();
   });
 }
 
@@ -60,16 +87,20 @@ function layout(top, height) {
 }
 
 function render() {
-  // chance level: how many seeds flip when the same schedule is simply re-run with new noise
-  const rep = DATA.schedules.find((x) => x.replicate);
-  const base = rep && DATA.schedById.get(rep.schedule.replace(/_r\d+$/, ""));
-  // start states whose outcome flips on a plain re-run of the same schedule: their flips are the least trustworthy
-  const noisy = new Set(rep && base ? DATA.seeds.filter((s) => outcome(rep.schedule, s) !== outcome(base.schedule, s)) : []);
-  const nFlip = rep && base ? noisy.size : null;
+  // how repeatable an outcome is: every schedule was run three times from each start state (run 0 is
+  // the one compared and replayed). A start state is marked ≈ when the baseline or the candidate does
+  // not give the same outcome in all of its runs: a flip there may be chance.
+  const nRe = Math.min(reruns(state.ref).length, reruns(state.cand).length);
+  const same = (id, s) => new Set(outcomes(id, s)).size <= 1;
+  const noisy = new Set(nRe ? DATA.seeds.filter((s) => !same(state.ref, s) || !same(state.cand, s)) : []);
   const cnt = d3.rollup(DATA.seeds, (v) => v.length, band);
+  const flipsN = DATA.seeds.filter((s) => band(s) === "gain" || band(s) === "loss");
+  const solid = flipsN.filter((s) => !noisy.has(s)).length;
+  const fr = rerunFlips(state.ref), fc = rerunFlips(state.cand), f1 = (v) => (Number.isInteger(v) ? v : v.toFixed(1));
   d3.select("#seedNote").html(`<b>${cnt.get("gain") || 0} rescued</b>, <b>${cnt.get("loss") || 0} lost</b> of ${DATA.seeds.length} start states
-    ${nFlip !== null ? `· by chance alone (same schedule re-run) ${nFlip} flip; <b>≈</b> marks those start states` : ""}`);
-  ctrSel.html(`<span>one row per start state · <span class="sw okb"></span><span class="sw okc"></span> success under baseline / candidate, empty = failure · right: largest jump at a chunk switch</span>`);
+    ${nRe ? `· <b>${solid} of these ${flipsN.length} flips</b> come back in all ${nRe + 1} runs of both schedules; <b>≈</b> marks the others · a plain re-run alone flips ${f1(fr)} (baseline) and ${f1(fc)} (candidate) start states` : ""}`);
+  const ck = costKey(), C = COSTS[ck], k = C.k;
+  ctrSel.select(".ctext").html(`row = start state · <span class="sw okb"></span><span class="sw okc"></span> success under baseline / candidate, empty = failure${nRe ? " · narrow = run again" : ""} · right: what each run paid (<b>${C.btn.toLowerCase()}</b>)`);
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
   const top = 52, bottom = 30, left = 34;
@@ -79,22 +110,40 @@ function render() {
   const dim = (seed) => (state.brushed && !state.brushed.has(seed) ? 0.2 : 1);
 
   // ---- outcome cells: baseline | candidate ----------------------------------------------------
-  const cw = 22, gap = 4;
+  // per schedule: one wide cell (run 0, the run replayed in D) and one narrow cell per re-run
+  const mw = nRe ? 13 : 22, rw = 5, cw = mw + nRe * (rw + 1), gap = 5;
   const cols = [{ id: state.ref, col: COLOR.ref, t: "baseline", txt: COLOR.ref }, { id: state.cand, col: COLOR.cand, t: "candidate", txt: "#9a6a00" }];
   const xpos = (i) => left + i * (cw + gap);
-  const matR = xpos(2);
+  const matR = xpos(2) - gap + 4;
   svg.selectAll("text.colmark").data(cols, (d, i) => i).join("text").attr("class", "colmark").attr("font-weight", 800).attr("font-size", 9.5)
-    .attr("transform", (d, i) => `translate(${xpos(i) + cw / 2 + 3},${top - 4}) rotate(-90)`).attr("fill", (d) => d.txt).text((d) => d.t);
-  const cellData = [];
-  for (const r of order) cols.forEach((c, i) => cellData.push({ seed: r.seed, c, i }));
+    .attr("transform", (d, i) => `translate(${xpos(i) + mw / 2 + 3},${top - 4}) rotate(-90)`).attr("fill", (d) => d.txt).text((d) => d.t);
+  svg.selectAll("text.remark").data(nRe ? cols : [], (d, i) => i).join("text").attr("class", "remark axis-title").attr("font-size", 8)
+    .attr("transform", (d, i) => `translate(${xpos(i) + mw + 1 + (nRe * (rw + 1)) / 2 + 3},${top - 4}) rotate(-90)`).text("again");
+  const cellData = [], reData = [];
+  for (const r of order) cols.forEach((c, i) => {
+    cellData.push({ seed: r.seed, c, i });
+    reruns(c.id).slice(0, nRe).forEach((rid, q) => reData.push({ seed: r.seed, c, i, rid, q }));
+  });
+  const tipCell = (ev, d) => {
+    const e = DATA.ep.get(d.c.id).get(d.seed), o = outcomes(d.c.id, d.seed);
+    showTip(ev, `<b>start state ${d.seed}</b> · ${d.c.t}: ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}
+      ${o.length > 1 ? `<br>this schedule succeeds from this start state in <b>${d3.sum(o)} of ${o.length} runs</b>${new Set(o).size > 1 ? " (≈ not repeatable)" : ""}` : ""}
+      <br><span class="k">this start state succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)} % of all schedules</span><br><span class="k">click = replay this start state in D and E (the wide cell's run)</span>`);
+    if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });
+  };
   svg.selectAll("rect.c").data(cellData, (d) => `${d.seed}|${d.i}`).join("rect").attr("class", "c")
-    .attr("x", (d) => xpos(d.i)).attr("width", cw).attr("height", Math.max(1, rh - 1))
-    .attr("fill", (d) => (outcome(d.c.id, d.seed) ? d.c.col : COLOR.fail)).attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
-    .on("mousemove", (ev, d) => {
-      const e = DATA.ep.get(d.c.id).get(d.seed);
-      showTip(ev, `<b>start state ${d.seed}</b> · ${d.c.t}: ${label(d.c.id)}<br>${e.success ? "✓ success" : "✗ failure"} · ${DATA.task === "catch" ? `final distance ${Math.round(e.dist_final)} px` : `coverage ${Math.round(e.coverage_final * 100)}%`}<br><span class="k">this start state succeeds in ${Math.round(DATA.robust.get(d.seed) * 100)} % of all schedules</span>${noisy.has(d.seed) ? `<br><b>≈ noisy</b>: flips when the same schedule is simply re-run` : ""}<br><span class="k">click = replay this start state in D and E</span>`);
-      if (state.hoverSeed !== d.seed) update({ hoverSeed: d.seed });
-    })
+    .attr("x", (d) => xpos(d.i)).attr("width", mw).attr("height", Math.max(1, rh - 1))
+    .attr("fill", (d) => (outcome(d.c.id, d.seed) ? d.c.col : COLOR.fail)).attr("stroke", (d) => (outcome(d.c.id, d.seed) ? "none" : "#d9d9de")).attr("stroke-width", 0.6)
+    .attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
+    .on("mousemove", tipCell)
+    .on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
+    .on("click", (ev, d) => update({ seed: d.seed, win: null }))
+    .transition().duration(300).attr("y", (d) => rows.get(d.seed).y);
+  svg.selectAll("rect.cr").data(reData, (d) => `${d.seed}|${d.i}|${d.q}`).join("rect").attr("class", "cr")
+    .attr("x", (d) => xpos(d.i) + mw + 1 + d.q * (rw + 1)).attr("width", rw).attr("height", Math.max(1, rh - 1))
+    .attr("fill", (d) => (outcome(d.rid, d.seed) ? d.c.col : COLOR.fail)).attr("stroke", (d) => (outcome(d.rid, d.seed) ? "none" : "#d9d9de")).attr("stroke-width", 0.6)
+    .attr("fill-opacity", 0.75).attr("opacity", (d) => dim(d.seed)).style("cursor", "pointer")
+    .on("mousemove", tipCell)
     .on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
     .on("click", (ev, d) => update({ seed: d.seed, win: null }))
     .transition().duration(300).attr("y", (d) => rows.get(d.seed).y);
@@ -112,28 +161,26 @@ function render() {
     .attr("pointer-events", "none").text("≈").transition().duration(300).attr("y", (d) => d.y - 1);
 
   // ---- paired shift (dumbbells) ---------------------------------------------------------------
-  const k = K;
   const dl = matR + 26, dr = w - 10;
-  const vals = order.flatMap((r) => [DATA.ep.get(state.ref).get(r.seed)[k], DATA.ep.get(state.cand).get(r.seed)[k]]);
-  const [lo, hi] = d3.extent(vals);
-  const x = SYMLOG.has(k)
-    ? d3.scaleSymlog().constant(1).domain([Math.max(0, lo * 0.8), hi * 1.05]).range([dl, dr])
-    : d3.scaleLinear().domain([Math.min(0, lo), hi]).nice().range([dl, dr]);
+  const [, hi] = domain(k);
+  const x = C.pct
+    ? d3.scaleLinear().domain([0, Math.max(0.1, Math.ceil(hi * 10) / 10)]).range([dl, dr])
+    : d3.scaleSymlog().constant(1).domain([0, hi * 1.05]).range([dl, dr]);
   const [d0, d1] = x.domain();
-  const ticks = SYMLOG.has(k) ? [0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000].filter((t) => t >= d0 && t <= d1) : x.ticks(4);
+  const ticks = C.pct ? x.ticks(5) : [0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].filter((t) => t >= d0 && t <= d1);
   svg.selectAll("g.dgrid").data([0]).join("g").attr("class", "gridline dgrid").attr("transform", `translate(0,${L.bottom})`)
     .call(d3.axisBottom(x).tickValues(ticks).tickSize(-(L.bottom - top)).tickFormat("")).call((g) => g.select(".domain").remove()).lower();
   svg.selectAll("g.dax").data([0]).join("g").attr("class", "axis dax").attr("transform", `translate(0,${L.bottom})`)
-    .call(d3.axisBottom(x).tickValues(ticks).tickSize(3).tickFormat(PCT.has(k) ? d3.format(".0%") : d3.format("~s"))).call((g) => g.select(".domain").attr("stroke", "#c9c9cf"));
+    .call(d3.axisBottom(x).tickValues(ticks).tickSize(3).tickFormat(C.pct ? d3.format(".0%") : d3.format("~s"))).call((g) => g.select(".domain").attr("stroke", "#c9c9cf"));
   svg.selectAll("text.dxt").data([0]).join("text").attr("class", "axis-title dxt").attr("x", dr).attr("y", L.bottom + 26).attr("text-anchor", "end")
-    .text("largest jump at a chunk switch (px, log scale) →");
+    .text(C.axis);
   svg.selectAll("text.dht").data([0]).join("text").attr("class", "dht").attr("x", dl).attr("y", top - 18).attr("font-size", 10.5).attr("font-weight", 700)
     .html(`<tspan fill="${COLOR.ref}">●</tspan> baseline → <tspan fill="${COLOR.cand}">●</tspan> candidate`);
   svg.selectAll("text.dht2").data([0]).join("text").attr("class", "dht2 axis-title").attr("x", dl).attr("y", top - 6).attr("font-size", 9)
-    .text("largest jump at a chunk switch in the same start state");
+    .text(`${C.name}, in the same start state${BY_METRIC[state.metric] ? "" : ` · shown because it is ${C.who === "what sync pays" ? "what a waiting schedule pays" : "what separates these two schedules"}`}`);
 
   // brush over the dumbbell rows = select seeds (cross-filters A, dims rows)
-  const bkey = `${w}x${h}|${state.ref}|${state.cand}`;
+  const bkey = `${w}x${h}|${state.ref}|${state.cand}|${nRe}`;
   const bg = svg.selectAll("g.brush").data([0]).join("g").attr("class", "brush");
   if (bkey !== brushKey) {
     brushKey = bkey;
@@ -160,13 +207,13 @@ function render() {
   }).attr("transform", (g) => `translate(0,${g.y})`).raise();
   bh.select(".bb").attr("x", 2).attr("y", 1).attr("width", w - 4).attr("height", L.headH - 2).attr("rx", 3).attr("fill", "#f2f2f5");
   bh.select(".bt").attr("x", 6).attr("y", L.headH - 4).attr("font-size", 10).attr("font-weight", 700)
-    .text((g) => { const z = g.seeds.filter((x) => noisy.has(x)).length; return `${g.name}  ${g.seeds.length}${z && (g.key === "gain" || g.key === "loss") ? `  (≈ ${z} noisy)` : ""}`; });
+    .text((g) => { const z = g.seeds.filter((x) => noisy.has(x)).length; return `${g.name}  ${g.seeds.length}${z && (g.key === "gain" || g.key === "loss") ? `  (≈ ${z} not repeatable)` : ""}`; });
   for (const [cls, which, col] of [["mr", state.ref, COLOR.ref], ["mc", state.cand, COLOR.cand]]) {
     bh.select(`.${cls}`).attr("x1", (g) => x(med(g, which))).attr("x2", (g) => x(med(g, which))).attr("y1", 2).attr("y2", L.headH - 1)
       .attr("stroke", col).attr("stroke-width", 2.5);
   }
   bh.on("click", (ev, g) => update({ brushed: new Set(g.seeds) }))
-    .on("mousemove", (ev, g) => showTip(ev, `<b>${g.long}</b>: ${g.seeds.length} seeds<br><span class="k">median ${EP_ATTRS[k]}:</span> baseline ${fmt(med(g, state.ref), k)} → candidate ${fmt(med(g, state.cand), k)} (ticks)<br><span class="k">click = select these seeds (A recomputes on them)</span>`))
+    .on("mousemove", (ev, g) => showTip(ev, `<b>${g.long}</b>: ${g.seeds.length} seeds<br><span class="k">median ${C.name}:</span> baseline ${fmt(med(g, state.ref), k)} → candidate ${fmt(med(g, state.cand), k)} (ticks)<br><span class="k">click = select these seeds (A recomputes on them)</span>`))
     .on("mouseleave", hideTip);
 
   const focus = (s) => s === state.seed || s === state.hoverSeed;
@@ -189,7 +236,7 @@ function render() {
     const a = DATA.ep.get(state.ref).get(r.seed), c = DATA.ep.get(state.cand).get(r.seed);
     showTip(ev, `<b>seed ${r.seed}</b> · ${BANDS.find((b) => b.key === band(r.seed)).long}<br>
       <span class="k">baseline</span> ${fmt(a[k], k)} ${a.success ? "✓" : "✗"} → <span class="k">candidate</span> ${fmt(c[k], k)} ${c.success ? "✓" : "✗"}
-      <span class="k">(${EP_ATTRS[k]})</span><br><span class="k">click = open episode · drag vertically = select seeds</span>`);
+      <span class="k">(${C.name})</span><br><span class="k">click = open episode · drag vertically = select seeds</span>`);
     if (state.hoverSeed !== r.seed) update({ hoverSeed: r.seed });
   }).on("mouseleave", () => { hideTip(); update({ hoverSeed: null }); })
     .on("click", (ev, r) => update({ seed: r.seed, win: null }));
@@ -205,7 +252,7 @@ function render() {
 
 function fmt(v, k) {
   if (v === null || v === undefined) return "–";
-  if (PCT.has(k)) return `${Math.round(v * 100)}%`;
+  if (k === "idle_frac") return `${Math.round(v * 100)}%`;
   const a = Math.abs(v);
   return a >= 100 ? v.toFixed(0) : a >= 10 ? v.toFixed(1) : v.toFixed(2);
 }

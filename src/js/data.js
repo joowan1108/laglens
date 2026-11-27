@@ -16,6 +16,7 @@ export const DATA = {
   episodes: [],
   schedules: [],
   schedById: new Map(),
+  reps: new Map(),      // schedule -> ids of its plain re-runs
   ep: new Map(),        // schedule -> Map(seed -> episode row)
   seeds: [],
   runs: new Map(),      // schedule -> Promise(run detail)
@@ -37,16 +38,39 @@ export function shortLabel(id) {
 }
 
 // Which pairs can be compared at all. The latency d is set by the hardware and the model, not chosen
-// by the user, so two schedules are compared only when the difference has one reading:
-//   same d (what should I run at my latency?), one of them at d = 0 (how far from no latency?), or
-//   same strategy and h, only d differs (what does more latency cost?).
-// A pair that differs in d AND in strategy or h mixes the two causes and is not compared (30 of the
-// 91 pairs). The rule is fixed by the design, not by any outcome.
+// by the user, and on PushT the horizon h alone changes success more than anything else. So two
+// schedules are compared only when the difference has one reading:
+//   same d (what should I run at my latency? strategy and h are both choices), or
+//   different d with the same h and either the same strategy (what does more latency cost?) or one
+//   of them at d = 0 (how far is this from having no latency?).
+// Every other pair mixes latency with h or with the strategy and is not compared (42 of the 91).
+// The rule is fixed by the design, not by any outcome.
 export function comparable(a, b) {
   const A = DATA.schedById.get(a), B = DATA.schedById.get(b);
   if (!A || !B) return true;
-  return A.latency === B.latency || A.latency === 0 || B.latency === 0
-    || (A.strategy === B.strategy && A.horizon === B.horizon);
+  if (A.latency === B.latency) return true;
+  if (A.horizon !== B.horizon) return false;
+  return A.strategy === B.strategy || A.latency === 0 || B.latency === 0;
+}
+// why a pair is not compared, in words
+export function whyNot(a, b) {
+  const A = DATA.schedById.get(a), B = DATA.schedById.get(b);
+  const also = [A.horizon !== B.horizon ? "h" : null, A.strategy !== B.strategy && A.latency && B.latency ? "strategy" : null].filter(Boolean).join(" and ");
+  return `they differ in latency d, which you cannot choose, and also in ${also}`;
+}
+// Plain re-runs of a schedule (same schedule and start states, new sampling noise): ids of its replicates.
+export function reruns(id) {
+  return DATA.reps.get(id) || [];
+}
+// outcomes (0/1) of one start state under a schedule: run 0 first, then its re-runs
+export function outcomes(id, seed) {
+  return [id, ...reruns(id)].map((k) => DATA.ep.get(k)?.get(seed)?.success).filter((v) => v !== undefined && v !== null);
+}
+// how many of the start states change outcome when the schedule is simply run again (mean over its re-runs)
+export function rerunFlips(id, seeds) {
+  const R = reruns(id), S = seeds ? [...seeds] : DATA.seeds, A = DATA.ep.get(id);
+  if (!R.length) return null;
+  return d3.mean(R, (k) => S.filter((s) => DATA.ep.get(k).get(s)?.success !== A.get(s)?.success).length);
 }
 // the same strategy and horizon as id, at latency d
 export function atLatency(id, d) {
@@ -67,6 +91,13 @@ export async function loadBase(task = "pusht") {
   DATA.episodes = eps;
   DATA.schedules = sch;
   for (const s of sch) DATA.schedById.set(s.schedule, s);
+  // the interface compares the 14 schedules (run 0); their re-runs only say how repeatable an outcome is
+  DATA.schedules = sch.filter((x) => !x.replicate);
+  DATA.reps = new Map();
+  for (const x of sch.filter((q) => q.replicate)) {
+    const base = x.schedule.replace(/_r\d+$/, "");
+    DATA.reps.set(base, [...(DATA.reps.get(base) || []), x.schedule]);
+  }
   for (const r of eps) {
     if (!DATA.ep.has(r.schedule)) DATA.ep.set(r.schedule, new Map());
     DATA.ep.get(r.schedule).set(r.seed, r);

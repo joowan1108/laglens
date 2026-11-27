@@ -14,15 +14,12 @@
     <span class="subtitle">what a robot actually executes when its policy thinks too slowly</span>
   </div>
   <div class="tasksw"><span class="lead">task</span><span class="seg" id="taskSeg"></span></div>
-  <div class="pickers">
-    <span class="lead" title="Not sure which pair? The Pair Overview (A) shows every pair at once; click a framed cell">compare two schedules <span class="hint">(or pick a cell in A)</span></span>
-    <label class="chip ref" title="Baseline = the schedule you compare against (or click a cell in A)">
-      <span class="dot"></span>Baseline&nbsp;<select id="refSel"></select>
-    </label>
+  <div class="tasksw" title="What A, B and C show: the outcome, or one of the three costs a schedule can pay for latency"><span class="lead">show</span><span class="seg" id="metricSeg"></span></div>
+  <div class="pickers" title="The pair being compared. Choose it in the Pair Overview (A): a cell sets both, a row label the baseline, a column label the candidate">
+    <span class="lead">comparing <span class="hint">(pick a cell in A)</span></span>
+    <span class="chip ref"><span class="dot"></span>Baseline&nbsp;<span class="nm" id="refName"></span></span>
     <button id="swapBtn" class="icon" title="Swap baseline and candidate">⇄</button>
-    <label class="chip cand" title="Candidate = the schedule you are testing (or click a cell in A)">
-      <span class="dot"></span>Candidate&nbsp;<select id="candSel"></select>
-    </label>
+    <span class="chip cand"><span class="dot"></span>Candidate&nbsp;<span class="nm" id="candName"></span></span>
   </div>
   <div class="actions">
     <button id="helpBtn">? Guide</button>
@@ -71,6 +68,7 @@
         <span><b>think</b> = policy computing a chunk</span>
         <span><b>act</b> = executing it (<i class="k-hatch"></i> idle)</span>
         <span><i class="k-jump"></i> jump at a chunk switch (px)</span>
+        <span><i class="k-mot"></i> size of an ordinary step</span>
       </div>
       <div class="body" id="timeline"></div>
     </section>
@@ -85,11 +83,11 @@
     <p>A robot policy plans 16 moves at a time and needs time <i>d</i> to compute each plan. <span class="tS">Sync</span> waits while it thinks; <span class="tN">naive async</span> keeps moving and switches plans abruptly; <span class="tI">inpaint async</span> keeps moving and makes the new plan continue the old one.
       Every <b>schedule</b> (strategy × latency <i>d</i> × horizon <i>h</i>) was run from the <b>same 30 start states</b>, on two tasks: <b>PushT</b> (push a T-block onto a goal) and <b>Catch the ball</b> (touch a rolling ball within 8 s).</p>
     <ol>
-      <li><b>A Pair Overview</b>, start here: each cell compares two schedules (row = baseline, column = candidate). <span style="color:#5e3c99;font-weight:700">Purple</span> = the candidate succeeds more often on the same start states, grey = less; framed = unlikely to be chance. <b>Click a cell</b> to compare that pair.</li>
-      <li><b>B</b>: every schedule against the chosen baseline (0 = baseline), by latency <i>d</i> and horizon <i>h</i>: how each strategy loses as the policy gets slower.</li>
-      <li><b>C</b>: the 30 start states of that pair, the ones that flip first. Click one to replay it.</li>
-      <li><b>D</b>: the replay, baseline and candidate on one board: the plan being executed, where things were when it was planned, and jumps when the plan switches.</li>
-      <li><b>E</b>: when the policy was thinking, when the robot acted or stood idle, and how big each jump was.</li>
+      <li><b>A Pair Overview</b>, start here: each cell compares two schedules (row = baseline, column = candidate). <span style="color:#5e3c99;font-weight:700">Purple</span> = the candidate succeeds more often on the same start states, grey = less; framed = unlikely to be chance. Hatched = not compared: the two differ in latency (which you cannot choose) and also in <i>h</i> or strategy. <b>Click a cell</b> to compare that pair.</li>
+      <li><b>B</b>: every schedule against the chosen baseline (0 = baseline), by latency <i>d</i> and horizon <i>h</i>. Small hollow marks = the same schedule simply run again: the spread that chance alone produces.</li>
+      <li><b>C</b>: the 30 start states of that pair, the ones that flip first. Narrow cells = the same schedule run again; <b>≈</b> = the outcome is not the same in every run. Right: what each schedule paid there (idle time, outdated plan, or jumps). Click a row to replay it.</li>
+      <li><b>D</b>: the replay, baseline and candidate on one board, opened at the moment that most likely explains the pair: the plan being executed, where things were when it was planned, and jumps when the plan switches.</li>
+      <li><b>E</b>: when the policy was thinking, when the robot acted or stood idle, how big each jump was next to an ordinary step (grey), and how each run ended.</li>
     </ol>
     <p class="muted">Keyboard: ←/→ step, space play/pause, Esc clears the time window and the seed selection.</p>
     <button id="guideClose">Start exploring</button>
