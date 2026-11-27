@@ -1,5 +1,5 @@
 import { state, update, bus, DEFAULTS, guards } from "./state.js";
-import { DATA, TASKS, loadBase, loadRun, label, comparable, atLatency, whyNot } from "./data.js";
+import { DATA, TASKS, loadBase, loadRun, comparable, atLatency, whyNot } from "./data.js";
 import { METRICS } from "./util.js";
 import { initResponse, resizeResponse } from "./views/response.js";
 import { initPairs, resizePairs } from "./views/pairs.js";
@@ -39,12 +39,6 @@ function keepComparable(patch, st) {
 const shortName = (id) => { const q = DATA.schedById.get(id); return `${{ sync: "Sync", naive: "Naive", inpaint: "Inpaint" }[q.strategy]} d${q.latency} h${q.horizon}`; };
 guards.push(keepComparable);
 
-// The header only names the current pair; the pair is chosen in the Pair Overview (A), not looked up in a menu.
-function fillPickers() {
-  const nm = (id) => { const q = DATA.schedById.get(id); return `${{ sync: "Sync", naive: "Naive async", inpaint: "Inpaint async" }[q.strategy]} · d=${q.latency} · h=${q.horizon}`; };
-  d3.select("#refName").text(nm(state.ref)).attr("title", label(state.ref));
-  d3.select("#candName").text(nm(state.cand)).attr("title", label(state.cand));
-}
 
 // Switching the task reloads both data tables; the same schedule ids exist in both tasks, so the
 // compared pair is kept and the views re-render because "task" changed.
@@ -55,7 +49,6 @@ async function setTask(task) {
   const keep = (id, dflt) => (DATA.schedById.has(id) ? id : dflt);
   const ref = keep(state.ref, DEFAULTS.ref), cand = keep(state.cand, DEFAULTS.cand);
   Object.assign(state, { ref, cand });
-  fillPickers();
   update({ task, seed: firstFlip(ref, cand), win: null, brushed: null, hoverSeed: null, hoverChunk: null });
 }
 
@@ -76,12 +69,11 @@ function initMetric() {
   bus.on("change.metric", (keys) => { if (keys.has("metric")) mark(); });
 }
 
+// The pair is chosen only in the Pair Overview (A) and its ranking strip; the header has no pair controls.
 function initPickers() {
-  fillPickers();
   bus.on("change.pickers", (keys) => {
-    if (keys.has("ref") || keys.has("cand")) { loadRun(state.ref); loadRun(state.cand); fillPickers(); }
+    if (keys.has("ref") || keys.has("cand")) { loadRun(state.ref); loadRun(state.cand); }
   });
-  d3.select("#swapBtn").on("click", () => update({ ref: state.cand, cand: state.ref }));
   d3.select("#resetBtn").on("click", () => {
     update({ ...DEFAULTS, task: state.task, seed: firstFlip(DEFAULTS.ref, DEFAULTS.cand), brushed: null });
   });

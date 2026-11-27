@@ -15,7 +15,7 @@ PASS  A frames are corrected over the 49 comparable pairs (FDR): 20 framed order
 PASS  A hatches the 42 pairs that are not compared (84 ordered cells), not clickable
 PASS  a pair with d = 0 is compared only at the same h
 PASS  a candidate that is not comparable with the baseline is refused, nothing is moved, and A says why
-PASS  the header has no look-up menus: it only names the pair chosen in A
+PASS  the header has no pair controls: no menus, no name chips, no swap (the pair is chosen in A)
 PASS  the refusal notice is cleared by the next deliberate change (here: another start state)
 PASS  a comparable choice clears the notice
 PASS  B draws the schedules that are not compared with the baseline as dashed outlines, and fills only tested differences
@@ -59,7 +59,9 @@ PASS  E chunk hover links to D
 PASS  E brush sets window
 PASS  D draws brushed window path
 PASS  Esc clears window
-PASS  swap R/C
+PASS  A ranks the 6 schedules at the pair's latency (d = 4) by the mean success of their 3 runs, best first
+PASS  a row of the ranking sets the candidate
+PASS  the ranking follows 'my latency'
 PASS  a column label in A sets only the candidate
 PASS  reset
 PASS  survives resize

@@ -7,7 +7,7 @@
 // cost questions the 95 % interval of the paired difference excludes 0. Click a cell = load that pair.
 import { state, update, bus } from "../state.js";
 import { DATA, STRATEGIES, HORIZONS, LATENCIES, label, aggregate, comparable, whyNot, reruns, rerunFlips } from "../data.js";
-import { COLOR, STRAT_COLOR, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
+import { COLOR, STRAT_COLOR, STRAT_SYMBOL, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
 
 const BETTER = "#5e3c99", WORSE = "#8a8a92", MID = "#f7f7f8";
 const ORDER_H = [4, 8];
@@ -100,7 +100,9 @@ function render() {
       : `Cell = how much less (purple) or more (grey) the candidate pays: <b>${Mt0.label}</b> · no frames: costs are not tested`} · <b>click a cell</b> to compare · hatched: see the legend`));
   const { w, h } = size(root.node());
   svg.attr("width", w).attr("height", h);
-  const m = { l: 70, t: 50, r: 6, b: 4 };
+  // the ranking strip takes the right side of the panel when there is room for it
+  const SW = w >= 380 ? Math.max(132, Math.min(196, Math.floor(w * 0.36))) : 0;
+  const m = { l: 70, t: 50, r: 6 + SW, b: 4 };
   const gaps = 4 * (STRATEGIES.length - 1);
   const cs = Math.max(7, Math.floor(Math.min((w - m.l - m.r - gaps) / n, (h - m.t - m.b - gaps) / n)));
   m.l += Math.max(0, Math.floor((w - m.l - m.r - n * cs - gaps) / 2));  // centre the matrix in a wide panel
@@ -168,7 +170,62 @@ function render() {
     .attr("x", (q) => X(q.c.id) - 2.5).attr("y", (q) => Y(q.r.id) - 2.5).attr("width", cs + 4).attr("height", cs + 4)
     .attr("fill", "none").attr("stroke", COLOR.cand).attr("stroke-width", 2.5).attr("rx", 2);
 
+  ranking(w - SW + 10, w - 4, m.t - 38, h - 4, SW > 0);
 
+
+}
+
+// Ranking strip: the schedules at one latency (the latency chosen in "my latency", else the pair's),
+// sorted by the current question, in absolute terms. A answers "how do two schedules differ"; the
+// strip answers "which one is best at my latency". Each row shows all three runs (filled = run 0,
+// hollow = re-runs, tick = their mean) and is sorted by the mean of the three, so that one lucky run
+// does not decide the order; rows whose runs overlap have no clear order. All start states are used.
+function ranking(x0, x1, top, bottom, on) {
+  const g = svg.selectAll("g.rank").data(on ? [0] : []).join("g").attr("class", "rank");
+  if (!on) return;
+  const R = DATA.schedById.get(state.ref), Cn = DATA.schedById.get(state.cand);
+  const d = state.dfocus ?? (R.latency || Cn.latency || LATENCIES[LATENCIES.length - 1]);
+  const Mt = METRICS[state.metric], up = isSuccess();
+  const rows = DATA.schedules.filter((q) => !q.replicate && q.latency === d).map((q) => {
+    const runs = [q.schedule, ...reruns(q.schedule)].map((id) => aggregate(id, state.metric, null)?.v).filter((v) => v !== null && v !== undefined);
+    return { id: q.schedule, s: q.strategy, h: q.horizon, runs, mean: d3.mean(runs) };
+  }).sort((a, b) => (up ? b.mean - a.mean : a.mean - b.mean));
+  const lw = 52, ax0 = x0 + lw, ax1 = x1 - 12;
+  const hi = up ? 1 : d3.max(rows.flatMap((r) => r.runs)) * 1.05 || 1;
+  const x = d3.scaleLinear().domain([0, hi]).range([ax0, ax1]);
+  const rh = Math.max(13, Math.min(22, (bottom - top - 44) / Math.max(1, rows.length)));
+  const y0 = top + 18;
+  g.selectAll("text.rt").data([0]).join("text").attr("class", "rt").attr("x", x0).attr("y", top + 2).attr("font-size", 10).attr("font-weight", 700)
+    .text(`Ranking at d = ${d}${state.dfocus !== null ? " (my latency)" : ""}`);
+  g.selectAll("text.rs").data([0]).join("text").attr("class", "rs axis-title").attr("x", x0).attr("y", top + 13).attr("font-size", 9)
+    .text(`${up ? "success" : Mt.btn.toLowerCase()} · ${up ? "best" : "least"} first`);
+  const row = g.selectAll("g.rr").data(rows, (r) => r.id).join((en) => {
+    const q = en.append("g").attr("class", "rr").style("cursor", "pointer");
+    q.append("rect").attr("class", "hit"); q.append("path").attr("class", "sym"); q.append("text").attr("class", "lb");
+    q.append("line").attr("class", "span"); q.append("g").attr("class", "re"); q.append("line").attr("class", "mn"); q.append("path").attr("class", "r0");
+    return q;
+  }).attr("transform", (r, i) => `translate(0,${y0 + i * rh + rh / 2})`);
+  row.select(".hit").attr("x", x0).attr("y", -rh / 2).attr("width", x1 - x0).attr("height", rh)
+    .attr("fill", (r) => (r.id === state.cand ? "#fdf3dc" : r.id === state.ref ? "#ececf0" : "transparent")).attr("rx", 3);
+  row.select(".sym").attr("transform", `translate(${x0 + 4},0)`).attr("d", (r) => d3.symbol(STRAT_SYMBOL[r.s], 26)()).attr("fill", (r) => STRAT_COLOR[r.s]);
+  row.select(".lb").attr("x", x0 + 10).attr("y", 3.5).attr("font-size", 9)
+    .attr("font-weight", (r) => (r.id === state.ref || r.id === state.cand ? 800 : 400))
+    .attr("fill", (r) => (r.id === state.cand ? "#9a6a00" : COLOR.ink))
+    .text((r) => `${{ sync: "Sync", naive: "Naive", inpaint: "Inpaint" }[r.s]} h${r.h}`);
+  row.select(".span").attr("x1", (r) => x(d3.min(r.runs))).attr("x2", (r) => x(d3.max(r.runs))).attr("stroke", (r) => STRAT_COLOR[r.s]).attr("stroke-opacity", 0.45).attr("stroke-width", 2);
+  row.select(".re").selectAll("circle").data((r) => r.runs.slice(1).map((v) => ({ v, s: r.s }))).join("circle")
+    .attr("cx", (q) => x(q.v)).attr("r", 2.6).attr("fill", "#fff").attr("stroke", (q) => STRAT_COLOR[q.s]).attr("stroke-width", 1.1);
+  row.select(".mn").attr("x1", (r) => x(r.mean)).attr("x2", (r) => x(r.mean)).attr("y1", -5).attr("y2", 5).attr("stroke", COLOR.ink).attr("stroke-width", 1.4);
+  row.select(".r0").attr("transform", (r) => `translate(${x(r.runs[0])},0)`).attr("d", (r) => d3.symbol(STRAT_SYMBOL[r.s], 30)()).attr("fill", (r) => STRAT_COLOR[r.s]).attr("stroke", "#fff").attr("stroke-width", 0.8);
+  row.on("click", (ev, r) => { hideTip(); update({ cand: r.id }); })
+    .on("mousemove", (ev, r) => showTip(ev, `<b>${label(r.id)}</b><br><span class="k">${Mt.label}, all ${DATA.seeds.length} start states:</span><br>run 0 ${fmtMetric(state.metric, r.runs[0])}${r.runs.length > 1 ? ` · re-runs ${r.runs.slice(1).map((v) => fmtMetric(state.metric, v)).join(", ")} · mean ${fmtMetric(state.metric, r.mean)}` : ""}<br><span class="k">${comparable(state.ref, r.id) ? "click = use as candidate" : "not compared with the current baseline: click a cell in A to change both"}</span>`))
+    .on("mouseleave", hideTip);
+  const yb = y0 + rows.length * rh + 2;
+  g.selectAll("g.rax").data([0]).join("g").attr("class", "axis rax").attr("transform", `translate(0,${yb})`)
+    .call(d3.axisBottom(x).tickValues(up ? [0, 0.5, 1] : x.ticks(3)).tickSize(3).tickFormat((v) => (Mt.pct ? `${Math.round(v * 100)}%` : `${v}`)))
+    .call((q) => q.select(".domain").attr("stroke", "#c9c9cf"));
+  g.selectAll("text.rn").data([0]).join("text").attr("class", "rn axis-title").attr("x", x0).attr("y", Math.min(bottom, yb + 26)).attr("font-size", 8.5)
+    .text("● run 0  ○ re-runs  | mean");
 }
 
 // Every comparable unordered pair of schedules (49 of the 91 for 14, see data.comparable) is one exact

@@ -67,7 +67,7 @@ with sync_playwright() as p:
     pg.evaluate("window.LagLens.update({ref:'sync_d2_h4', cand:'inpaint_d2_h4'})"); pg.evaluate("window.LagLens.update({cand:'inpaint_d4_h8'})"); pg.wait_for_timeout(200)
     ok("a candidate that is not comparable with the baseline is refused, nothing is moved, and A says why",
        S("ref") == "sync_d2_h4" and S("cand") == "inpaint_d2_h4" and "not compared with the current baseline" in pg.inner_text("#pairNote"))
-    ok("the header has no look-up menus: it only names the pair chosen in A", pg.locator("#topbar select").count() == 0 and "Inpaint async" in pg.inner_text("#candName"))
+    ok("the header has no pair controls: no menus, no name chips, no swap (the pair is chosen in A)", pg.locator("#topbar select, #candName, #refName, #swapBtn").count() == 0)
     pg.evaluate("window.LagLens.update({seed:1003})"); pg.wait_for_timeout(200)
     ok("the refusal notice is cleared by the next deliberate change (here: another start state)", "not compared with the current" not in pg.inner_text("#pairNote"))
     pg.evaluate("window.LagLens.update({cand:'inpaint_d4_h8'})"); pg.wait_for_timeout(200)
@@ -173,9 +173,16 @@ with sync_playwright() as p:
     ok("D draws brushed window path", pg.evaluate("document.querySelector('#workspace .pathWin').getAttribute('d')") is not None)
     pg.keyboard.press("Escape"); ok("Esc clears window", S("win") is None)
 
-    # header: swap, pickers, reset, resize, URL state
-    r0, c0 = S("ref"), S("cand")
-    pg.click("#swapBtn"); ok("swap R/C", S("ref") == c0 and S("cand") == r0)
+    # A's ranking strip, reset, resize, URL state
+    pg.evaluate("window.LagLens.update({ref:'sync_d4_h4', cand:'inpaint_d4_h4', dfocus:null, metric:'success_rate'})"); pg.wait_for_timeout(300)
+    rk = pg.evaluate("""[...document.querySelectorAll('#pairs g.rr')].map(g=>{const r=d3.select(g).datum(); return [r.id, r.mean, r.runs.length]})""")
+    ok("A ranks the 6 schedules at the pair's latency (d = 4) by the mean success of their 3 runs, best first",
+       len(rk) == 6 and all(x[0].split("_")[1] == "d4" and x[2] == 3 for x in rk) and all(rk[i][1] >= rk[i+1][1] for i in range(5)))
+    pg.locator("#pairs g.rr").nth(1).click(force=True); pg.wait_for_timeout(200)
+    ok("a row of the ranking sets the candidate", S("cand") == rk[1][0] and S("ref") == "sync_d4_h4")
+    pg.evaluate("window.LagLens.update({dfocus:2})"); pg.wait_for_timeout(200)
+    ok("the ranking follows 'my latency'", all("_d2_" in pg.evaluate("[...document.querySelectorAll('#pairs g.rr')].map(g=>d3.select(g).datum().id)")[i] for i in range(6)))
+    pg.evaluate("window.LagLens.update({dfocus:null})")
     pg.evaluate("window.LagLens.update({ref:'sync_d4_h8', cand:'naive_d4_h8'})")
     pg.locator("#pairs text.colL").nth(3).click(force=True); ok("a column label in A sets only the candidate", S("cand") == "sync_d0_h8" and S("ref") == "sync_d4_h8")
     pg.click("#resetBtn"); ok("reset", S("ref") == "sync_d4_h4" and S("cand") == "inpaint_d4_h4" and S("metric") == "success_rate")
