@@ -14,20 +14,21 @@ python3 -m http.server 8000 --directory src     # then open http://localhost:800
 ```
 
 Useful URL parameters (reproduce a case-study view exactly):
-`?ref=sync_d0_h8&cand=naive_d4_h8&seed=1001&t=120&win=100,160&metric=jump_mean&sel=1001,1002`
-(`metric` is one of `success_rate`, `idle_frac_mean`, `think_motion_mean`, `jump_mean`; `noguide` hides the first-visit guide; `sel` pre-selects seeds).
+`?task=catch&ref=sync_d4_h4&cand=inpaint_d4_h4&seed=1010&t=20&win=10,40&show=jump_mean&d=4&sel=1001,1002`
+(`show` is one of `success_rate`, `idle_frac_mean`, `think_motion_mean`, `jump_mean`; `d` is `2`, `4` or `all` (A's latency filter, default 4);
+`noguide` hides the first-visit guide; `sel` pre-selects start states).
 
-Controls: the baseline / candidate pair and one question bar in A (Success · Idle = cost of sync · Outdated = robot motion while thinking (cost of async) · Discontinuity = cost of naive async) that drives both A and B; everything else is direct manipulation.
+Controls: the header switches the task (PushT · Catch the ball) and asks one question for A, B and C (*show*: Success · Idle = what sync pays · Outdated plan = robot motion while a plan is computed (what async pays) · Jump = what naive async pays). The compared pair is chosen only in A (a cell, or a row of the ranking strip) and B; everything else is direct manipulation.
 
-Views: **A** Pair Overview (all baseline × candidate pairs, coloured by the paired difference in success, framed when unlikely to be chance; click a cell to compare that pair) and, as a second tab, Latency Response · **B** Paired Seed Table (the chosen pair: outcome per start state + largest-jump dumbbells, cross-filters A) · **C** Workspace Replay · **D** Execution Timeline (think / act tracks, jump bars, outcome). Design rationale with references: `docs/design_rationale.md`.
+Views: **A** Pair Overview (baseline × candidate matrix of the paired difference, framed when unlikely to be chance after Benjamini–Hochberg correction, hatched when the pair is not compared; opens at latency d = 4; ranking strip of the schedules at that latency by the mean of their three runs) · **B** Latency Response (difference to the baseline against latency, one line per strategy and h, re-runs as hollow marks) · **C** Paired Seed Table (outcome per start state with the re-runs, and dumbbells of the chosen question; brushing selects start states for A and B) · **D** Workspace Replay · **E** Execution Timeline (think / act tracks, jump bars, outcome). Design rationale with references: `docs/design_rationale.md`.
 
 ## Folder layout
 
 | Path | Content |
 |---|---|
 | `src/` | the interface (HTML/CSS/JS + `data/` it loads) |
-| `src/data/episodes.csv` | PushT: one row per (schedule, seed) episode: 450 items × 22 attributes (14 schedules + re-run × 30 seeds) |
-| `src/data/catch/` | Catch the ball: same layout (450 episodes), from `scripts/catch_task.py` + `scripts/generate_catch.py` |
+| `src/data/episodes.csv` | PushT: one row per (schedule, run, seed) episode: 1,890 items × 23 attributes (21 schedules × 3 runs × 30 seeds) |
+| `src/data/catch/` | Catch the ball: same layout (1,890 episodes), from `scripts/catch_task.py` + `scripts/generate_catch.py` |
 | `src/data/schedules.json` | per-schedule aggregates |
 | `src/data/runs/<schedule>.json` | per-step / per-chunk logs, lazy-loaded |
 | `data/runs/` | raw rollout logs produced by the simulator |
@@ -42,17 +43,18 @@ Needs Python 3.12, ~2–4 h on a 12-core CPU (no GPU needed).
 ```bash
 python3 -m venv ~/infovis-venv
 ~/infovis-venv/bin/pip install -r scripts/requirements.txt
-./scripts/run_grid.sh                     # full PushT grid: 46 schedules + 1 noise replicate × 50 paired seeds -> data/runs/*.json
 python scripts/catch_task.py train        # Catch-the-ball policy (≈ 4 min CPU) -> models/catch_policy.pt
-python scripts/generate_catch.py --configs sync_d0_h4 sync_d0_h8 sync_d2_h4 sync_d2_h8 sync_d4_h4 sync_d4_h8 naive_d2_h4 naive_d2_h8 naive_d4_h4 naive_d4_h8 inpaint_d2_h4 inpaint_d2_h8 inpaint_d4_h4 inpaint_d4_h8 sync_d0_h8_r1
-# build_dataset.py then keeps d ∈ {0,2,4} × h ∈ {4,8} and seeds 1000–1029 for both tasks
+./scripts/run_shown_grid.sh               # the 21 shown schedules × 3 runs for both tasks -> data/runs/, data/runs_catch/
+# (./scripts/run_grid.sh is the first, larger PushT grid: 46 schedules × 50 seeds, kept as raw logs)
+# build_dataset.py keeps d ∈ {0,2,4} × h ∈ {4,8,11}, runs 0–2 and seeds 1000–1029 for both tasks
 python3 scripts/build_dataset.py          # -> src/data/
 python3 scripts/verify_dataset.py         # requirement check, -> docs/dataset_verification.txt
 ```
 
 What the generator does: the pretrained `lerobot/diffusion_pusht` Diffusion Policy (Chi et al., 2023) is run in the
 PushT simulator (`gym-pusht`) from the same 30 initial states (seeds 1000–1029) under every shown schedule
-`<strategy>_d<latency>_h<horizon>`:
+`<strategy>_d<latency>_h<horizon>` (and its re-runs `_r1`, `_r2` with other sampling noise). h = 11 is the longest
+horizon that fits the 16-action chunk at every latency (1 + d + h ≤ 16):
 
 * **sync**: request a chunk, hold position for *d* steps, then execute *h* actions from the chunk.
 * **naive**: asynchronous; keep executing the old chunk while inference runs, switch after *d* steps and skip the *d* actions whose time has passed.

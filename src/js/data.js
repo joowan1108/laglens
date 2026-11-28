@@ -91,7 +91,7 @@ export async function loadBase(task = "pusht") {
   DATA.episodes = eps;
   DATA.schedules = sch;
   for (const s of sch) DATA.schedById.set(s.schedule, s);
-  // the interface compares the 14 schedules (run 0); their re-runs only say how repeatable an outcome is
+  // the interface compares the 21 schedules (run 0); their re-runs only say how repeatable an outcome is
   DATA.schedules = sch.filter((x) => !x.replicate);
   DATA.reps = new Map();
   for (const x of sch.filter((q) => q.replicate)) {

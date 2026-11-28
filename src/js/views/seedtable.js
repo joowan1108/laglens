@@ -29,7 +29,7 @@ function autoCost() {
 // with a cost chosen in the header, C shows that cost; with "Success", the cost that separates the pair
 const BY_METRIC = { idle_frac_mean: "idle", think_motion_mean: "stale", jump_mean: "jump" };
 const costKey = () => BY_METRIC[state.metric] || autoCost();
-// one scale per cost and task (all 14 schedules), so a dumbbell means the same in every pair
+// one scale per cost and task (all 21 schedules), so a dumbbell means the same in every pair
 let domCache = { task: null, d: {} };
 function domain(k) {
   if (domCache.task !== DATA.task) domCache = { task: DATA.task, d: {} };

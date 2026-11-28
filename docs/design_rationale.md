@@ -1,33 +1,33 @@
-# LagLens design rationale (redesign of 2026-10-27)
+# LagLens design rationale (redesign of 2026-10-27, final state of 2026-11-28)
 
 The first version had five views, about ten hues and a number in every heatmap cell. Users found it
-cluttered. The redesign removes encodings rather than adding them. Every remaining channel and mark
-is chosen for one task and justified by visualization research.
-The data and the four tasks T1–T4 are unchanged.
+cluttered. The redesign removed encodings rather than adding them; later rounds (proposal feedback,
+independent reviews, re-runs, longer horizons) changed what is compared and how chance is shown.
+Every remaining channel and mark is chosen for one task and justified by visualization research.
+The four tasks T1–T4 are unchanged.
 
 ## 1 What the interface must make visible: sync vs. async
 
 Every strategy pays a different cost for inference latency *d*. The views are built so that each cost has one visible signature.
 
-| Strategy | What happens during inference | Cost it pays | Measured (d = 4, h = 4) | Signature in LagLens |
+| Strategy | What happens during inference | Cost it pays | Measured (PushT, d = 4, h = 4, run 0) | Signature in LagLens |
 |---|---|---|---|---|
-| **Sync** | The robot holds still for *d* steps, then executes *h* actions of the new chunk. | **Time.** The idle share is about d/(h+d). The observation is old but the world did not move, so the plan still fits. | idle 51 %, discontinuity 5.4 px, success 14 % | **D:** *think* and *act* alternate, with hatched idle gaps.<br>**A:** the blue curve falls steadily with *d*. |
-| **Naive async** | The robot keeps executing the old chunk. The new chunk replaces it after *d* steps, skipping its first *d* actions. | **Discontinuity.** The new plan comes from an observation taken before the robot moved and can choose another mode, so discontinuities are large. | idle 2 %, discontinuity 43.5 px, success 38 % | **D:** *think* overlaps *act*, with tall magenta discontinuity bars far above its normal motion.<br>**C:** magenta discontinuity segment.<br>**A:** discontinuity curve rises as *h* shrinks. |
-| **Inpaint async** | Same timing as naive. The new chunk is sampled with the committed actions clamped, so it continues the old plan. | **Outdated plans only.** Like naive, the robot keeps moving while the policy thinks (motion while thinking 30.8 px vs. 47.7 px naive and 11.5 px sync), but discontinuities stay small. | idle 2 %, discontinuity 8.0 px, success 60 % | **D:** *think* overlaps *act*, with discontinuity bars about as high as its normal motion.<br>**A:** the green curve stays roughly level up to *d* = 4 (58–66 % at *h* = 8), then drops at *d* = 6. |
+| **Sync** | The robot holds still for *d* steps, then executes *h* actions of the new chunk. | **Time.** The idle share is about d/(h+d). The observation is old but the world did not move, so the plan still fits. | idle 51 %, jump 5.4 px, success 13 % | **E:** *think* and *act* alternate, with hatched idle gaps. **D:** card "idle: waiting for the plan". |
+| **Naive async** | The robot keeps executing the old chunk. The new chunk replaces it after *d* steps, skipping its first *d* actions. | **Outdated plan and jumps.** The new plan comes from a picture taken before the robot moved and can choose another way of pushing, so jumps are large. | idle 2 %, outdated plan 43.9 px, jump 40.3 px, success 43 % | **E:** *think* overlaps *act*, with tall magenta jump bars. **D:** magenta jump segment. |
+| **Inpaint async** | Same timing as naive. The new chunk is sampled with the committed actions clamped, so it continues the old plan. | **Outdated plan only.** Like naive, the robot keeps moving while the policy thinks, but jumps stay small. | idle 2 %, outdated plan 30.9 px, jump 7.8 px, success 67 % | **E:** jump bars about as high as an ordinary step. **D:** dotted outline of what the policy saw, away from the robot. |
 
-Each cost has a direct signature in the views: idle time in D's act track (hatched), outdated plans in C's dotted outline and status line ("robot moved N px since the picture"), jumps as magenta bars in D and as B's dumbbells. An earlier version also offered them as four questions in a bar; it was removed (see *Simplification*).
+The header asks one question for A, B and C (*show*: Success · Idle · Outdated plan · Jump), so each cost can also be compared across schedules and start states. How much each cost matters depends on the task and the horizon: with *h* = 11 sync stands still only 27 % of the time and in PushT the strategies no longer differ beyond chance, while in Catch (the ball rolls on) sync at *d* = 4 stays clearly behind at every *h* (report, Findings 1–2).
 
-## Simplification after the proposal (Nov 2026)
-The interface was judged too complex. Every element that did not serve the path *which pair (A) → which start states (B) → why (C, D)* was removed:
-
-| Removed | Why |
+## Changes after the proposal (Nov 2026)
+| Change | Why |
 |---|---|
-| A's four-question bar (Success, Idle, Outdated, Discontinuity) | One question (success) is enough to choose a pair; the costs are visible directly in C and D. |
-| B's outcome matrix of all 15 schedules | Duplicated the Pair Overview; B now shows only the chosen pair. |
-| C's "next chunk, still computing" path and in-map labels | Clutter; the outdatedness number moved to the status line. |
-| D's grey movement area, chunk provenance outlines and 16-cell usage strip | Expert detail that the main questions do not need; jumps keep their own track. |
-| Multi-line keys under every view | One line per view; definitions in the guide and tooltips. |
-
+| Pair chosen from an overview (A) instead of header drop-downs; later also the header chips and ⇄ were removed | Choosing a pair from drop-downs assumes a *lookup* and invites trying every combination (instructor's feedback); the overview supports *explore*. |
+| Only pairs with one reading are compared (same latency; same strategy and *h* at two latencies; any schedule against *d* = 0 at the same *h*); the others are hatched and cannot be chosen | A pair that differs in latency **and** in strategy or *h* mixes two causes; a difference there cannot be attributed. 102 of the 210 pairs per task are compared. |
+| Significance corrected with Benjamini–Hochberg over the compared pairs (FDR 5 %) | With 102 tests per task, uncorrected *p* < 0.05 would frame about five pairs by chance if no difference were real. |
+| Every schedule run three times (run 0 + two re-runs with other sampling noise) | One run of 30 start states is noisy (a plain re-run flips 4–17 PushT outcomes); the re-runs put the size of chance next to every difference. The test stays on run 0; the re-runs are the yardstick. |
+| One question for A, B and C in the header; B's outcome matrix of all schedules, C's still-computing path, D's movement area and usage strip removed | Each removed element duplicated another view or served no main question. |
+| Ranking strip in A | Answers "which schedule is best at my latency?" directly, with the three runs of each schedule. |
+| *h* = 11 added; A opens at *d* = 4 | *h* = 11 is the longest horizon that fits the 16-action chunk at every latency (1 + *d* + *h* ≤ 16). A 21 × 21 matrix is too dense to read at once, so A opens on the analyst's latency (12 × 12); all latencies remain one click away. |
 
 ## 2 Views, marks and channels
 
@@ -35,79 +35,67 @@ Channel rankings follow Munzner [1] (based on Cleveland & McGill [2] and Heer & 
 - Magnitude: position on a common scale > length > … > luminance > hue.
 - Identity: spatial region > hue > shape.
 
-### A Pair Overview (default tab; T1 compare, explore which pairs differ)
-Added after the proposal feedback: picking baseline and candidate from drop-downs assumed a *lookup* (the analyst already knows which pair matters) and invited trying every combination. The pair is now chosen from an overview of all pairs, which supports *explore* (target and location unknown).
-
+### A Pair Overview (T1 compare, T2 explore which pairs differ)
 | Decision | Why | Source |
 |---|---|---|
-| Matrix of all ordered pairs: rows = baseline, columns = candidate, ordered strategy → *h* → *d*, with strategy bands on both axes | One mark per comparison shows every pair at once (182 per task), so no combination has to be tried blindly; spatial region (blocks per strategy) separates sync→async from within-strategy comparisons. | [1] |
-| Cell colour = mean paired difference in success, candidate − baseline, over the same start states | The paired difference is the quantity the tool is built around. | [8] |
-| Diverging purple ↔ grey with a white midpoint, signed so that purple always means "candidate better" (higher success, lower cost) | Polarity needs a diverging scale; blue–red would collide with the strategy hues (sync blue, naive vermillion) and brown failed the CVD check against vermillion, so the "better" arm uses purple, which is otherwise unused. | [16] |
-| Dark frame = unlikely to be chance: exact McNemar test on the start states that flip (success), 95 % interval of the paired difference excludes 0 (cost questions) | The noise re-run flips 8/30 PushT outcomes, so the eye needs a guard against reading noise; McNemar is the standard test for paired binary outcomes. | [5] |
-| Click a cell = load that pair in all views; hover = rates, rescued / lost start states, *p*, chance level | Details on demand, then drill-down into B–D. | [17] |
+| Matrix of ordered pairs: rows = baseline, columns = candidate, ordered strategy → *h* → *d*, with strategy bands on both axes | One mark per comparison shows every pair at once, so no combination has to be tried blindly; spatial region separates sync→async from within-strategy comparisons. | [1] |
+| Cell colour = paired difference candidate − baseline over the same start states | The paired difference is the quantity the tool is built around. | [8] |
+| Diverging purple ↔ grey with a white midpoint, signed so that purple always means "candidate better" (higher success, lower cost); scale capped at the 75th percentile of the compared differences for costs | Polarity needs a diverging scale; blue–red would collide with the strategy hues, so the "better" arm uses purple, which is otherwise unused. The cap keeps one extreme schedule (Catch naive *d*4 *h*4 jumps) from washing out the rest. | [16] |
+| Dark frame = unlikely to be chance: for success, exact McNemar test on the flipping start states with Benjamini–Hochberg over the compared pairs (on all 30 start states; off for a selection made in C); for the costs, the 95 % interval of the paired difference excludes 0 | McNemar is the standard test for paired binary outcomes; the correction matches the number of comparisons the matrix invites. | [5] |
+| Hatched = not compared (with the reason in the tooltip) | Keeps the matrix complete while making clear which cells have no single reading. | |
+| Latency filter (all · *d* = 2 · *d* = 4), default 4 | The analyst's question is "at my latency"; the filter keeps the *d* = 0 reference of the same *h*. | [17] |
+| Ranking strip: the 9 schedules at that latency, sorted by the mean of three runs; filled = run 0, hollow = re-runs, tick = mean | Position on a common scale for the ranking, with the spread of the runs visible so a close ranking is not over-read. | [1][7] |
+| Click a cell = load that pair everywhere; click a ranking row = candidate; hover = rates, rescued / lost start states, *q*, whether the re-runs agree | Details on demand, then drill-down into B–E. | [17] |
 
-### A Latency Response (second tab; T1 compare trends)
+### B Latency Response (T1 compare trends)
 | Decision | Why | Source |
 |---|---|---|
-| Line + point marks; x = latency *d* on its true ratio scale (0, 1, 2, 4, 6 steps); y = metric | The old heatmap encoded the metric with luminance, a low-ranked magnitude channel, and needed a number in every cell. Position on a common scale is the most accurate magnitude channel, and the slope directly shows how quickly a strategy degrades. | [1][2][3] |
-| One panel per horizon *h* (small multiples, shared y) | Juxtaposition for the secondary comparison across *h*. A shared y-scale keeps panels comparable. | [4][5] |
-| Strategies superposed in each panel | Superposition supports direct, close comparison of a few series, here sync vs. the two async variants. Async lines start from the sync *d* = 0 point with a dotted segment because the strategies are identical without latency. | [4][6] |
-| Strategy = hue + shape (circle, square, diamond) | Hue is the strongest identity channel after region. Shape is added redundantly so identity never depends on hue alone (Okabe–Ito hues; colour-vision-deficiency check below). | [1][13][14] |
-| Thin 95 % interval lines (Wilson for success, t for means) | With 30 seeds a 15-point difference can be chance. Points with thin interval lines avoid the "within-the-bar" bias of bar + error-bar charts. | [7][16] |
-| Δ vs baseline = paired difference over the same seeds, in the hover | Explicit encoding of the difference (Gleicher's third comparison strategy), with a paired interval that matches the paired design. Shown on demand instead of as a separate mode, so there is one less control to learn. | [4][5][17] |
-| Baseline and candidate as word-labelled rings | The selection is shown without recolouring marks: colour follows the entity, not the selection. | [4] |
+| Line + point marks; x = latency *d* on its true scale; y = metric minus the baseline's on the same start states (0 = baseline) | Position on a common scale is the most accurate magnitude channel, and drawing relative to the baseline is Gleicher's explicit-difference strategy. | [1][2][4][5] |
+| Strategy = hue + shape, horizon = dash (solid 4, dashed 8, dash-dot 11) | All schedules in one frame so baseline and candidate are always comparable; shape is redundant so identity never depends on hue alone. | [1][13][14] |
+| Filled = unlikely chance (same test as A); dashed outline = not compared with this baseline; small hollow marks = re-runs | Fill encodes only significance, the outline only comparability, so the two never mix. | [5][7] |
+| Band = my latency; click = candidate, shift-click = baseline; legend hover highlights one strategy | Direct manipulation instead of pickers. | [15] |
 
-### B Paired Seed Table (T2 locate flips, T4 discover correlation)
+### C Paired Seed Table (T2 locate flips, T4 discover correlation)
 | Decision | Why | Source |
 |---|---|---|
-| Only the chosen pair: one row per start state with two outcome cells (baseline black, candidate orange) and a dumbbell strip | The 15-column outcome matrix of every schedule duplicated the Pair Overview; B now answers only "which start states flip for this pair, and do their jumps change?" | [9] |
-| Matrix cell: filled = success, empty = failure (luminance) | Success is binary, so one luminance step suffices. The old four-hue loss/gain scheme reused the candidate orange and vermillion. Flips are now visible as cells that break their band's pattern. | [1][11] |
-| baseline column black, candidate column orange; others grey | Identity hues appear only where baseline and candidate are, as in every other view. | [4] |
-| Rows grouped by baseline→candidate change (lost, gained, both ✓, both ✗), robust seeds first inside a band; no sort or attribute controls | Spatial region is the top-ranked channel for a categorical attribute. Each band directly answers "which seeds flip?". Alternative orders were rarely needed and added controls. | [1] |
-| Chance level in the footer (re-run of the same schedule with new noise) | An explicit reference for chance: 8/30 PushT seeds flip with no schedule change (Catch: 4/30). | [5] |
-| Dumbbell: ● baseline → ● candidate of the largest jump at a chunk switch, symlog position axis | Fixed attribute for T4 (do failures come with large jumps?); the outcome itself is already in the cells. | [4] |
-| Vertical brush on the dumbbells, or click a band → selected seeds re-aggregate A | Cross-filtering checks whether a trend holds for a subset ("are the failures driven by these seeds?"). | [12][15] |
+| One row per start state with outcome cells (baseline black, candidate orange; filled = success) and two narrow cells for the re-runs; ≈ where a schedule's runs disagree | Flips are visible as cells that break their band's pattern; the re-run cells show directly whether a flip repeats. | [1][11] |
+| Rows grouped by baseline → candidate change (rescued, lost, both ✓, both ✗) | Spatial region is the top-ranked channel for a categorical attribute; each band answers "which start states flip?". | [1] |
+| Dumbbell ● baseline → ● candidate of the header's question (idle, outdated plan or jump; for Success, the cost that separates the pair), band ticks = medians | T4: do failures come with larger costs? The outcome is already in the cells. | [4] |
+| Footer: rescued / lost, how many flips repeat in all runs of both schedules, how many a plain re-run flips | An explicit reference for chance next to the counts. | [5] |
+| Brush rows → A and B recompute on the selected start states; click a row → D and E replay it | Cross-filtering checks whether a trend holds for a subset. | [12][15] |
 
-### C Workspace Replay (T3 identify where)
+### D Workspace Replay (T3 identify where)
 | Decision | Why | Source |
 |---|---|---|
-| baseline and candidate side by side at the same scale and seed | Juxtaposition of two spatial states. True geometry is used because the data is spatial. | [4][6] |
-| Three overlays: executed part of the current chunk (filled dots, solid), thrown-away part (hollow, dashed), latest jump (magenta); plus the dotted outline of what the policy saw | Only what explains the move at time t; the chunk still being computed and the in-map labels were removed as clutter, the "moved N px since the picture" number moved to the status line. | [9] |
-| What the policy saw: dotted outline of block and pusher at the time of the camera picture the shown chunk was planned from (t_obs), with an arrow to the pusher now and the label "seen at t=… · moved N px since" | Makes the cost of async visible in space, in the same frame as the plan: sync waits, so the outline and the robot nearly coincide; under async the robot keeps moving and the plan is made for a scene that no longer exists. Also makes the claim "every executed move is traced back to the picture it came from" literal. | [4] |
-| Status line in the strategy vocabulary ("idle: waiting for inference", "acting … picture 4 steps old · thinking") | States the sync vs. async situation at t in words, so it never has to be decoded from marks. | |
+| One map at true geometry with both runs superposed (baseline black, candidate orange) | Superposition in the same frame supports close comparison of two spatial states. | [4][6] |
+| Executed path solid, planned but not executed dashed, latest jump magenta; dotted outline of block/ball and pusher in the picture the current plan came from | Only what explains the move at time t; the outline makes the cost of async visible in space. | [9] |
+| Two cards in plain words ("idle: waiting for the plan", "plan from a picture 4 steps old · robot moved N px since then") | States the situation at t in the strategy vocabulary, so it never has to be decoded from marks. | |
 
-### D Execution Timeline (T3 identify when)
+### E Execution Timeline (T3 identify when)
 | Decision | Why | Source |
 |---|---|---|
-| Gantt lanes on a linear, chronological time axis; baseline and candidate on one shared axis | A linear representation with a chronological scale suits "when" questions, and aligned lanes enable comparison. | [19][20] |
-| Two tracks per run: *think* (inference intervals) and *act* (executed chunk spans, alternating tints; hatched = idle) | Shows the defining difference between the strategies: alternation (sync) vs. overlap (async). | [19] |
-| Jump = magenta bar per chunk switch on its own track (shared baseline/candidate px scale) | Height on a common baseline is a top magnitude channel; the grey movement-per-step area behind it was removed as clutter. | [1] |
-| Coverage lines (baseline black, candidate orange) with the 95 % success threshold | Position channel for the outcome over time. Shares the x-axis with the tracks. | [1] |
-| Brush a window → C highlights that part of the path; hover a chunk → its plan in C; click → cursor | Linked navigation from time to space. | [12][15] |
+| Gantt lanes on a linear time axis; baseline and candidate share the axis | A chronological scale suits "when" questions; aligned lanes enable comparison. | [19][20] |
+| Per run: *think* track, *act* track (chunks, hatched = idle), *jump* track (magenta bar per switch, grey = ordinary step) | Alternation (sync) vs. overlap (async) is the defining difference; jumps are read against an ordinary step. | [1][19] |
+| Outcome curve (coverage or distance) with the success line | Position channel for the outcome over time, on the same x-axis. | [1] |
+| Brush a window → D highlights that path; hover a chunk → its plan in D; click → cursor | Linked navigation from time to space. | [12][15] |
 
 ## 3 Whole-interface decisions
-- **Overview first, then filter, then details on demand**, in reading order: A (overview) → B (filter seeds) → C/D (episode details). [17]
-- **Two tasks, one encoding.** A task switch in the header (PushT · Catch the ball) reloads all four views with the same marks and channels; only the outcome attribute changes (coverage of the goal ↔ pusher–ball distance) and C draws the ball and its rolled path instead of the T, with the ball's position in the planning picture as the dotted outline. Catch is the case in which async's advantage is plain to see (the ball rolls on while sync waits); PushT is the harder case where the costs compete.
-- **Fewer schedules and seeds.** The interface shows d ∈ {0, 2, 4} × h ∈ {4, 8} and 30 seeds: A has 3 latency points per panel and B 15 columns × 30 rows, readable without scrolling.
-- **Parsimony and consistency** across multiple views. Five views became four, and each hue has a single meaning everywhere. [9]
+- **Overview first, then filter, then details on demand**, in reading order: A, B (overview) → C (filter start states) → D, E (episode details). [17]
+- **Two tasks, one encoding.** The task switch reloads all views with the same marks and channels; only the outcome attribute changes (coverage of the goal ↔ pusher–ball distance) and D draws the ball instead of the T. Catch is the case in which async's advantage is plain to see; PushT is the case where the costs compete and depend on *h*.
+- **Grid.** *d* ∈ {0, 2, 4} × *h* ∈ {4, 8, 11}, 21 schedules × 3 runs × 30 start states per task; the first, larger grid (46 schedules × 50 seeds) was too dense to read.
+- **Parsimony and consistency** across multiple views: each hue has a single meaning everywhere. [9]
 - **Hue budget, chosen by job:**
   - identity: baseline `#222222`, candidate `#E69F00`
   - strategy: sync `#0072B2`, naive `#D55E00`, inpaint `#009E73`
-  - event: discontinuity `#c2185b`
+  - event: jump `#c2185b`; "candidate better" in A: purple
   - everything else neutral grey; selection is drawn in ink
 - **Colour-vision-deficiency check.** Colour differences were computed with Machado et al.'s simulation [13] in OKLab (×100):
   - Strategy hues: smallest difference 9 (tritan, blue–green) and 11 (deutan, vermillion–green). Shape is redundant there.
   - baseline vs candidate: ≥ 48 for every deficiency.
-  - candidate vs naive: 13–17. These two only meet in A, where the candidate is additionally marked by a labelled ring.
-- **Interaction set**, after Heer & Shneiderman's taxonomy [15]:
-  - *select* (baseline/candidate, seed)
-  - *filter* (seed brush → A)
-  - *derive* (Δ vs baseline, on hover)
-  - *navigate* (time brush, play)
-  - *coordinate* (one shared state; every view listens)
-  - *record* (URL parameters reproduce any state)
-- **Self-explaining encodings.** Every term is defined where it is encoded, not only in the guide: "compare two schedules: Baseline / Candidate" in the header; *h*, *d*, the three strategies and the y metric under A; rows, cells (✓/✗), baseline/candidate columns and the dumbbell attribute above B; line styles, the discontinuity and "steps stale" under C; think/act/idle and the motion track (jump bars) above D. [15][18]
-- **Few controls.** The student found ten technically named controls (metric list, Δ mode, three sort orders, an 8-item attribute list, playback speed) hard to understand. The interface now has only the baseline/candidate pair and the question bar; everything else is direct manipulation (click, shift-click, brush, hover).
+  - candidate vs naive: 13–17. These two only meet in A and B, where the candidate is additionally marked by a labelled ring.
+- **Interaction set**, after Heer & Shneiderman's taxonomy [15]: *select* (a cell, a ranking row, a point, a start state), *filter* (latency filter; start-state brush → A, B), *navigate* (time brush, play), *coordinate* (one shared state; every view listens), *record* (URL parameters reproduce any state).
+- **Self-explaining encodings.** Every term is defined where it is encoded (one-line keys and tooltips); the guide defines chunk, *d*, *h*, the strategies and the comparison rule. [15][18]
+- **Few controls.** The header has only the task and the question; everything else is direct manipulation (click, shift-click, brush, hover).
 
 ## References
 1. T. Munzner. *Visualization Analysis and Design*. CRC Press, 2014.

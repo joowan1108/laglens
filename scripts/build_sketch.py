@@ -1,11 +1,12 @@
-"""Writes slides/assets/sketch.svg: the low-fidelity design sketch of the interface layout (4 linked views).
-Each view is a plain box with a schematic of its idiom (a few placeholder marks, not data) and short
-notes on what it encodes. Purple = interaction and linking, numbered as the steps on slide 7."""
+"""Writes report/sketch.svg: the low-fidelity design sketch of the interface layout (5 linked views, A-E,
+as implemented). Each view is a plain box with a schematic of its idiom (a few placeholder marks, not
+data) and short notes on what it encodes. Purple = interaction and linking, numbered as in the report's
+Figure 2 caption. (The proposal-stage sketch with 4 views is kept as slides/assets/sketch.svg.)"""
 import math, random
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "slides" / "assets" / "sketch.svg"
+OUT = ROOT / "report" / "sketch.svg"
 INK, GREY, LIGHT = "#2b2b2b", "#8a8a92", "#ececf0"
 IA = "#6a3d9a"  # interaction annotations
 R, C, SEAM = "#222", "#E69F00", "#c2185b"
@@ -77,180 +78,209 @@ def tee(cx, cy, rot, s=1.0, **kw):
         rl(x1, y1, x2, y2, kw.get("col", INK), kw.get("w", 1.5), kw.get("dash"), over=0)
 
 
-add('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" font-family="Helvetica, Arial, sans-serif" font-size="13">')
+W, H = 1200, 720
+add(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" font-family="Helvetica, Arial, sans-serif" font-size="13">')
 add(f'<defs>'
     f'<marker id="arrI" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="{IA}" stroke-width="1.6" stroke-linecap="round"/></marker>'
     f'<marker id="arrK" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="{INK}" stroke-width="1.6" stroke-linecap="round"/></marker>'
-    '<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="6" stroke="#999" stroke-width="1.2"/></pattern></defs>')
-add('<rect width="1200" height="660" fill="#fff"/>')
+    '<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="6" stroke="#aaa" stroke-width="1.2"/></pattern></defs>')
+add(f'<rect width="{W}" height="{H}" fill="#fff"/>')
 
-ax, ay, aw, ah = 8, 56, 512, 252   # A
-bx, by, bw, bh = 8, 316, 512, 336  # B
-cx0, cy0, cw0, ch0 = 528, 56, 664, 318  # C
-dx, dy, dw, dh = 528, 382, 664, 270  # D
+A = (8, 56, 404, 340); B = (420, 56, 296, 340); Dv = (724, 56, 468, 340)
+Cv = (8, 404, 708, 308); E = (724, 404, 468, 308)
 
-# ---- header: baseline and candidate pickers
+
+def seg(x, y, labels, on, wseg=None):
+    xx = x
+    for k, lab in enumerate(labels):
+        w = (wseg or [len(l) * 7.4 + 18 for l in labels])[k]
+        rbox(xx, y, w, 22, fill="#444" if k == on else None)
+        txt(xx + w / 2, y + 16, lab, 12, "#fff" if k == on else INK, "middle")
+        xx += w
+    return xx
+
+
+def title(v, s, sub):
+    x, y, w, h = v
+    rbox(x, y, w, h)
+    txt(x + 12, y + 24, s, 15, weight="bold")
+    txt(x + 20 + len(s) * 9.6, y + 24, sub, 12, "#555")
+
+
+# ---- header: task and question only (the pair is chosen in A)
 rbox(8, 8, 1184, 40)
-rbox(22, 15, 170, 26)
-rbox(22, 15, 70, 26, fill="#444")
-txt(57, 33, "PushT", 12.5, "#fff", "middle"); txt(142, 33, "Catch the ball", 12.5, INK, "middle")
+txt(22, 33, "LagLens", 16, weight="bold")
+seg(100, 17, ["PushT", "Catch the ball"], 0)
+txt(290, 33, "show", 12, GREY)
+xe = seg(326, 17, ["Success", "Idle", "Outdated plan", "Jump"], 0)
+note(xe + 12, 33, "one question for A, B and C (success, or what each strategy pays)")
+txt(1110, 33, "? Guide   Reset", 12.5, INK, "middle")
 
-rbox(640, 15, 228, 26, R, 2.2)
-txt(652, 34, "Baseline:  Sync, d=4, h=4  ▾", 12.5)
-txt(882, 34, "⇄", 15)
-rbox(906, 15, 236, 26, C, 2.2)
-txt(918, 34, f'<tspan fill="{C}">Candidate</tspan>:  Inpaint, d=4, h=4  ▾', 12.5)
-txt(1166, 34, "?", 14)
-badge(612, 28, 1)
-note(596, 33, "or pick the two schedules here", "end")
-
-# ---- A pair overview (default tab) | latency response (second tab)
-rbox(ax, ay, aw, ah)
-txt(ax + 12, ay + 24, "A ·", 15, weight="bold")
-rbox(ax + 40, ay + 8, 112, 22, fill="#444"); txt(ax + 96, ay + 24, "Pair overview", 12.5, "#fff", "middle")
-rbox(ax + 152, ay + 8, 124, 22); txt(ax + 214, ay + 24, "Latency response", 12.5, INK, "middle")
-note(ax + 284, ay + 24, "2nd tab: success vs latency per h")
-# schematic matrix: rows = baseline, columns = candidate (7 x 7 placeholder cells)
-mx, my, mc, nn = ax + 70, ay + 76, 19, 7
-shade = [[0, 1, 2, 1, 1, 0, 1], [1, 0, 1, 3, 2, 1, 2], [2, 2, 0, 3, 3, 2, 3], [0, 1, 0, 0, 1, 0, 1],
-         [0, 0, 0, 1, 0, 0, 0], [1, 1, 0, 2, 1, 0, 2], [0, 0, 0, 1, 0, 0, 0]]
-fills = ["#ffffff", "#d9d9de", "#a9a9b2", "#555"]
+# ---- A pair overview with ranking strip
+title(A, "A · Pair overview", "which two schedules differ?")
+ax, ay, aw, ah = A
+seg(ax + 14, ay + 36, ["all latencies", "d = 2", "d = 4"], 2)
+note(ax + 236, ay + 52, "= my latency")
+mx, my, mc, nn = ax + 74, ay + 100, 20, 7
+shade = [[0, 3, 2, 3, 3, 9, 9], [1, 0, 1, 2, 2, 9, 9], [1, 1, 0, 1, 2, 9, 1], [1, 1, 1, 0, 1, 1, 9],
+         [1, 1, 1, 1, 0, 9, 1], [9, 9, 9, 1, 9, 0, 1], [9, 9, 1, 9, 1, 1, 0]]
+fills = {0: "#ffffff", 1: "#e4e4ea", 2: "#b9b9c4", 3: "#6f6f7c", 9: "url(#hatch)"}
 for i in range(nn):
     for k in range(nn):
-        rbox(mx + k * mc, my + i * mc, mc - 2, mc - 2, sw=1.0 if shade[i][k] < 3 else 2.2, fill=fills[shade[i][k]] if i != k else "#fff",
-             col=INK if shade[i][k] == 3 else "#bbb")
-rbox(mx + 6 * mc - 3, my + 2 * mc - 3, mc + 4, mc + 4, C, 2.6)
-txt(mx - 8, my + 2 * mc + 12, "baseline ↓", 11.5, R, "end")
-txt(mx + nn * mc / 2, my - 8, "candidate →", 11.5, "#9a6a00", "middle")
-txt(ax + 214, ay + 104, "row = baseline · column = candidate", 12, "#555")
-txt(ax + 214, ay + 122, "shade = how much more often the candidate", 12, "#555")
-txt(ax + 214, ay + 138, "succeeds on the same start states", 12, "#555")
-txt(ax + 214, ay + 156, "dark frame = unlikely to be chance", 12, "#555")
-badge(ax + 214 + 8, ay + 186, 1)
-note(ax + 236, ay + 191, "click a cell = compare that pair")
-note(ax + 12, ay + ah - 10, "hover = rates, rescued / lost start states, chance level")
+        v = shade[i][k] if i != k else 0
+        rbox(mx + k * mc, my + i * mc, mc - 2, mc - 2, col=INK if v == 3 else "#c4c4cc", sw=2.2 if v == 3 else 1, fill=fills[v])
+rbox(mx + 3 * mc - 3, my - 3, mc + 4, mc + 4, C, 2.6)
+txt(mx - 6, my + 14, "baseline", 11, R, "end"); txt(mx - 6, my + 28, "↓", 11, R, "end")
+txt(mx, my - 8, "candidate →", 11, "#9a6a00")
+badge(mx + 3 * mc + 34, my - 12, 1)
+# ranking strip
+rx, ry = ax + 234, ay + 92
+txt(rx, ry, "ranking at my latency", 12, weight="bold")
+for k, v in enumerate([0.82, 0.7, 0.63, 0.55, 0.47, 0.38, 0.2]):
+    yy = ry + 18 + k * 21
+    rl(rx, yy, rx + 60, yy, "#999", 1)
+    x0 = rx + 76 + v * 80
+    rcirc(x0 - 6, yy, 3.2, GREY, 1.1); rcirc(x0 + 7, yy, 3.2, GREY, 1.1); rcirc(x0, yy, 4, INK, 1, fill=INK)
+    if k == 2:
+        rbox(rx - 4, yy - 9, 166, 18, IA, 1.6)
+badge(rx + 172, ry + 18 + 2 * 21, 2)
+txt(rx, ry + 164, "● run 0  ○ re-runs · best first", 11, "#555")
+txt(ax + 14, ay + 278, "row = baseline · column = candidate · shade = difference", 11.5, "#555")
+txt(ax + 14, ay + 294, "on the same start states · dark frame = unlikely chance", 11.5, "#555")
+txt(ax + 14, ay + 310, "(FDR 5 %) · hatched = not compared (mixes two causes)", 11.5, "#555")
+note(ax + 14, ay + 332, "① click a cell = compare that pair  ② click a row = candidate", size=11.5)
 
-# ---- B paired seed table
-rbox(bx, by, bw, bh)
-txt(bx + 12, by + 24, "B · Paired seed table", 15, weight="bold")
-txt(bx + 12, by + 46, "row = one start state (30) of the chosen pair", 12, "#555")
-gx0, cs, rh = bx + 150, 30, 15
-ncol, Rc, Cc = 2, 0, 1
-txt(gx0 + Rc * cs + cs / 2, by + 84, "base", 11.5, R, "middle"); txt(gx0 + Cc * cs + cs / 2, by + 84, "cand", 11.5, "#9a6a00", "middle")
-txt(bx + 300, by + 84, "largest jump (base → cand)", 12, "#555")
-bands = [("only baseline ok", (1, 0)), ("only candidate ok", (0, 1)), ("both ok", (1, 1))]
-y = by + 92
-rows = []
+# ---- B latency response
+title(B, "B · Latency response", "vs. baseline")
+bx, by, bw, bh = B
+px0, py0, pw, ph = bx + 46, by + 60, bw - 70, 170
+rl(px0, py0 + ph, px0 + pw, py0 + ph, GREY, 1.2); rl(px0, py0, px0, py0 + ph, GREY, 1.2)
+add(f'<rect x="{px0 + pw * 0.82}" y="{py0}" width="{pw * 0.18}" height="{ph}" fill="#eeeef2"/>')
+for k, d in enumerate((0, 2, 4)):
+    txt(px0 + 8 + k * (pw - 16) / 2, py0 + ph + 16, str(d), 11, GREY, "middle")
+txt(px0 + pw, py0 + ph + 32, "latency d →", 11, GREY, "end")
+X = lambda k: px0 + 8 + k * (pw - 16) / 2
+base_y = py0 + ph - 30
+rl(px0, base_y, px0 + pw, base_y, INK, 1.2)
+txt(px0 + 4, base_y + 14, "0 = baseline", 10.5, "#555")
+for pts, dash in [([90, 96, 150], None), ([90, 60, 40], "6 4"), ([90, 70, 52], "1.5 3")]:
+    P = [(X(k), py0 + v) for k, v in enumerate(pts)]
+    curve(P, "#777", 1.6, dash)
+    for x, y in P:
+        rcirc(x, y, 3.6, "#555", 1, fill="#555")
+        rcirc(x + 5, y + 9, 2.4, GREY, 1)
+rcirc(X(2), py0 + 40, 8, C, 2.4)
+txt(X(2) - 10, py0 + 28, "candidate", 11, "#9a6a00", "end")
+badge(X(2) + 16, py0 + 26, 3)
+txt(bx + 12, by + 268, "y = success minus the baseline's", 11.5, "#555")
+txt(bx + 12, by + 284, "on the same start states · line = h", 11.5, "#555")
+txt(bx + 12, by + 300, "filled = unlikely chance · ○ = run again", 11.5, "#555")
+note(bx + 12, by + 324, "③ click = candidate · shift-click = baseline", size=11.5)
+
+# ---- D workspace replay (one map, both runs)
+title(Dv, "D · Workspace replay", "where does it go wrong?")
+dx, dy, dw, dh = Dv
+mxx, myy, mw, mh = dx + 12, dy + 36, 268, 238
+rbox(mxx, myy, mw, mh, "#999", 1.3)
+tee(mxx + 190, myy + 70, 0, 0.8, col=GREY, dash="4 3")
+txt(mxx + 238, myy + 46, "goal", 11, GREY)
+tee(mxx + 150, myy + 140, 30, 0.8, fill=LIGHT)
+tee(mxx + 118, myy + 150, 12, 0.8, col=C, w=1.4, dash="2 4")
+curve([(mxx + 20, myy + 210), (mxx + 60, myy + 190), (mxx + 92, myy + 178)], R, 2.4)
+rcirc(mxx + 98, myy + 176, 9, R, 2, fill=R)
+curve([(mxx + 30, myy + 120), (mxx + 70, myy + 110), (mxx + 110, myy + 96)], C, 2.4)
+rcirc(mxx + 150, myy + 78, 9, C, 2, fill=C, op=.35)
+rl(mxx + 112, myy + 95, mxx + 146, myy + 80, SEAM, 2.6)
+txt(mxx + 112, myy + 76, "jump", 11, SEAM, "end")
+curve([(mxx + 158, myy + 74), (mxx + 200, myy + 60), (mxx + 240, myy + 58)], C, 1.5, "5 4")
+rcirc(mxx + 84, myy + 128, 9, C, 1.4, dash="2 4")
+txt(mxx + 10, myy + mh - 10, "dotted = what the policy saw", 11, "#9a6a00")
+cx1 = dx + 290
+for k, (lab, col, l1, l2) in enumerate([("Baseline ✗", R, "Sync d4 h4", "idle: waiting for a plan"),
+                                        ("Candidate ✓", C, "Inpaint d4 h4", "plan from an old picture")]):
+    yy = dy + 40 + k * 84
+    rbox(cx1, yy, 166, 74, col, 1.8)
+    txt(cx1 + 10, yy + 20, lab, 12.5, "#222" if k == 0 else "#9a6a00", weight="bold")
+    txt(cx1 + 10, yy + 38, l1, 11.5); txt(cx1 + 10, yy + 56, l2, 10.5, "#555")
+rbox(dx + 12, dy + 290, 50, 22, sw=1.3); txt(dx + 22, dy + 306, "▶ play", 12)
+rl(dx + 76, dy + 301, dx + 286, dy + 301, INK, 2.4); rcirc(dx + 200, dy + 301, 7, INK, 1.4, fill=INK)
+note(dx + 300, dy + 306, "← → step · hover a point", size=11)
+txt(dx + 12, dy + 330, "solid = executed · dashed = planned, not executed · magenta = jump", 11, "#555")
+
+# ---- C paired seed table
+title(Cv, "C · Paired seed table", "which start states flip?")
+cx, cy, cw, ch = Cv
+gx = cx + 210
+txt(gx + 10, cy + 54, "base", 11, R, "middle"); txt(gx + 66, cy + 54, "cand", 11, "#9a6a00", "middle"); txt(gx + 98, cy + 54, "(narrow = again)", 10, GREY)
+txt(cx + 400, cy + 54, "the question of the header, baseline → candidate", 11.5, "#555")
+bands = [("baseline ✗ → candidate ✓", (0, 1)), ("baseline ✓ → candidate ✗", (1, 0)), ("both ✓", (1, 1)), ("both ✗", (0, 0))]
+y = cy + 64
+rowy = []
 for name, (rok, cok) in bands:
-    txt(bx + 12, y + 20, name, 12)
-    rl(bx + 120, y + 2, bx + 120, y + 2 * rh + 2, GREY, 1.2, over=0)
-    for r in range(2):
-        for c in range(ncol):
-            ok = rok if c == Rc else cok
-            rbox(gx0 + c * cs, y, cs - 3, rh - 3, "#999", 1, fill=(R if c == Rc else C) if ok else None)
-        rv, cv = (random.uniform(80, 120), random.uniform(10, 40)) if name != "only candidate ok" else (random.uniform(110, 130), random.uniform(15, 35))
-        yy = y + rh / 2 - 1
-        rl(bx + 300 + cv, yy, bx + 300 + rv, yy, "#999", 1.2, over=0)
-        rcirc(bx + 300 + rv, yy, 3.2, R, 1, fill=R); rcirc(bx + 300 + cv, yy, 3.2, C, 1, fill=C)
-        rows.append(y)
-        y += rh
-    y += 12
-txt(gx0 + ncol * cs / 2, y + 2, "⋮", 14, GREY, "middle")
-txt(bx + 12, y + 24, "filled cell = success · rows grouped by where the two disagree", 12, "#555")
-# brush over dumbbells (band 2), clicked row (band 1)
-rbox(bx + 294, rows[2] - 5, 150, 2 * rh + 6, IA, 1.5, dash="5 4")
-badge(bx + 444, rows[2] - 8, 2)
-rbox(bx + 8, rows[1] - 3, 440, rh + 2, IA, 1.8)
-badge(bx + 466, rows[1] + 4, 3)
-note(bx + 14, y + 60, "② drag over rows = select those start states → A recomputes")
-note(bx + 14, y + 84, "③ click a row → C and D replay that start state")
-curve([(bx + 420, rows[2] - 6), (bx + 486, by + 60), (bx + 470, ay + ah - 4)], IA, 1.5, "5 4", True)
-curve([(bx + 470, rows[1] + 4), (bx + 518, rows[1] - 30), (cx0 + 16, cy0 + 196)], IA, 1.5, "5 4", True)
-curve([(bx + 470, rows[1] + 4), (bx + 518, rows[1] + 60), (dx + 30, dy + 100)], IA, 1.5, "5 4", True)
+    add(f'<rect x="{cx + 8}" y="{y}" width="{cw - 16}" height="16" fill="#f0f0f3"/>')
+    txt(cx + 12, y + 12, name, 11.5, weight="bold")
+    y += 18
+    for r in range(2 if name in ("baseline ✗ → candidate ✓", "both ✓") else 1):
+        rbox(gx, y, 20, 11, "#999", 1, fill=R if rok else None)
+        for q in range(2):
+            rbox(gx + 24 + q * 8, y, 6, 11, "#bbb", 0.8, fill="#777" if (rok if (r + q) % 3 else 1 - rok) else None)
+        rbox(gx + 56, y, 20, 11, "#999", 1, fill=C if cok else None)
+        for q in range(2):
+            rbox(gx + 80 + q * 8, y, 6, 11, "#bbb", 0.8, fill="#e9b949" if cok else None)
+        if (r + len(name)) % 2:
+            txt(gx + 104, y + 10, "≈", 12, GREY)
+        rv, cv = random.uniform(400, 560), random.uniform(330, 390)
+        rl(cx + 30 + cv, y + 5, cx + 30 + rv, y + 5, "#999", 1.2)
+        rcirc(cx + 30 + rv, y + 5, 3.4, R, 1, fill=R); rcirc(cx + 30 + cv, y + 5, 3.4, C, 1, fill=C)
+        rowy.append(y)
+        y += 15
+    y += 6
+rbox(cx + 350, rowy[0] - 5, 250, 36, IA, 1.5, dash="5 4")
+badge(cx + 614, rowy[0] + 6, 4)
+rbox(cx + 8, rowy[3] - 3, 600, 17, IA, 1.8)
+badge(cx + 622, rowy[3] + 5, 5)
+txt(cx + 12, cy + ch - 46, "filled = success · narrow = the same schedule run again · ≈ = outcome not the same in all runs", 11.5, "#555")
+note(cx + 12, cy + ch - 24, "④ drag = select start states → A and B recompute on them  ⑤ click a row = replay it in D and E", size=12)
 
-# ---- C workspace replay
-rbox(cx0, cy0, cw0, ch0)
-txt(cx0 + 12, cy0 + 24, "C · Workspace replay", 15, weight="bold")
-txt(cx0 + 200, cy0 + 24, "the table seen from above · both schedules side by side, same moment", 12, "#555")
-for k, (lab, col, good) in enumerate([("Baseline: standing still, waiting for a new plan", R, False),
-                                      ("Candidate: moving, its plan is k steps old", C, True)]):
-    x0 = cx0 + 20 + k * 324
-    txt(x0, cy0 + 48, lab, 12.5, "#222" if not good else "#9a6a00")
-    rbox(x0, cy0 + 56, 300, 178, "#999", 1.3)
-    tee(x0 + 222, cy0 + 120, 0, 0.85, col=GREY, dash="4 3")
-    txt(x0 + 272, cy0 + 100, "goal", 12, GREY)
-    bxx, byy = (x0 + 196, cy0 + 132) if good else (x0 + 236, cy0 + 112)
-    tee(bxx, byy, 22 if good else 58, 0.85, fill=LIGHT)
-    px, py = x0 + 92, cy0 + 160
-    curve([(x0 + 30, cy0 + 204), (x0 + 60, cy0 + 184), (px - 10, py + 6)], col, 2.6)
-    curve([(px + 12, py + 2), (x0 + 120, cy0 + 194), (x0 + 156, cy0 + 206)], col, 1.6, "5 5")
-    if good:
-        rcirc(px, py, 11, col, 2.2, fill=col, op=.3)
-        # what the policy saw: block and pusher in the camera picture of the current chunk
-        tee(x0 + 150, cy0 + 136, 5, 0.85, col=col, w=1.6, dash="2 4")
-        rcirc(px - 36, py + 24, 11, col, 1.6, dash="2 4")
-        curve([(px - 26, py + 17), (px - 12, py + 7)], col, 1.5, None, True)
-        txt(x0 + 10, cy0 + 226, "dotted = what the policy saw", 12, "#9a6a00")
-        badge(x0 + 286, cy0 + 70, 4)
-    else:
-        rcirc(px, py, 11, col, 2.2, fill=col)
-        curve([(px, py), (px - 30, py - 50)], SEAM, 2.6)
-        rcirc(px - 30, py - 50, 4, SEAM, 1.5, fill="#fff")
-        txt(x0 + 12, py - 62, "jump to the new plan", 12, SEAM)
-        txt(x0 + 10, cy0 + 226, "filled = not moving", 12, "#555")
-txt(cx0 + 20, cy0 + 254, "grey T = block · dashed T = goal · ● = pusher · solid = moves done · dashed = rest of the plan", 12, "#555")
-rbox(cx0 + 20, cy0 + 268, 50, 22, sw=1.3)
-txt(cx0 + 30, cy0 + 284, "▶ play", 12)
-rl(cx0 + 84, cy0 + 279, cx0 + 332, cy0 + 279, INK, 2.4)
-rcirc(cx0 + 322, cy0 + 279, 7, INK, 1.4, fill=INK)
-note(cx0 + 346, cy0 + 284, "← → step · hover a point = when planned")
-txt(cx0 + 20, cy0 + 308, "why: waiting? old picture? jump?", 12, "#555")
-
-# ---- D execution timeline
-rbox(dx, dy, dw, dh)
-txt(dx + 12, dy + 24, "D · Execution timeline", 15, weight="bold")
-txt(dx + dw - 12, dy + 24, f"<tspan fill='{SEAM}'>red bar = jump at a chunk switch</tspan> · time →", 12, "#555", "end")
-t0, Wd = dx + 130, 62
+# ---- E execution timeline
+title(E, "E · Execution timeline", "when does it wait or jump?")
+ex, ey, ew, eh = E
+t0, Wd = ex + 100, 44
 for k, (lab, col) in enumerate([("baseline", R), ("candidate", C)]):
-    yy = dy + 58 + k * 66
-    txt(dx + 12, yy + 30, lab, 13, "#222" if k == 0 else "#9a6a00", weight="bold")
-    txt(t0 - 8, yy, "jumps", 11.5, GREY, "end")
-    txt(t0 - 8, yy + 14, "think", 11.5, GREY, "end"); txt(t0 - 8, yy + 34, "act", 11.5, GREY, "end")
-    rl(t0, yy, t0 + 8 * Wd - 6, yy, GREY, 1)
-    if k == 0:  # sync: think, then act; standing still while thinking
+    yy = ey + 60 + k * 76
+    txt(ex + 12, yy - 14, lab, 12.5, "#222" if k == 0 else "#9a6a00", weight="bold")
+    txt(t0 - 6, yy + 2, "jumps", 10.5, GREY, "end"); txt(t0 - 6, yy + 18, "think", 10.5, GREY, "end"); txt(t0 - 6, yy + 38, "act", 10.5, GREY, "end")
+    if k == 0:
         for c in range(4):
             x = t0 + c * 2 * Wd
-            rbox(x, yy + 4, Wd - 6, 12, "#555", 1.2, fill="#ccc")
-            rbox(x, yy + 22, Wd - 6, 16, "#999", 1.2, fill="url(#hatch)")
-            rbox(x + Wd, yy + 22, Wd - 6, 16, "#555", 1.3, fill="#bbb")
-            if c:
-                add(f'<rect x="{x + Wd - 1.5}" y="{yy - 5}" width="3" height="5" fill="{SEAM}"/>')
-    else:  # async: thinks while acting
+            rbox(x, yy + 8, Wd - 4, 11, "#555", 1.1, fill="#ccc")
+            rbox(x, yy + 26, Wd - 4, 15, "#999", 1.1, fill="url(#hatch)")
+            rbox(x + Wd, yy + 26, Wd - 4, 15, "#555", 1.2, fill="#bbb")
+    else:
         for c in range(8):
             x = t0 + c * Wd
-            rbox(x, yy + 4, Wd - 6, 12, col, 1.2, fill="#fbe3b0")
-            rbox(x, yy + 22, Wd - 6, 16, col, 1.3, fill="#f3c66a")
+            rbox(x, yy + 8, Wd - 4, 11, col, 1.1, fill="#fbe3b0")
+            rbox(x, yy + 26, Wd - 4, 15, col, 1.2, fill="#f3c66a")
             if c:
-                jh = [0, 6, 4, 12, 5, 7, 4, 9][c]
-                add(f'<rect x="{x - 1.5}" y="{yy - jh}" width="3" height="{jh}" fill="{SEAM}"/>')
-pc = 3
-txt(t0, dy + 182, "sync: think, then act · async: think while acting", 12.5)
-badge(t0 + 6 * Wd - 6, dy + 34, 5)
-# cursor and brush window
-cur = t0 + (pc + 0.5) * Wd
-rl(cur, dy + 36, cur, dy + 166, INK, 1.6, over=0); rl(cur, dy + 190, cur, dy + 250, INK, 1.6, over=0)
-rbox(t0 + 6 * Wd - 6, dy + 34, 2 * Wd + 6, 132, IA, 1.5, dash="5 4")
-note(t0 + 7 * Wd, dy + 182, "drag = time window", "middle")
-# block-on-goal coverage
-cb, ct = dy + 242, dy + 204
-rl(t0, cb, dx + dw - 14, cb, GREY, 1.2)
-rl(t0, ct, dx + dw - 14, ct, GREY, 1.1, "6 5")
-txt(dx + dw - 14, ct - 4, "success line", 11.5, GREY, "end")
-txt(dx + 12, ct + 26, "block on", 12, "#555"); txt(dx + 12, ct + 42, "goal", 12, "#555")
-curve([(t0, cb), (t0 + 150, cb - 12), (t0 + 320, cb - 20), (t0 + 480, cb - 17)], R, 2)
-curve([(t0, cb), (t0 + 120, cb - 16), (t0 + 260, cb - 28), (t0 + 330, cb - 36)], C, 2)
-note(dx + 14, dy + dh - 8, "click = move time cursor (C follows) · hover a chunk = its plan in C · window = that path in C", size=12)
-curve([(cur, dy + 36), (cur - 4, dy + 14), (cx0 + 322, cy0 + 290)], IA, 1.5, "5 4", True)
+                jh = [0, 5, 4, 11, 16, 6, 4, 8][c]
+                add(f'<rect x="{x - 1.5}" y="{yy + 4 - jh}" width="3" height="{jh}" fill="{SEAM}"/>')
+cb, ct = ey + 260, ey + 214
+rl(t0, cb, ex + ew - 12, cb, GREY, 1.2); rl(t0, ct, ex + ew - 12, ct, GREY, 1.1, "6 5")
+txt(ex + ew - 12, ct - 4, "success line", 10.5, GREY, "end")
+txt(ex + 12, ct + 26, "outcome", 11.5, "#555")
+curve([(t0, cb), (t0 + 120, cb - 14), (t0 + 250, cb - 24), (t0 + 350, cb - 20)], R, 2)
+curve([(t0, cb), (t0 + 110, cb - 18), (t0 + 220, cb - 34), (t0 + 300, cb - 50)], C, 2)
+cur = t0 + 3.5 * Wd
+rl(cur, ey + 44, cur, cb, INK, 1.5)
+rbox(t0 + 5 * Wd - 4, ey + 40, 2 * Wd + 6, cb - ey - 40, IA, 1.5, dash="5 4")
+badge(t0 + 5 * Wd - 4, ey + 40, 6)
+note(ex + 12, ey + eh - 14, "⑥ drag = time window → its path in D · click = cursor", size=11.5)
+
+# ---- linking arrows
+curve([(ax + 392, ay + 250), (ax + 380, ay + ah + 24), (cx + 330, cy + 40)], IA, 1.5, "5 4", True)
+curve([(cx + 634, rowy[3] + 5), (cx + 696, cy + 60), (dx + 100, dy + dh - 4)], IA, 1.5, "5 4", True)
+curve([(cx + 614, rowy[0] - 6), (cx + 600, ay + ah + 20), (bx + 200, by + bh - 4)], IA, 1.5, "5 4", True)
+curve([(t0 + 6 * Wd, ey + 40), (ex + 400, ey - 20), (dx + 200, dy + 270)], IA, 1.5, "5 4", True)
 add('</svg>')
 OUT.write_text("\n".join(o))
 print("wrote", OUT, f"{OUT.stat().st_size // 1024} KB")

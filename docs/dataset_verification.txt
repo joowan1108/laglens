@@ -1,26 +1,26 @@
-episodes.csv: 450 items x 23 attributes, 47 KB
-  schedule           distinct=15
+episodes.csv: 1890 items x 23 attributes, 202 KB
+  schedule           distinct=63
   strategy           levels=['inpaint', 'naive', 'sync']
   latency            levels=[0, 2, 4]  (missing 0)
-  horizon            levels=[4, 8]  (missing 0)
-  replicate          levels=[0, 1]  (missing 0)
+  horizon            levels=[4, 8, 11]  (missing 0)
+  replicate          levels=[0, 1, 2]  (missing 0)
   seed               range=[1000, 1029]  distinct=30  (missing 0)
   success            levels=[0, 1]  (missing 0)
-  steps_to_success   range=[74, 300]  distinct=144  (missing 222)
-  coverage_final     range=[0, 0.9948]  distinct=347  (missing 0)
-  coverage_max       range=[0, 0.9948]  distinct=350  (missing 0)
-  dist_final         levels=[]  (missing 450)
-  ball_speed         levels=[]  (missing 450)
-  n_inferences       range=[11, 75]  distinct=53  (missing 0)
-  n_switches         range=[10, 74]  distinct=53  (missing 0)
-  jump_mean          range=[3.15, 90.96]  distinct=376  (missing 0)
-  jump_max           range=[6.79, 256.96]  distinct=428  (missing 0)
-  inner_step_mean    range=[2.9, 13.98]  distinct=312  (missing 0)
-  staleness_mean     range=[1.473, 7.5]  distinct=104  (missing 0)
-  idle_frac          range=[0, 0.5067]  distinct=143  (missing 0)
-  jerk_mean          range=[2.12, 48.04]  distinct=305  (missing 0)
-  think_motion_mean  range=[0, 80.43]  distinct=340  (missing 0)
-  think_motion_max   range=[0, 229.89]  distinct=349  (missing 0)
-  path_len           range=[705.3, 6157.8]  distinct=446  (missing 0)
-step records: 109654   chunk records: 18131 (16 predicted 2-D actions each)   detail files: 18.2 MB
+  steps_to_success   range=[74, 300]  distinct=213  (missing 938)
+  coverage_final     range=[0, 0.9948]  distinct=1067  (missing 0)
+  coverage_max       range=[0, 0.9948]  distinct=952  (missing 0)
+  dist_final         levels=[]  (missing 1890)
+  ball_speed         levels=[]  (missing 1890)
+  n_inferences       range=[8, 75]  distinct=65  (missing 0)
+  n_switches         range=[0, 74]  distinct=66  (missing 0)
+  jump_mean          range=[0, 114.38]  distinct=991  (missing 0)
+  jump_max           range=[0, 284.34]  distinct=1442  (missing 0)
+  inner_step_mean    range=[2.9, 13.98]  distinct=634  (missing 0)
+  staleness_mean     range=[1.473, 9]  distinct=317  (missing 0)
+  idle_frac          range=[0, 0.5067]  distinct=354  (missing 0)
+  jerk_mean          range=[1.92, 59.05]  distinct=679  (missing 0)
+  think_motion_mean  range=[0, 94.01]  distinct=1210  (missing 0)
+  think_motion_max   range=[0, 255.15]  distinct=1459  (missing 0)
+  path_len           range=[693.9, 7151.2]  distinct=1826  (missing 0)
+step records: 151618   chunk records: 21453 (16 predicted 2-D actions each)   detail files: 22.9 MB
 REQUIREMENT >=100 items and >=6 attributes: PASS
