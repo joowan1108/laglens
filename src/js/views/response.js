@@ -1,6 +1,6 @@
 // View B: latency response relative to the baseline chosen in A, in one plot so that baseline and
 // candidate are always in the same frame: x = inference latency d (true spacing, 100 ms per step),
-// one line per strategy × horizon (hue + shape = strategy, solid = h 4, dashed = h 8). y = each schedule's success minus the baseline's on the same start states (paired), so
+// one line per strategy × horizon (hue + shape = strategy, solid = h 4, dashed = h 8, dash-dot = h 11). y = each schedule's success minus the baseline's on the same start states (paired), so
 // 0 is the baseline and choosing another baseline in A moves the zero line and re-tests every point.
 // The scale spans exactly 0–100 % success, so the curve shapes read as absolute latency response.
 // Small hollow marks = the same schedule simply run again (its re-runs), joined by a thin line: the
@@ -32,8 +32,8 @@ export function initResponse() {
     it.append("span").text({ sync: "Sync", naive: "Naive", inpaint: "Inpaint" }[s]);
   }
   lg.append("span").attr("class", "li").attr("title", "execution horizon h: how many actions of each chunk are executed before switching to the next chunk")
-    .html('<svg width="18" height="8"><line x1="0" x2="18" y1="4" y2="4" stroke="#555" stroke-width="2"/></svg>h 4 <svg width="18" height="8"><line x1="0" x2="18" y1="4" y2="4" stroke="#555" stroke-width="2" stroke-dasharray="5 3"/></svg>h 8');
-  lg.append("span").attr("class", "li muted").attr("title", "every schedule was run two more times from the same start states (only the sampling noise of the policy differs): the spread of the three results is what chance alone does").html('<svg width="10" height="16"><line x1="5" x2="5" y1="2" y2="14" stroke="#777" stroke-width="1"/><circle cx="5" cy="3" r="2.2" fill="#fff" stroke="#777"/><circle cx="5" cy="12" r="2.2" fill="#fff" stroke="#777"/></svg>run again');
+    .html(['', '5 3', '9 2 2 2'].map((da, k) => `<svg width="13" height="8"><line x1="0" x2="13" y1="4" y2="4" stroke="#555" stroke-width="2"${da ? ` stroke-dasharray="${da}"` : ""}/></svg>h${HORIZONS[k]}`).join(" "));
+  lg.append("span").attr("class", "li muted").attr("title", "every schedule was run two more times from the same start states (only the sampling noise of the policy differs): the spread of the three results is what chance alone does").html('<svg width="10" height="16"><line x1="5" x2="5" y1="2" y2="14" stroke="#777" stroke-width="1"/><circle cx="5" cy="3" r="2.2" fill="#fff" stroke="#777"/><circle cx="5" cy="12" r="2.2" fill="#fff" stroke="#777"/></svg>re-run');
   root = d3.select("#response");
   svg = root.append("svg");
   noteSel = d3.select("#responseNote");
@@ -60,9 +60,9 @@ function points() {
 }
 
 // one plot for both horizons, so baseline and candidate are always in the same frame:
-// hue + shape = strategy, solid = h 4, dashed = h 8; points of one latency are dodged side by side
-const DODGE = { sync4: -20, sync8: -12, naive4: -4, naive8: 4, inpaint4: 12, inpaint8: 20 };
-const DASH = { 4: null, 8: "5 3" };
+// hue + shape = strategy, solid = h 4, dashed = h 8, dash-dot = h 11; points of one latency are dodged side by side
+const DODGE = { sync4: -24, sync8: -18, sync11: -12, naive4: -3, naive8: 3, naive11: 9, inpaint4: 15, inpaint8: 21, inpaint11: 27 };
+const DASH = { 4: null, 8: "5 3", 11: "9 2 2 2" };
 const key = (p) => `${p.strat}${p.h}`;
 
 function render() {

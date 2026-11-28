@@ -10,7 +10,7 @@ import { DATA, STRATEGIES, HORIZONS, LATENCIES, label, aggregate, comparable, wh
 import { COLOR, STRAT_COLOR, STRAT_SYMBOL, METRICS, fmtMetric, showTip, hideTip, size } from "../util.js";
 
 const BETTER = "#5e3c99", WORSE = "#8a8a92", MID = "#f7f7f8";
-const ORDER_H = [4, 8];
+const ORDER_H = [4, 8, 11];
 // The colour scale is fixed per question and task, so a colour means the same difference under every
 // filter: ±60 points for success and idle share; for the px costs the largest paired difference
 // among the comparable pairs of the task.
@@ -228,7 +228,7 @@ function ranking(x0, x1, top, bottom, on) {
     .text("● run 0  ○ re-runs  | mean");
 }
 
-// Every comparable unordered pair of schedules (49 of the 91 for 14, see data.comparable) is one exact
+// Every comparable unordered pair of schedules (102 of the 210 for 21 schedules, see data.comparable) is one exact
 // McNemar test; the frames use Benjamini–Hochberg q-values over that family, so about 1 in 20 framed cells may be a false
 // discovery instead of 1 in 20 of all cells. Computed once per task on all start states.
 let qCache = { task: null, q: new Map() };

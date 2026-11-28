@@ -11,6 +11,34 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def expected_frames(csv_path):
+    """Independent recomputation of A's frames: exact McNemar on run 0 over the comparable pairs,
+    Benjamini-Hochberg at 5 %; returns the number of framed ordered cells (2 per pair)."""
+    import csv, itertools, math
+    out = {}
+    for r in csv.DictReader(open(csv_path)):
+        if "_r" in r["schedule"]: continue
+        out.setdefault(r["schedule"], {})[r["seed"]] = int(float(r["success"]))
+    P = lambda i: (i.split("_")[0], int(i.split("_")[1][1:]), int(i.split("_")[2][1:]))
+    def comp(a, b):
+        A, B = P(a), P(b)
+        if A[1] == B[1]: return True
+        if A[2] != B[2]: return False
+        return A[0] == B[0] or A[1] == 0 or B[1] == 0
+    ps = []
+    for a, b in itertools.combinations(sorted(out), 2):
+        if not comp(a, b): continue
+        g = sum(out[a][s] == 0 and out[b][s] == 1 for s in out[a]); l = sum(out[a][s] == 1 and out[b][s] == 0 for s in out[a])
+        n = g + l
+        p = 1.0 if n == 0 else min(1.0, 2 * sum(math.comb(n, i) for i in range(min(g, l) + 1)) / 2 ** n)
+        ps.append(p)
+    ps.sort(); m = len(ps); q = [0.0] * m; run = 1.0
+    for i in range(m - 1, -1, -1): run = min(run, ps[i] * m / (i + 1)); q[i] = run
+    return 2 * sum(x < 0.05 for x in q), m
+
+NFR, NCMP = expected_frames(ROOT / "src" / "data" / "episodes.csv")
+
+
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -39,7 +67,7 @@ with sync_playwright() as p:
     ok("A pair overview and B latency response are shown together", pg.is_visible("#pairs") and pg.is_visible("#response")
        and pg.locator("#pA").bounding_box()["x"] < pg.locator("#pB").bounding_box()["x"])
     npc = pg.locator("#pairs rect.pc").count()
-    ok("pair overview shows every pair of schedules (14 × 14)", npc == 14 * 14)
+    ok("A opens at my latency d = 4, like the default pair: the 9 schedules at d = 4 plus the 3 sync d0 references (12 × 12)", S("dfocus") == 4 and npc == 12 * 12)
     ok("pair overview frames pairs whose paired difference is unlikely to be chance",
        pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>r.getAttribute('stroke')==='#1d1d1f').length") > 0)
     cell = pg.evaluate("""(()=>{const c=[...document.querySelectorAll('#pairs rect.pc')].map(r=>d3.select(r).datum())
@@ -52,16 +80,18 @@ with sync_playwright() as p:
     ok("the selected pair is marked in the overview", pg.locator("#pairs rect.cur").count() == 1)
     # "my latency": only the schedules at d = 4 (+ sync d0 reference), values printed in the cells
     pg.click("#pairControls .dseg button:has-text('d = 4')"); pg.wait_for_timeout(300)
-    ok("A latency filter keeps the d = 4 schedules plus the sync d0 reference (8 × 8)", S("dfocus") == 4 and pg.locator("#pairs rect.pc").count() == 64)
-    ok("A prints the difference in the cells when there is room", pg.locator("#pairs text.pv").count() == 44)
+    ok("A latency filter keeps the d = 4 schedules plus the sync d0 reference (12 × 12)", S("dfocus") == 4 and pg.locator("#pairs rect.pc").count() == 144)
+    pg.set_viewport_size({"width": 1920, "height": 1080}); pg.wait_for_timeout(500)
+    ok("A prints the difference in the 96 comparable cells when there is room", pg.locator("#pairs text.pv").count() == 96)
+    pg.set_viewport_size({"width": 1600, "height": 940}); pg.wait_for_timeout(500)
     ok("B shades my latency", pg.locator("#response rect.dband").count() == 1)
     pg.click("#pairControls .dseg button:has-text('all latencies')"); pg.wait_for_timeout(300)
-    ok("A back to all latencies", S("dfocus") is None and pg.locator("#pairs rect.pc").count() == 196)
+    ok("A back to all latencies", S("dfocus") is None and pg.locator("#pairs rect.pc").count() == 441)
     nfr = pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>r.getAttribute('stroke')==='#1d1d1f').length")
     log.append(f"framed ordered cells: {nfr}")
-    ok("A frames are corrected over the 49 comparable pairs (FDR): 20 framed ordered cells in PushT (10 pairs)", nfr == 20)
+    ok(f"A frames are corrected over the 102 comparable pairs (FDR): {NFR} framed ordered cells in PushT ({NFR // 2} pairs)", nfr == NFR)
     nnc = pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>d3.select(r).datum().nc).length")
-    ok("A hatches the 42 pairs that are not compared (84 ordered cells), not clickable", nnc == 84)
+    ok("A hatches the 108 pairs that are not compared (216 ordered cells), not clickable", nnc == 216)
     ok("a pair with d = 0 is compared only at the same h", pg.evaluate("""(()=>{const c=[...document.querySelectorAll('#pairs rect.pc')].map(r=>d3.select(r).datum());
       const f=(a,b)=>c.find(q=>!q.diag&&q.r.id===a&&q.c.id===b); return !!f('sync_d0_h4','inpaint_d2_h8').nc && !f('sync_d0_h8','inpaint_d2_h8').nc;})()"""))
     pg.evaluate("window.LagLens.update({ref:'sync_d2_h4', cand:'inpaint_d2_h4'})"); pg.evaluate("window.LagLens.update({cand:'inpaint_d4_h8'})"); pg.wait_for_timeout(200)
@@ -99,7 +129,7 @@ with sync_playwright() as p:
     ok("B click sets candidate", S("cand") == target)
     marks.nth(idx_of("sync_d4_h4")).locator("circle.hit").click(modifiers=["Shift"], force=True)
     ok("B shift-click sets reference", S("ref") == "sync_d4_h4")
-    ok("B shows the re-runs of every schedule as small hollow marks", pg.locator("#response g.pm g.re circle").count() == 2 * 14)
+    ok("B shows the re-runs of every schedule as small hollow marks", pg.locator("#response g.pm g.re circle").count() == 2 * 21)
     marks.nth(idx_of(target)).locator("circle.hit").hover(force=True)
     ok("B tooltip gives the paired difference to the baseline", pg.is_visible("#tooltip") and "vs baseline:" in pg.inner_text("#tooltip"))
     pg.hover("#responseControls .legend .li[data-strat=naive]")
@@ -116,7 +146,7 @@ with sync_playwright() as p:
        and pg.evaluate("d3.select(document.querySelector('#pairs rect.cur')).datum().v") != v0)
     ok("costs are described, not tested: no frames in A", pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>r.getAttribute('stroke')==='#1d1d1f').length") == 0)
     pg.click("#metricSeg button:has-text('Success')"); pg.wait_for_timeout(300)
-    ok("back to success: frames return", pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>r.getAttribute('stroke')==='#1d1d1f').length") == 20)
+    ok("back to success: frames return", pg.evaluate("[...document.querySelectorAll('#pairs rect.pc')].filter(r=>r.getAttribute('stroke')==='#1d1d1f').length") == NFR)
     ok("C re-run cells: two narrow cells per schedule and start state", pg.locator("#seedtable rect.cr").count() == 2 * 2 * 30)
     ok("C shows two outcome cells (baseline, candidate) per start state", pg.locator("#seedtable rect.c").count() == 2 * 30)
     ok("C groups rows by baseline→candidate change", pg.locator("#seedtable g.band").count() >= 2)
@@ -176,12 +206,12 @@ with sync_playwright() as p:
     # A's ranking strip, reset, resize, URL state
     pg.evaluate("window.LagLens.update({ref:'sync_d4_h4', cand:'inpaint_d4_h4', dfocus:null, metric:'success_rate'})"); pg.wait_for_timeout(300)
     rk = pg.evaluate("""[...document.querySelectorAll('#pairs g.rr')].map(g=>{const r=d3.select(g).datum(); return [r.id, r.mean, r.runs.length]})""")
-    ok("A ranks the 6 schedules at the pair's latency (d = 4) by the mean success of their 3 runs, best first",
-       len(rk) == 6 and all(x[0].split("_")[1] == "d4" and x[2] == 3 for x in rk) and all(rk[i][1] >= rk[i+1][1] for i in range(5)))
+    ok("A ranks the 9 schedules at the pair's latency (d = 4) by the mean success of their 3 runs, best first",
+       len(rk) == 9 and all(x[0].split("_")[1] == "d4" and x[2] == 3 for x in rk) and all(rk[i][1] >= rk[i+1][1] for i in range(8)))
     pg.locator("#pairs g.rr").nth(1).click(force=True); pg.wait_for_timeout(200)
     ok("a row of the ranking sets the candidate", S("cand") == rk[1][0] and S("ref") == "sync_d4_h4")
     pg.evaluate("window.LagLens.update({dfocus:2})"); pg.wait_for_timeout(200)
-    ok("the ranking follows 'my latency'", all("_d2_" in pg.evaluate("[...document.querySelectorAll('#pairs g.rr')].map(g=>d3.select(g).datum().id)")[i] for i in range(6)))
+    ok("the ranking follows 'my latency'", all("_d2_" in pg.evaluate("[...document.querySelectorAll('#pairs g.rr')].map(g=>d3.select(g).datum().id)")[i] for i in range(9)))
     pg.evaluate("window.LagLens.update({dfocus:null})")
     pg.evaluate("window.LagLens.update({ref:'sync_d4_h8', cand:'naive_d4_h8'})")
     pg.locator("#pairs text.colL").nth(3).click(force=True); ok("a column label in A sets only the candidate", S("cand") == "sync_d0_h8" and S("ref") == "sync_d4_h8")
@@ -201,7 +231,7 @@ with sync_playwright() as p:
     ok("Catch: D draws the ball and no T", pg.locator("#workspace g.block circle").count() == 2 and pg.locator("#workspace g.block path.bl").count() == 0 and pg.locator("#workspace path.gl").count() == 0)
     ok("Catch: E shows the pusher–ball distance", "pusher–ball distance" in pg.inner_text("#timeline"))
     ok("Catch: D cards give the distance to the ball", "distance to ball" in pg.inner_text("#workspace"))
-    ok("Catch: B shows the two re-runs of every schedule as small hollow marks", pg.locator("#response g.pm g.re circle").count() == 2 * 14)
+    ok("Catch: B shows the two re-runs of every schedule as small hollow marks", pg.locator("#response g.pm g.re circle").count() == 2 * 21)
     ok("Catch: C shows two narrow re-run cells per schedule and start state", pg.locator("#seedtable rect.cr").count() == 2 * 2 * 30)
     ok("Catch: C marks start states whose outcome is not the same in all runs (≈) and counts the flips that come back",
        pg.locator("#seedtable text.nz").count() > 0 and "come back in all 3 runs" in pg.inner_text("#seedNote"))

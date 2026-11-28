@@ -1,18 +1,18 @@
 PASS  guide shown on first visit
 PASS  guide closes
 PASS  A pair overview and B latency response are shown together
-PASS  pair overview shows every pair of schedules (14 × 14)
+PASS  A opens at my latency d = 4, like the default pair: the 9 schedules at d = 4 plus the 3 sync d0 references (12 × 12)
 PASS  pair overview frames pairs whose paired difference is unlikely to be chance
 PASS  pair overview tooltip gives rescued / lost start states and the chance level
 PASS  clicking a cell sets baseline (row) and candidate (column)
 PASS  the selected pair is marked in the overview
-PASS  A latency filter keeps the d = 4 schedules plus the sync d0 reference (8 × 8)
-PASS  A prints the difference in the cells when there is room
+PASS  A latency filter keeps the d = 4 schedules plus the sync d0 reference (12 × 12)
+PASS  A prints the difference in the 96 comparable cells when there is room
 PASS  B shades my latency
 PASS  A back to all latencies
-framed ordered cells: 20
-PASS  A frames are corrected over the 49 comparable pairs (FDR): 20 framed ordered cells in PushT (10 pairs)
-PASS  A hatches the 42 pairs that are not compared (84 ordered cells), not clickable
+framed ordered cells: 28
+PASS  A frames are corrected over the 102 comparable pairs (FDR): 28 framed ordered cells in PushT (14 pairs)
+PASS  A hatches the 108 pairs that are not compared (216 ordered cells), not clickable
 PASS  a pair with d = 0 is compared only at the same h
 PASS  a candidate that is not comparable with the baseline is refused, nothing is moved, and A says why
 PASS  the header has no pair controls: no menus, no name chips, no swap (the pair is chosen in A)
@@ -22,7 +22,7 @@ PASS  B draws the schedules that are not compared with the baseline as dashed ou
 PASS  B puts the baseline chosen in A on the zero line
 PASS  a row label in A sets only the baseline, and B's values change with it
 PASS  B marks the candidate's distance to the baseline
-rendered marks: {'#response g.pm': 14, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 196, '#timeline .bars rect': 37, '#timeline .think rect': 37}
+rendered marks: {'#response g.pm': 21, '#seedtable rect.c': 60, '#seedtable g.db': 30, '#workspace g.wp': 2, '#pairs rect.pc': 441, '#timeline .bars rect': 87, '#timeline .think rect': 87}
 PASS  all five views rendered (A matrix, B curves, C cells + dumbbells, D board, E tracks)
 PASS  B click sets candidate
 PASS  B shift-click sets reference
@@ -36,7 +36,7 @@ PASS  back to success: frames return
 PASS  C re-run cells: two narrow cells per schedule and start state
 PASS  C shows two outcome cells (baseline, candidate) per start state
 PASS  C groups rows by baseline→candidate change
-≈ marks: 20
+≈ marks: 24
 PASS  C marks the start states whose outcome is not the same in all runs (≈) and counts the flips that come back
 PASS  C cell click selects seed
 PASS  D opens the new start state where the two runs first part, not at t = 0
@@ -59,7 +59,7 @@ PASS  E chunk hover links to D
 PASS  E brush sets window
 PASS  D draws brushed window path
 PASS  Esc clears window
-PASS  A ranks the 6 schedules at the pair's latency (d = 4) by the mean success of their 3 runs, best first
+PASS  A ranks the 9 schedules at the pair's latency (d = 4) by the mean success of their 3 runs, best first
 PASS  a row of the ranking sets the candidate
 PASS  the ranking follows 'my latency'
 PASS  a column label in A sets only the candidate

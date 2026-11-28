@@ -25,7 +25,7 @@ export const DATA = {
 export const STRATEGIES = ["sync", "naive", "inpaint"];
 export const STRAT_LABEL = { sync: "Sync", naive: "Naive async", inpaint: "Inpaint async" };
 export const LATENCIES = [0, 2, 4];
-export const HORIZONS = [4, 8];  // same order as the Pair Overview
+export const HORIZONS = [4, 8, 11];  // same order as the Pair Overview
 
 export function label(id) {
   const s = DATA.schedById.get(id);
@@ -43,7 +43,7 @@ export function shortLabel(id) {
 //   same d (what should I run at my latency? strategy and h are both choices), or
 //   different d with the same h and either the same strategy (what does more latency cost?) or one
 //   of them at d = 0 (how far is this from having no latency?).
-// Every other pair mixes latency with h or with the strategy and is not compared (42 of the 91).
+// Every other pair mixes latency with h or with the strategy and is not compared (108 of the 210 pairs of the 21 schedules).
 // The rule is fixed by the design, not by any outcome.
 export function comparable(a, b) {
   const A = DATA.schedById.get(a), B = DATA.schedById.get(b);

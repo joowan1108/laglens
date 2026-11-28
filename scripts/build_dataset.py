@@ -30,7 +30,7 @@ TASKS = [("pusht", os.path.join(ROOT, "data", "runs"), os.path.join(ROOT, "src",
 # The re-runs contribute their per-episode rows (how repeatable an outcome is); the replay shows run 0,
 # so no step/chunk detail file is written for them.
 # data/runs holds the full generated grid (46 schedules x 50 seeds); it is not changed.
-LATENCIES, HORIZONS, N_SEEDS = (0, 2, 4), (4, 8), 30
+LATENCIES, HORIZONS, N_SEEDS = (0, 2, 4), (4, 8, 11), 30  # h = 11: the longest that fits every latency (1 + d + h <= 16)
 GRID = [f"{s}_d{d}_h{h}" for s in ("sync", "naive", "inpaint") for d in LATENCIES for h in HORIZONS
         if s == "sync" or d > 0]
 REPS = [f"{c}_r{k}" for k in (1, 2) for c in GRID]
