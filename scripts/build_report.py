@@ -196,17 +196,25 @@ def report_tokens():
     t["DG_IDLE"] = f"{100 * sj['sync_d4_h4']['idle_frac_mean']:.0f}"
     for task, P in (("pusht", "P"), ("catch", "C")):
         e = eps[task]
-        rng_ = lambda ids: "–".join(f"{100 * v:.0f}" for v in (min(mean3(e, x) for x in ids), max(mean3(e, x) for x in ids)))
+        rng_ = lambda ids: "–".join(dict.fromkeys(f"{100 * v:.0f}" for v in (min(mean3(e, x) for x in ids), max(mean3(e, x) for x in ids))))
         t[f"{P}_SYNC4_RANGE"] = rng_([f"sync_d4_h{h}" for h in HS])
         t[f"{P}_ASYNC4_RANGE"] = rng_([f"{c}_d4_h{h}" for c in ("naive", "inpaint") for h in HS])
         t[f"{P}_FL_11"] = t[f"{P}_G_INPAINT_11"] + t[f"{P}_L_INPAINT_11"]
         t[f"{P}_NOTCMP"] = t[f"{P}_NPAIRS"] - t[f"{P}_NCMP"]
         t[f"{P}_UNFRAMED"] = t[f"{P}_NCMP"] - t[f"{P}_NSIG"]
+        # Arjun's 200 ms budget: framed pairs among the d = 2 schedules, and their success range
+        _, prs, qq = fdr(e)
+        d2 = [p_ for p_ in prs if qq[p_] < 0.05 and all(parse(x)[1] == 2 for x in p_)]
+        t[f"{P}_D2_NSIG"] = len(d2)
+        t[f"{P}_D2_SIG_H4"] = sum(any(parse(x)[2] == 4 for x in p_) for p_ in d2)
+        t[f"{P}_SYNC2_RANGE"] = rng_([f"sync_d2_h{h}" for h in HS])
+        t[f"{P}_ASYNC2_RANGE"] = rng_([f"{c}_d2_h{h}" for c in ("naive", "inpaint") for h in HS])
     # the sentences in the report state these as facts: stop the build if the data say otherwise
     assert t["P_SIG_H4"] == t["P_NSIG"], "PushT: a framed pair without an h = 4 schedule"
     assert t["C_SIG_SYNCD4_WORSE"] == t["C_NSIG"], "Catch: a framed pair where sync d = 4 is not the worse side"
     assert t["P_NCMP"] == t["C_NCMP"] and t["P_NPAIRS"] == t["C_NPAIRS"]
     assert t["F5_ALL_LEFT"] == "all"
+    assert t["C_D2_NSIG"] == 0 and t["P_D2_SIG_H4"] == t["P_D2_NSIG"], "the Outcome paragraph on the 200 ms budget"
     t["H_SVG"] = h_svg(eps)
     return t
 
